@@ -1,0 +1,151 @@
+{
+    "entity": "offering",
+    "slug": "angebote",
+    "menuOrder": 20,
+    "api": "/api/v1/offerings",
+    "label": {
+        "singular": "Angebot",
+        "plural": "Angebote"
+    },
+    "icon": "ShoppingCart",
+    "adminOnly": true,
+    "projectFilter": true,
+    "admin": {
+        "columns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "bezeichnungBotanisch",
+                "label": "Bot. Name"
+            },
+            {
+                "key": "category",
+                "label": "Kategorie"
+            },
+            {
+                "key": "available",
+                "label": "Verfügbar",
+                "type": "boolean"
+            },
+            {
+                "key": "sortOrder",
+                "label": "#"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "name",
+            "label": "Bezeichnung (deutsch)",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "bezeichnungBotanisch",
+            "label": "Bezeichnung (botanisch)",
+            "type": "Text"
+        },
+        {
+            "name": "project",
+            "label": "Projekt",
+            "type": "Select",
+            "required": true,
+            "options": "dynamic:projects"
+        },
+        {
+            "name": "tree",
+            "label": "Baumsteckbrief (Verweis)",
+            "type": "Select",
+            "options": "dynamic:trees"
+        },
+        {
+            "name": "category",
+            "label": "Kategorie",
+            "type": "Select",
+            "options": [
+                "Laubbaum",
+                "Halbstamm-Obstbaum",
+                "Hochstamm-Obstbaum",
+                "Obstbaum"
+            ]
+        },
+        {
+            "name": "pflanzgroesseHoehe",
+            "label": "Pflanzgröße Höhe",
+            "type": "Text"
+        },
+        {
+            "name": "pflanzgroesseStammumfang",
+            "label": "Pflanzgröße Stammumfang",
+            "type": "Text"
+        },
+        {
+            "name": "endgroesseHoehe",
+            "label": "Endgröße Höhe",
+            "type": "Text"
+        },
+        {
+            "name": "endgroesseBreite",
+            "label": "Endgröße Breite",
+            "type": "Text"
+        },
+        {
+            "name": "bemerkung",
+            "label": "Verwendung / Sonstiges",
+            "type": "Text"
+        },
+        {
+            "name": "available",
+            "label": "Verfügbar",
+            "type": "Boolean",
+            "default": true
+        },
+        {
+            "name": "stock",
+            "label": "Bestand (-1 = unbegrenzt)",
+            "type": "Integer",
+            "default": -1
+        },
+        {
+            "name": "notice",
+            "label": "Hinweis (wird bei Auswahl angezeigt)",
+            "type": "Text"
+        },
+        {
+            "name": "addons",
+            "label": "Zusatzoptionen",
+            "type": "ObjectArray",
+            "description": "z.B. Wühlmauskorb, Pfahl, etc.",
+            "itemFields": [
+                {
+                    "name": "name",
+                    "label": "Name",
+                    "type": "Text",
+                    "required": true
+                },
+                {
+                    "name": "description",
+                    "label": "Beschreibung",
+                    "type": "Text"
+                }
+            ]
+        },
+        {
+            "name": "sortOrder",
+            "label": "Reihenfolge",
+            "type": "Integer"
+        }
+    ],
+    "grid": [
+        "name name bezeichnungBotanisch bezeichnungBotanisch",
+        "project project tree tree",
+        "category category available stock",
+        "pflanzgroesseHoehe pflanzgroesseStammumfang endgroesseHoehe endgroesseBreite",
+        "bemerkung bemerkung bemerkung bemerkung",
+        "notice notice notice notice",
+        "addons addons addons addons",
+        "sortOrder sortOrder . ."
+    ]
+}

@@ -1,0 +1,72 @@
+{
+    "entity": "user",
+    "slug": "benutzer",
+    "menuOrder": 80,
+    "label": {
+        "singular": "Benutzer",
+        "plural": "Benutzer"
+    },
+    "icon": "User",
+    "api": "/api/v1/users",
+    "fields": [
+        {
+            "name": "username",
+            "label": "Benutzername",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "displayName",
+            "label": "Anzeigename",
+            "type": "Text"
+        },
+        {
+            "name": "email",
+            "label": "E-Mail-Adresse",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "passwordHash",
+            "label": "Neues Passwort (leer lassen für keine Änderung)",
+            "type": "Text"
+        },
+        {
+            "name": "profile",
+            "label": "Rechte-Profil",
+            "type": "Select",
+            "options": "dynamic:profiles",
+            "required": true
+        },
+        {
+            "name": "project",
+            "label": "Zuständiges Projekt",
+            "type": "Select",
+            "options": "dynamic:projects"
+        }
+    ],
+    "grid": [
+        "username displayName",
+        "email passwordHash",
+        "profile project"
+    ],
+    "admin": {
+        "columns": [
+            {
+                "key": "username",
+                "label": "Benutzername",
+                "type": "text"
+            },
+            {
+                "key": "displayName",
+                "label": "Anzeigename",
+                "type": "text"
+            },
+            {
+                "key": "email",
+                "label": "E-Mail",
+                "type": "text"
+            }
+        ]
+    }
+}

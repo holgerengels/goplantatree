@@ -1,0 +1,585 @@
+<template>
+  <div class="editor-page" v-if="config">
+    <div class="editor-header">
+      <div class="editor-title">
+        <span class="editor-icon">
+          <component :is="icons[config.icon]" v-if="icons[config.icon]" />
+          <span v-else>{{ config.icon }}</span>
+        </span>
+        <div>
+          <h1>{{ config.label.plural }}</h1>
+          <span class="editor-count">{{ items.length }} Einträge</span>
+        </div>
+      </div>
+
+      <div class="editor-actions">
+        <button v-if="!editing && auth.hasPermission(resourceName, 'create')" class="btn btn-primary" @click="startCreate">
+          + Neu
+        </button>
+        <button v-if="editing" class="btn btn-secondary" @click="cancelEdit">
+          ← Zurück zur Liste
+        </button>
+      </div>
+    </div>
+
+    <!-- FORM VIEW -->
+    <div v-if="editing" class="editor-form card">
+      <h2>{{ editingId ? 'Bearbeiten' : 'Neu anlegen' }}</h2>
+      <DynamicForm
+        ref="formRef"
+        :fields="config.fields || []"
+        :grid="config.grid || []"
+        v-model="formData"
+      />
+      <div class="form-actions">
+        <button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" class="btn btn-accent" @click="save" :disabled="saving">
+          {{ saving ? 'Speichern …' : '💾 Speichern' }}
+        </button>
+        <button v-if="editingId && auth.hasPermission(resourceName, 'delete')" class="btn btn-secondary btn-danger" @click="remove">
+          🗑 Löschen
+        </button>
+      </div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div v-else class="editor-list card">
+      <!-- Search and Filter -->
+      <div class="list-toolbar">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="form-input search-input"
+          :placeholder="`${config.label.plural} suchen …`"
+        />
+        
+        <select v-if="config.projectFilter" v-model="selectedProject" class="form-select project-filter">
+          <option value="">Alle Projekte</option>
+          <option v-for="p in projectsStore.projects" :key="p._id" :value="p.slug">
+            {{ p.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Grid View -->
+      <div class="data-grid" v-if="filteredItems.length && config.admin?.viewType === 'grid'">
+        <div class="grid-card" v-for="item in filteredItems" :key="item._id" @dblclick="startEdit(item)">
+          <div class="grid-image-wrapper">
+            <video v-if="item.mimeType?.startsWith('video/')" :src="item.url || item.file" muted loop playsinline></video>
+            <img v-else-if="item.url || item.file" :src="item.url || item.file" />
+            <div v-else class="grid-placeholder">Kein Bild</div>
+          </div>
+          <div class="grid-card-content">
+            <h4>{{ item.title || item.name || 'Ohne Titel' }}</h4>
+            <div class="grid-actions">
+              <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
+                <component :is="icons.Edit2" />
+              </button>
+              <button v-else class="btn-icon" @click="startEdit(item)" title="Ansehen">
+                <component :is="icons.Eye" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <table class="data-table" v-else-if="filteredItems.length">
+        <thead>
+          <tr>
+            <th v-for="col in columns" :key="col.key" @click="toggleSort(col.key)" class="sortable">
+              {{ col.label }}
+              <span v-if="sortField === col.key" class="sort-indicator">{{ sortAsc ? '▲' : '▼' }}</span>
+            </th>
+            <th class="col-actions">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in filteredItems" :key="item._id" @dblclick="startEdit(item)">
+            <td v-for="col in columns" :key="col.key">
+              <span v-if="col.type === 'boolean'" :class="['bool-dot', item[col.key] ? 'yes' : 'no']">
+                {{ item[col.key] ? '✓' : '✗' }}
+              </span>
+              <span v-else-if="col.type === 'date'">{{ formatDate(item[col.key]) }}</span>
+              <div v-else-if="col.type === 'image'" class="thumb-wrapper">
+                <video v-if="item.mimeType?.startsWith('video/')" :src="item[col.key]" class="admin-thumb" muted loop playsinline></video>
+                <img v-else :src="item[col.key]" class="admin-thumb" />
+              </div>
+              <span v-else class="cell-text">{{ item[col.key] ?? '–' }}</span>
+            </td>
+            <td class="col-actions">
+              <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
+                <component :is="icons.Edit2" />
+              </button>
+              <button v-else class="btn-icon" @click="startEdit(item)" title="Ansehen">
+                <component :is="icons.Eye" />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">
+        {{ searchQuery ? 'Keine Treffer.' : `Noch keine ${config.label.plural} vorhanden.` }}
+      </p>
+    </div>
+  </div>
+  <div v-else class="loading"><p>Wird geladen…</p></div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted, watch, provide } from 'vue';
+import { useRoute } from 'vue-router';
+import * as icons from 'lucide-vue-next';
+import DynamicForm from '../components/forms/DynamicForm.vue';
+import { useConfigStore } from '../stores/config.js';
+import { useAuthStore } from '../stores/auth.js';
+import { useProjectsStore } from '../stores/projects.js';
+import { formatDate } from '../utils/format.js';
+
+const route = useRoute();
+const configStore = useConfigStore();
+const auth = useAuthStore();
+const projectsStore = useProjectsStore();
+
+const config = ref(null);
+const items = ref([]);
+const editing = ref(false);
+const editingId = ref(null);
+const formData = reactive({});
+const formRef = ref(null);
+const saving = ref(false);
+const searchQuery = ref('');
+const selectedProject = ref('');
+const sortField = ref(null);
+const sortAsc = ref(true);
+const currentEntityInfo = ref(null);
+
+const resourceName = computed(() => {
+    if (!currentEntityInfo.value) return '';
+    const name = currentEntityInfo.value.configName;
+    return name === 'media' ? 'media' : name + 's';
+});
+
+const dynamicProjects = ref([]);
+const dynamicTrees = ref([]);
+const dynamicOfferings = ref([]);
+const dynamicProfiles = ref([]);
+
+provide('dynamicProjects', dynamicProjects);
+provide('dynamicTrees', dynamicTrees);
+provide('dynamicOfferings', dynamicOfferings);
+provide('dynamicProfiles', dynamicProfiles);
+
+const fetchDynamics = async () => {
+    try {
+        const [proj, trees, off, prof] = await Promise.all([
+            fetch('/api/v1/projects?all=true', { headers: auth.authHeaders }).then(r => r.json()),
+            fetch('/api/v1/trees', { headers: auth.authHeaders }).then(r => r.json()),
+            fetch('/api/v1/offerings', { headers: auth.authHeaders }).then(r => r.json()),
+            fetch('/api/v1/profiles', { headers: auth.authHeaders }).then(r => r.json())
+        ]);
+        dynamicProjects.value = proj;
+        dynamicTrees.value = trees;
+        dynamicOfferings.value = off;
+        dynamicProfiles.value = prof;
+    } catch (err) {
+        console.error('Failed to load dynamics', err);
+    }
+};
+
+const columns = computed(() => config.value?.admin?.columns || []);
+
+// Search + sort
+const filteredItems = computed(() => {
+    let result = [...items.value];
+
+    // Search
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        result = result.filter(item =>
+            columns.value.some(col => {
+                const val = item[col.key];
+                return val && String(val).toLowerCase().includes(q);
+            })
+        );
+    }
+
+    // Sort
+    if (sortField.value) {
+        result.sort((a, b) => {
+            const va = a[sortField.value] ?? '';
+            const vb = b[sortField.value] ?? '';
+            const cmp = String(va).localeCompare(String(vb), 'de', { numeric: true });
+            return sortAsc.value ? cmp : -cmp;
+        });
+    }
+
+    return result;
+});
+
+const toggleSort = (key) => {
+    if (sortField.value === key) {
+        sortAsc.value = !sortAsc.value;
+    } else {
+        sortField.value = key;
+        sortAsc.value = true;
+    }
+};
+
+
+
+// CRUD operations
+const startCreate = () => {
+    editing.value = true;
+    editingId.value = null;
+    Object.keys(formData).forEach(k => delete formData[k]);
+};
+
+const startEdit = (item) => {
+    editing.value = true;
+    editingId.value = item._id;
+    Object.keys(formData).forEach(k => delete formData[k]);
+    Object.assign(formData, JSON.parse(JSON.stringify(item)));
+};
+
+const cancelEdit = () => {
+    editing.value = false;
+    editingId.value = null;
+};
+
+const save = async () => {
+    if (formRef.value && !formRef.value.validate()) return;
+    saving.value = true;
+    try {
+        const url = editingId.value
+            ? `${config.value.api}/${editingId.value}`
+            : config.value.api;
+        const method = editingId.value ? 'PUT' : 'POST';
+        
+        let body;
+        let headers = { ...auth.authHeaders };
+
+        // Check if there is a File object in formData
+        const hasFile = Object.values(formData).some(val => val instanceof File);
+        
+        if (hasFile) {
+            delete headers['Content-Type']; // let browser set it with boundary
+            body = new FormData();
+            Object.entries(formData).forEach(([k, v]) => {
+                if (v !== undefined && v !== null) {
+                    body.append(k, v);
+                }
+            });
+        } else {
+            body = JSON.stringify(formData);
+        }
+
+        const res = await fetch(url, { method, headers, body });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Fehler beim Speichern');
+        }
+        cancelEdit();
+        await loadData();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    } finally {
+        saving.value = false;
+    }
+};
+
+const remove = async () => {
+    if (!confirm(`${config.value.label.singular} wirklich löschen?`)) return;
+    try {
+        const res = await fetch(`${config.value.api}/${editingId.value}`, {
+            method: 'DELETE',
+            headers: auth.authHeaders
+        });
+        if (!res.ok) throw new Error('Fehler beim Löschen');
+        cancelEdit();
+        await loadData();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+};
+
+// Data loading
+const loadData = async () => {
+    if (!config.value?.api) return;
+    try {
+        let url = config.value.api;
+        if (config.value.projectFilter && selectedProject.value) {
+            url += `?project=${selectedProject.value}`;
+        }
+        const res = await fetch(url, { headers: auth.authHeaders });
+        const data = await res.json();
+        items.value = Array.isArray(data) ? data : (data.orders || data.items || Object.values(data).find(v => Array.isArray(v)) || []);
+    } catch (err) {
+        console.error('Load error:', err);
+    }
+};
+
+watch(selectedProject, () => {
+    if (config.value) loadData();
+});
+
+const loadConfig = async () => {
+    const slug = route.params.entity;
+    await configStore.fetchEntities();
+    const entityInfo = configStore.findBySlug(slug);
+    currentEntityInfo.value = entityInfo || null;
+    if (entityInfo) {
+        config.value = await configStore.fetchConfig(entityInfo.configName);
+        selectedProject.value = ''; // Reset filter when entity changes
+        if (config.value.projectFilter) {
+            await projectsStore.fetchProjects(); // Ensure projects are loaded
+        }
+        await fetchDynamics();
+        await loadData();
+    }
+};
+
+onMounted(loadConfig);
+
+watch(() => route.params.entity, async () => {
+    config.value = null;
+    items.value = [];
+    editing.value = false;
+    searchQuery.value = '';
+    await loadConfig();
+});
+</script>
+
+<style scoped>
+.editor-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.editor-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.editor-icon {
+    font-size: 2rem;
+}
+
+.editor-title h1 {
+    font-size: var(--text-2xl);
+    margin: 0;
+}
+
+.editor-count {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+/* Form view */
+.editor-form h2 {
+    margin-bottom: var(--space-xl);
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+}
+
+.btn-danger {
+    color: var(--color-error) !important;
+}
+
+/* List view */
+.list-toolbar {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.search-input {
+    flex-grow: 1;
+    max-width: 400px;
+}
+
+.project-filter {
+    max-width: 250px;
+}
+
+.search-input {
+    max-width: 400px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    text-align: left;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    padding: var(--space-sm);
+    border-bottom: 2px solid var(--color-border-light);
+    user-select: none;
+}
+
+.data-table th.sortable {
+    cursor: pointer;
+}
+.data-table th.sortable:hover {
+    color: var(--color-primary);
+}
+
+.sort-indicator {
+    font-size: var(--text-xs);
+    margin-left: 4px;
+}
+
+.data-table td {
+    padding: var(--space-sm);
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: var(--text-sm);
+}
+
+.data-table tr {
+    cursor: pointer;
+}
+.data-table tr:hover {
+    background: var(--color-primary-50);
+}
+
+.cell-text {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.col-actions {
+    width: 80px;
+    text-align: center;
+}
+
+.bool-dot {
+    font-weight: 600;
+}
+.bool-dot.yes { color: var(--color-success); }
+.bool-dot.no { color: var(--color-text-muted); }
+
+.btn-icon {
+    cursor: pointer;
+    font-size: var(--text-base);
+    padding: var(--space-xs);
+}
+
+.muted {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    padding: var(--space-lg);
+    text-align: center;
+}
+
+.loading {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+}
+
+.thumb-wrapper {
+    width: 60px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border-light);
+}
+
+.admin-thumb {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+/* Grid View for Media */
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-lg);
+    padding: var(--space-sm) 0;
+}
+
+.grid-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    cursor: pointer;
+}
+.grid-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.grid-image-wrapper {
+    width: 100%;
+    height: 150px;
+    background: var(--color-bg-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.grid-image-wrapper img, .grid-image-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.grid-placeholder {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.grid-card-content {
+    padding: var(--space-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.grid-card-content h4 {
+    margin: 0;
+    font-size: var(--text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.grid-actions .btn-icon {
+    padding: 4px;
+}
+.grid-actions .btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+</style>

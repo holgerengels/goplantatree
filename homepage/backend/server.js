@@ -1,0 +1,68 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import connectDB from './src/config/db.js';
+import { logger, errorHandler } from './src/middleware/logger.js';
+
+// Routes
+import authRoutes from './src/routes/auth.js';
+import projectRoutes from './src/routes/projects.js';
+import treeRoutes from './src/routes/trees.js';
+import offeringRoutes from './src/routes/offerings.js';
+import postRoutes from './src/routes/posts.js';
+import pageRoutes from './src/routes/pages.js';
+import orderRoutes from './src/routes/orders.js';
+import profileRoutes from './src/routes/profiles.js';
+import userRoutes from './src/routes/users.js';
+import subscriberRoutes from './src/routes/subscribers.js';
+import configRoutes from './src/routes/config.js';
+import mediaRoutes from './src/routes/media.js';
+
+dotenv.config();
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(logger);
+
+// Serve uploaded files
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
+
+// API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/trees', treeRoutes);
+app.use('/api/v1/offerings', offeringRoutes);
+app.use('/api/v1/posts', postRoutes);
+app.use('/api/v1/pages', pageRoutes);
+app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/profiles', profileRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/subscribers', subscriberRoutes);
+app.use('/api/v1/config', configRoutes);
+app.use('/api/v1/media', mediaRoutes);
+
+// Health check
+app.get('/api/v1/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Error Handling Middleware
+app.use(errorHandler);
+
+// Connect to DB and start server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+    connectDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`GoPlantATree API running on port ${PORT}`);
+        });
+    });
+}
+
+export default app;

@@ -1,0 +1,86 @@
+{
+    "entity": "order",
+    "project": "klimabaumaktion-ulm",
+    "fields": [
+        {
+            "name": "name",
+            "label": "Vor- und Nachname",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "email",
+            "label": "E-Mail-Adresse",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "phone",
+            "label": "Telefonnummer",
+            "type": "Text"
+        },
+        {
+            "name": "street",
+            "label": "Straße und Hausnummer",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "zip",
+            "label": "PLZ",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "city",
+            "label": "Stadt",
+            "type": "Text",
+            "required": true,
+            "default": "Ulm"
+        },
+        {
+            "name": "offering",
+            "label": "Gewünschter Baum",
+            "type": "Select",
+            "required": true,
+            "options": "dynamic:offerings"
+        },
+        {
+            "name": "quantity",
+            "label": "Anzahl",
+            "type": "Integer",
+            "required": true,
+            "default": 1
+        },
+        {
+            "name": "gardenType",
+            "label": "Pflanzort",
+            "type": "Select",
+            "options": [
+                "Privatgarten",
+                "Gewerbefläche",
+                "Gemeinschaftsgarten",
+                "Sonstiges"
+            ]
+        },
+        {
+            "name": "notes",
+            "label": "Anmerkungen",
+            "type": "Text"
+        },
+        {
+            "name": "agb",
+            "label": "Ich akzeptiere die Teilnahmebedingungen und verpflichte mich, den Baum sachgemäß zu pflanzen und zu pflegen.",
+            "type": "Boolean",
+            "required": true
+        }
+    ],
+    "grid": [
+        "name name email email",
+        "phone phone . .",
+        "street street zip city",
+        "offering offering quantity .",
+        "gardenType gardenType notes notes",
+        "agb agb agb agb"
+    ]
+}

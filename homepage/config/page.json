@@ -1,0 +1,76 @@
+{
+    "entity": "page",
+    "slug": "seiten",
+    "menuOrder": 60,
+    "api": "/api/v1/pages",
+    "label": {
+        "singular": "Seite",
+        "plural": "Seiten"
+    },
+    "icon": "File",
+    "admin": {
+        "columns": [
+            {
+                "key": "title",
+                "label": "Titel"
+            },
+            {
+                "key": "slug",
+                "label": "URL-Slug"
+            },
+            {
+                "key": "published",
+                "label": "Veröffentlicht",
+                "type": "boolean"
+            },
+            {
+                "key": "updatedAt",
+                "label": "Letzte Änderung",
+                "type": "date"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "image",
+            "label": "Titelbild",
+            "type": "Media"
+        },
+        {
+            "name": "title",
+            "label": "Seitentitel",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "slug",
+            "label": "URL-Slug",
+            "type": "Text",
+            "required": true,
+            "hint": "z.B. ueber-uns, impressum, datenschutz"
+        },
+        {
+            "name": "heroSubtitle",
+            "label": "Hero-Untertitel (optional)",
+            "type": "Text",
+            "hint": "Wenn gesetzt, wird ein großer Hero-Bereich mit Titel + Untertitel angezeigt"
+        },
+        {
+            "name": "published",
+            "label": "Veröffentlicht",
+            "type": "Boolean",
+            "default": true
+        },
+        {
+            "name": "content",
+            "label": "Seiteninhalt (HTML)",
+            "type": "Html"
+        }
+    ],
+    "grid": [
+        "image image image image",
+        "title title slug slug",
+        "heroSubtitle heroSubtitle published .",
+        "content content content content"
+    ]
+}

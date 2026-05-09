@@ -1,0 +1,185 @@
+{
+    "entity": "tree",
+    "slug": "baeume",
+    "menuOrder": 30,
+    "api": "/api/v1/trees",
+    "label": {
+        "singular": "Baumsteckbrief",
+        "plural": "Baumwissen"
+    },
+    "icon": "TreePine",
+    "detail": {
+        "titleField": "name",
+        "sections": [
+            {
+                "label": "Steckbrief",
+                "layout": "specs",
+                "fields": [
+                    {
+                        "key": "sizeCategory",
+                        "label": "📏 Größenklasse"
+                    },
+                    {
+                        "key": "height",
+                        "label": "📏 Höhe (exakt)"
+                    },
+                    {
+                        "key": "width",
+                        "label": "↔️ Breite (exakt)"
+                    },
+                    {
+                        "key": "flowering",
+                        "label": "🌸 Blütezeit"
+                    },
+                    {
+                        "key": "fruit",
+                        "label": "🍎 Fruchtzeit"
+                    },
+                    {
+                        "key": "location",
+                        "label": "☀️ Standort"
+                    },
+                    {
+                        "key": "growthForm",
+                        "label": "🌿 Wuchsform"
+                    },
+                    {
+                        "key": "properties",
+                        "label": "🏷️ Eigenschaften"
+                    }
+                ]
+            },
+            {
+                "label": "Hinweis",
+                "field": "notice",
+                "layout": "notice"
+            },
+            {
+                "label": "Beschreibung",
+                "field": "description",
+                "layout": "html"
+            }
+        ],
+        "badges": [
+            {
+                "field": "category",
+                "class": "badge-accent"
+            }
+        ]
+    },
+    "admin": {
+        "columns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "shortName",
+                "label": "Kürzel"
+            },
+            {
+                "key": "category",
+                "label": "Kategorie"
+            },
+            {
+                "key": "sortOrder",
+                "label": "Reihenfolge"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "image",
+            "label": "Titelbild",
+            "type": "Media"
+        },
+        {
+            "name": "name",
+            "label": "Name",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "shortName",
+            "label": "Kurzname",
+            "type": "Text"
+        },
+        {
+            "name": "category",
+            "label": "Kategorie",
+            "type": "Select",
+            "options": [
+                "Laubbaum",
+                "Obstbaum",
+                "Nadelbaum",
+                "Großstrauch",
+                "Strauch"
+            ]
+        },
+        {
+            "name": "sizeCategory",
+            "label": "Größen-Kategorie",
+            "type": "Text"
+        },
+        {
+            "name": "height",
+            "label": "Höhe (exakt)",
+            "type": "Text"
+        },
+        {
+            "name": "width",
+            "label": "Breite (exakt)",
+            "type": "Text"
+        },
+        {
+            "name": "flowering",
+            "label": "Blütezeit",
+            "type": "Text"
+        },
+        {
+            "name": "fruit",
+            "label": "Fruchtzeit",
+            "type": "Text"
+        },
+        {
+            "name": "location",
+            "label": "Standort",
+            "type": "Text"
+        },
+        {
+            "name": "growthForm",
+            "label": "Wuchsform",
+            "type": "Text"
+        },
+        {
+            "name": "properties",
+            "label": "Eigenschaften",
+            "type": "Text"
+        },
+        {
+            "name": "sortOrder",
+            "label": "Reihenfolge",
+            "type": "Integer"
+        },
+        {
+            "name": "notice",
+            "label": "Hinweis",
+            "type": "Text"
+        },
+        {
+            "name": "description",
+            "label": "Beschreibung",
+            "type": "RichText"
+        }
+    ],
+    "grid": [
+        "image image image image",
+        "name name shortName shortName",
+        "category category sortOrder .",
+        "sizeCategory sizeCategory properties properties",
+        "height width flowering fruit",
+        "location location growthForm growthForm",
+        "notice notice notice notice",
+        "description description description description"
+    ]
+}

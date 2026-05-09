@@ -1,0 +1,94 @@
+{
+    "entity": "media",
+    "slug": "medien",
+    "menuOrder": 45,
+    "api": "/api/v1/media",
+    "label": {
+        "singular": "Medium",
+        "plural": "Medien"
+    },
+    "icon": "Image",
+    "fields": [
+        {
+            "name": "file",
+            "label": "Datei hochladen",
+            "type": "File"
+        },
+        {
+            "name": "_preview",
+            "label": "Vorschau",
+            "type": "ImagePreview",
+            "readonly": true
+        },
+        {
+            "name": "url",
+            "label": "Oder externe URL (für verlinkte Bilder)",
+            "type": "Text"
+        },
+        {
+            "name": "title",
+            "label": "Titel",
+            "type": "Text"
+        },
+        {
+            "name": "format",
+            "label": "Format",
+            "type": "Text",
+            "readonly": true
+        },
+        {
+            "name": "author",
+            "label": "Autor / Fotograf",
+            "type": "Text"
+        },
+        {
+            "name": "authorLink",
+            "label": "Link zum Autor",
+            "type": "Text"
+        },
+        {
+            "name": "license",
+            "label": "Lizenz (z.B. CC BY 4.0)",
+            "type": "Text"
+        },
+        {
+            "name": "licenseLink",
+            "label": "Link zur Lizenz",
+            "type": "Text"
+        },
+        {
+            "name": "sourceLink",
+            "label": "Link zur Originalquelle",
+            "type": "Text"
+        }
+    ],
+    "grid": [
+        "_preview _preview _preview _preview",
+        "file file file file",
+        "title title format format",
+        "author authorLink license licenseLink",
+        "sourceLink sourceLink sourceLink sourceLink"
+    ],
+    "admin": {
+        "columns": [
+            {
+                "key": "url",
+                "label": "Vorschau",
+                "type": "image"
+            },
+            {
+                "key": "title",
+                "label": "Titel"
+            },
+            {
+                "key": "author",
+                "label": "Autor"
+            },
+            {
+                "key": "format",
+                "label": "Format"
+            }
+        ],
+        "viewType": "grid"
+    }
+}

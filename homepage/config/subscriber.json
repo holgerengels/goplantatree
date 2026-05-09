@@ -1,0 +1,80 @@
+{
+    "entity": "subscriber",
+    "slug": "abonnenten",
+    "menuOrder": 70,
+    "api": "/api/v1/subscribers",
+    "label": {
+        "singular": "Abonnent",
+        "plural": "Abonnenten"
+    },
+    "icon": "Mail",
+    "adminOnly": true,
+    "projectFilter": true,
+    "admin": {
+        "columns": [
+            {
+                "key": "project",
+                "label": "Projekt",
+                "type": "relation"
+            },
+            {
+                "key": "email",
+                "label": "E-Mail"
+            },
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "topic",
+                "label": "Thema"
+            },
+            {
+                "key": "confirmed",
+                "label": "Bestätigt",
+                "type": "boolean"
+            },
+            {
+                "key": "subscribedAt",
+                "label": "Datum",
+                "type": "date"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "project",
+            "label": "Projekt",
+            "type": "Reference",
+            "reference": "projects",
+            "displayKey": "name"
+        },
+        {
+            "name": "email",
+            "label": "E-Mail-Adresse",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "name",
+            "label": "Name",
+            "type": "Text"
+        },
+        {
+            "name": "topic",
+            "label": "Thema",
+            "type": "Select",
+            "options": [
+                "general",
+                "klimabaumaktion",
+                "pflanzung"
+            ],
+            "default": "general"
+        }
+    ],
+    "grid": [
+        "project project . .",
+        "email email name name",
+        "topic topic . ."
+    ]
+}

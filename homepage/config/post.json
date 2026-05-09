@@ -1,0 +1,148 @@
+{
+    "entity": "post",
+    "slug": "post",
+    "menuOrder": 50,
+    "api": "/api/v1/posts",
+    "label": {
+        "singular": "Beitrag",
+        "plural": "Beiträge"
+    },
+    "icon": "FileText",
+    "detail": {
+        "titleField": "title",
+        "subtitleField": "excerpt",
+        "slugField": "slug",
+        "sections": [
+            {
+                "label": "Inhalt",
+                "field": "content",
+                "layout": "html"
+            }
+        ],
+        "meta": [
+            {
+                "key": "publishedAt",
+                "label": "Datum",
+                "type": "date"
+            },
+            {
+                "key": "author",
+                "label": "Autor"
+            }
+        ],
+        "badges": [
+            {
+                "field": "type",
+                "map": {
+                    "news": {
+                        "label": "📰 News",
+                        "class": "badge-primary"
+                    },
+                    "pflanzung": {
+                        "label": "🌱 Pflanzung",
+                        "class": "badge-accent"
+                    }
+                }
+            }
+        ]
+    },
+    "admin": {
+        "columns": [
+            {
+                "key": "title",
+                "label": "Titel"
+            },
+            {
+                "key": "slug",
+                "label": "URL-Slug"
+            },
+            {
+                "key": "type",
+                "label": "Typ"
+            },
+            {
+                "key": "author",
+                "label": "Autor"
+            },
+            {
+                "key": "published",
+                "label": "Veröff.",
+                "type": "boolean"
+            },
+            {
+                "key": "publishedAt",
+                "label": "Datum",
+                "type": "date"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "image",
+            "label": "Titelbild",
+            "type": "Media"
+        },
+        {
+            "name": "title",
+            "label": "Titel",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "slug",
+            "label": "URL-Slug",
+            "type": "Text"
+        },
+        {
+            "name": "type",
+            "label": "Typ",
+            "type": "Select",
+            "required": true,
+            "options": [
+                "news",
+                "artikel",
+                "pflanzung"
+            ]
+        },
+        {
+            "name": "excerpt",
+            "label": "Kurztext",
+            "type": "Text"
+        },
+        {
+            "name": "content",
+            "label": "Inhalt",
+            "type": "RichText"
+        },
+        {
+            "name": "author",
+            "label": "Autor",
+            "type": "Text"
+        },
+        {
+            "name": "publishedAt",
+            "label": "Veröffentlichungsdatum",
+            "type": "Date"
+        },
+        {
+            "name": "tags",
+            "label": "Tags",
+            "type": "Text",
+            "hint": "Kommagetrennt"
+        },
+        {
+            "name": "published",
+            "label": "Veröffentlicht",
+            "type": "Boolean"
+        }
+    ],
+    "grid": [
+        "image image image image",
+        "title title title type",
+        "slug slug publishedAt publishedAt",
+        "author author tags tags",
+        "excerpt excerpt excerpt excerpt",
+        "content content content content",
+        "published published . ."
+    ]
+}

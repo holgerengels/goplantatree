@@ -1,0 +1,111 @@
+{
+    "entity": "profile",
+    "slug": "profile",
+    "menuOrder": 90,
+    "label": {
+        "singular": "Profil",
+        "plural": "Rechte-Profile"
+    },
+    "icon": "Shield",
+    "api": "/api/v1/profiles",
+    "fields": [
+        {
+            "name": "name",
+            "label": "Profil-Name",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "description",
+            "label": "Beschreibung",
+            "type": "Text"
+        },
+        {
+            "name": "permissions",
+            "label": "Berechtigungen (Scope: none = Kein Zugriff, own = Eigenes Projekt, all = Alle Projekte)",
+            "type": "ObjectArray",
+            "itemFields": [
+                {
+                    "name": "resource",
+                    "label": "Objekttyp",
+                    "type": "Select",
+                    "options": [
+                        "media",
+                        "offerings",
+                        "orders",
+                        "pages",
+                        "posts",
+                        "projects",
+                        "subscribers",
+                        "trees",
+                        "users",
+                        "profiles"
+                    ]
+                },
+                {
+                    "name": "read",
+                    "label": "Lesen",
+                    "type": "Select",
+                    "options": [
+                        "none",
+                        "own",
+                        "all"
+                    ],
+                    "default": "none"
+                },
+                {
+                    "name": "create",
+                    "label": "Schreiben (Neu)",
+                    "type": "Select",
+                    "options": [
+                        "none",
+                        "own",
+                        "all"
+                    ],
+                    "default": "none"
+                },
+                {
+                    "name": "update",
+                    "label": "Ändern",
+                    "type": "Select",
+                    "options": [
+                        "none",
+                        "own",
+                        "all"
+                    ],
+                    "default": "none"
+                },
+                {
+                    "name": "delete",
+                    "label": "Löschen",
+                    "type": "Select",
+                    "options": [
+                        "none",
+                        "own",
+                        "all"
+                    ],
+                    "default": "none"
+                }
+            ]
+        }
+    ],
+    "grid": [
+        "name name",
+        "description description",
+        "permissions permissions"
+    ],
+    "admin": {
+        "columns": [
+            {
+                "key": "name",
+                "label": "Name",
+                "type": "text"
+            },
+            {
+                "key": "description",
+                "label": "Beschreibung",
+                "type": "text"
+            }
+        ]
+    }
+}

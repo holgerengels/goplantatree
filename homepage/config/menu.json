@@ -1,0 +1,54 @@
+{
+    "header": [
+        {
+            "label": "Start",
+            "to": "/"
+        },
+        {
+            "type": "projects"
+        },
+        {
+            "label": "Baumwissen",
+            "to": "/seite/baumwissen"
+        },
+        {
+            "label": "Blog",
+            "to": "/seite/blog"
+        },
+        {
+            "label": "Über uns",
+            "to": "/seite/ueber-uns"
+        }
+    ],
+    "footer": {
+        "navigation": [
+            {
+                "label": "Start",
+                "to": "/"
+            },
+            {
+                "label": "Baumwissen",
+                "to": "/seite/baumwissen"
+            },
+            {
+                "label": "Blog",
+                "to": "/seite/blog"
+            },
+            {
+                "label": "Über uns",
+                "to": "/seite/ueber-uns"
+            }
+        ],
+        "legal": [
+            {
+                "label": "Impressum",
+                "to": "/seite/impressum"
+            },
+            {
+                "label": "Kontakt",
+                "href": "mailto:info@goplantatree.org"
+            }
+        ],
+        "projects": true
+    }
+}

@@ -1,0 +1,109 @@
+{
+    "entity": "project",
+    "slug": "projekte",
+    "menuOrder": 40,
+    "api": "/api/v1/projects",
+    "label": {
+        "singular": "Projekt",
+        "plural": "Projekte"
+    },
+    "icon": "Folder",
+    "admin": {
+        "columns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "slug",
+                "label": "Slug"
+            },
+            {
+                "key": "active",
+                "label": "Aktiv",
+                "type": "boolean"
+            }
+        ]
+    },
+    "fields": [
+        {
+            "name": "name",
+            "label": "Projektname",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "slug",
+            "label": "URL-Slug",
+            "type": "Text",
+            "required": true
+        },
+        {
+            "name": "description",
+            "label": "Beschreibung",
+            "type": "RichText"
+        },
+        {
+            "name": "orderFormConfig",
+            "label": "Bestellformular-Config",
+            "type": "Text"
+        },
+        {
+            "name": "active",
+            "label": "Aktiv",
+            "type": "Boolean",
+            "default": true
+        },
+        {
+            "name": "content.timeline",
+            "label": "Zeitstrahl (Ablauf)",
+            "type": "ObjectArray",
+            "description": "Erstelle hier die einzelnen Meilensteine des Projektablaufs.",
+            "itemFields": [
+                {
+                    "name": "date",
+                    "label": "Datum",
+                    "type": "Date",
+                    "required": true
+                },
+                {
+                    "name": "label",
+                    "label": "Titel",
+                    "type": "Text",
+                    "required": true
+                },
+                {
+                    "name": "description",
+                    "label": "Beschreibung",
+                    "type": "Text"
+                },
+                {
+                    "name": "status",
+                    "label": "Status",
+                    "type": "Select",
+                    "options": [
+                        {
+                            "value": "upcoming",
+                            "label": "Geplant (leer)"
+                        },
+                        {
+                            "value": "active",
+                            "label": "Aktuell (pulsierend)"
+                        },
+                        {
+                            "value": "done",
+                            "label": "Abgeschlossen (Häkchen)"
+                        }
+                    ],
+                    "default": "upcoming"
+                }
+            ]
+        }
+    ],
+    "grid": [
+        "name name slug slug",
+        "orderFormConfig orderFormConfig active .",
+        "description description description description",
+        "content.timeline content.timeline content.timeline content.timeline"
+    ]
+}

@@ -1,0 +1,127 @@
+<template>
+  <div class="rich-text-editor">
+    <div class="editor-header">
+      <button 
+        type="button" 
+        class="btn-toggle-source" 
+        @click="showSource = !showSource"
+        title="Quelltext-Ansicht umschalten"
+      >
+        {{ showSource ? '👁️ WYSIWYG Editor' : '🧑‍💻 HTML Code' }}
+      </button>
+    </div>
+
+    <!-- WYSIWYG View -->
+    <div v-show="!showSource" class="quill-wrapper">
+      <QuillEditor 
+        theme="snow" 
+        :content="modelValue" 
+        contentType="html"
+        :readOnly="disabled"
+        @update:content="updateContent" 
+        toolbar="essential"
+      />
+    </div>
+
+    <!-- Source Code View -->
+    <textarea
+      v-if="showSource"
+      class="source-editor"
+      :value="modelValue"
+      @input="updateContent($event.target.value)"
+      :disabled="disabled"
+      placeholder="<p>HTML Code hier eingeben...</p>"
+    ></textarea>
+  </div>
+</template>
+
+<script setup>
+import { ref, defineProps, defineEmits } from 'vue';
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  disabled: { type: Boolean, default: false }
+});
+
+const emit = defineEmits(['update:modelValue']);
+const showSource = ref(false);
+
+const updateContent = (content) => {
+    emit('update:modelValue', content);
+};
+</script>
+
+<style scoped>
+.rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border-light, #e2e8f0);
+  background: var(--color-bg, white);
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: flex-end;
+  background: var(--color-bg, #f8fafc);
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-border-light, #e2e8f0);
+}
+
+.btn-toggle-source {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-toggle-source:hover {
+  background: var(--color-border-light, #e2e8f0);
+  color: var(--color-primary-dark, #1e293b);
+}
+
+.quill-wrapper {
+    background: var(--color-bg, white);
+}
+
+.source-editor {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+  border: none;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.source-editor:focus {
+  outline: none;
+}
+
+:deep(.ql-editor) {
+    min-height: 200px;
+}
+:deep(.ql-toolbar.ql-snow) {
+    border: none;
+    border-bottom: 1px solid var(--color-border-light, #e2e8f0) !important;
+    background: var(--color-bg, #f8fafc);
+}
+:deep(.ql-container.ql-snow) {
+    border: none !important;
+    font-size: var(--text-base, 1rem);
+}
+:deep(.ql-editor[contenteditable=false]) {
+    background-color: var(--color-bg, white);
+    color: var(--color-text-muted, #64748b);
+}
+</style>
