@@ -61,18 +61,21 @@ onMounted(async () => {
     const headers = auth.authHeaders;
 
     // Gather stats dynamically from entity configs
-    const statResults = [];
-    for (const entity of configStore.adminEntities) {
+    const statPromises = configStore.adminEntities.map(async (entity) => {
         try {
             const cfg = await configStore.fetchConfig(entity.configName);
-            if (!cfg.api) continue;
+            if (!cfg.api) return null;
             const res = await fetch(cfg.api, { headers });
             const data = await res.json();
             const count = Array.isArray(data) ? data.length : (data.total || data.orders?.length || 0);
-            statResults.push({ icon: entity.icon, label: entity.label.plural, value: count, slug: entity.slug });
-        } catch { /* skip */ }
-    }
-    stats.value = statResults;
+            return { icon: entity.icon, label: entity.label.plural, value: count, slug: entity.slug };
+        } catch { 
+            return null; 
+        }
+    });
+    
+    const results = await Promise.all(statPromises);
+    stats.value = results.filter(Boolean);
 
     // Load recent orders
     try {

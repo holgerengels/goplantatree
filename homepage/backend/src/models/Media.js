@@ -6,6 +6,7 @@ const mediaSchema = new mongoose.Schema({
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
     url: { type: String, required: true },
+    data: { type: Buffer },
     
     // Image dimension properties
     width: { type: Number },

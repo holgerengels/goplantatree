@@ -69,7 +69,7 @@ const projects = computed(() => projectsStore.projects);
 const isScrolled = ref(false);
 const menuOpen = ref(false);
 const route = useRoute();
-const isHeroMode = computed(() => route.meta.hero === true);
+const isHeroMode = computed(() => route.meta.hero === true || configStore.pageHeroMode);
 
 const handleScroll = () => {
     isScrolled.value = window.scrollY > 20;

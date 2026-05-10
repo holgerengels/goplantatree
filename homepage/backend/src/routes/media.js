@@ -14,17 +14,11 @@ if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + extname(file.originalname));
-    }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
     storage,
-    limits: { fileSize: 20 * 1024 * 1024 } // 20 MB limit
+    limits: { fileSize: 15 * 1024 * 1024 } // 15 MB limit for MongoDB documents
 });
 
 const router = Router();
@@ -47,7 +41,7 @@ router.get('/', auth, requirePermission('media', 'read'), async (req, res) => {
             ];
         }
 
-        const media = await Media.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+        const media = await Media.find(filter).select('-data').sort({ createdAt: -1 }).skip(skip).limit(limit);
         const total = await Media.countDocuments(filter);
         res.json({ items: media, total });
     } catch (err) {
@@ -61,7 +55,32 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
         const query = { _id: req.params.id };
         if (req.permissionScope === 'own') query.project = req.user.project;
         
-        const media = await Media.findOne(query);
+        const media = await Media.findOne(query).select('-data');
+        if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
+        res.json(media);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/v1/media/:id/file — Public: Serve media file from MongoDB
+router.get('/:id/file', async (req, res) => {
+    try {
+        const media = await Media.findById(req.params.id);
+        if (!media || !media.data) return res.status(404).send('Not found');
+        
+        res.set('Content-Type', media.mimeType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+        res.send(media.data);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// GET /api/v1/media/:id/info — Public: Get basic media metadata
+router.get('/:id/info', async (req, res) => {
+    try {
+        const media = await Media.findById(req.params.id).select('filename title author authorLink license licenseLink url mimeType format width height');
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
         res.json(media);
     } catch (err) {
@@ -77,7 +96,7 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
         let width, height, format = 'unknown';
         if (req.file && req.file.mimetype.startsWith('image/')) {
             try {
-                const dimensions = sizeOf(req.file.path);
+                const dimensions = sizeOf(req.file.buffer);
                 width = dimensions.width;
                 height = dimensions.height;
                 
@@ -114,12 +133,15 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
             }
         }
 
+        const filename = req.file ? (Date.now() + '-' + Math.round(Math.random() * 1E9) + extname(req.file.originalname)) : 'external';
+
         const media = new Media({
-            filename: req.file ? req.file.filename : 'external',
+            filename: req.file ? filename : 'external',
             originalName: req.file ? req.file.originalname : (req.body.title || 'external'),
             mimeType: req.file ? req.file.mimetype : 'external/url',
             size: req.file ? req.file.size : 0,
-            url: req.file ? `/uploads/${req.file.filename}` : req.body.url,
+            url: req.body.url || '', // Will be updated if req.file exists
+            data: req.file ? req.file.buffer : undefined,
             width,
             height,
             format,
@@ -132,8 +154,17 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
             project: req.permissionScope === 'own' ? req.user.project : (req.body.project || null)
         });
 
+        if (req.file) {
+            media.url = `/api/v1/media/${media._id}/file`;
+        }
+
         await media.save();
-        res.status(201).json(media);
+        
+        // Remove buffer before returning JSON
+        const responseData = media.toObject();
+        delete responseData.data;
+        
+        res.status(201).json(responseData);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -157,7 +188,7 @@ router.put('/:id', auth, requirePermission('media', 'update'), async (req, res) 
             req.body.project = req.user.project;
         }
 
-        const media = await Media.findOneAndUpdate(query, req.body, { new: true, runValidators: true });
+        const media = await Media.findOneAndUpdate(query, req.body, { new: true, runValidators: true }).select('-data');
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
         res.json(media);
     } catch (err) {
@@ -174,11 +205,7 @@ router.delete('/:id', auth, requirePermission('media', 'delete'), async (req, re
         const media = await Media.findOne(query);
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
         
-        // Remove file from disk
-        const filePath = join(UPLOADS_DIR, media.filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        // We don't remove files from disk anymore since they are in DB
 
         await Media.findByIdAndDelete(req.params.id);
         res.json({ message: 'Medium gelöscht' });

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from './src/config/db.js';
 import { logger, errorHandler } from './src/middleware/logger.js';
+import Media from './src/models/Media.js';
 
 // Routes
 import authRoutes from './src/routes/auth.js';
@@ -31,8 +32,20 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(logger);
 
-// Serve uploaded files
-app.use('/uploads', express.static(join(__dirname, 'uploads')));
+// Serve uploaded files from MongoDB
+app.get('/uploads/:filename', async (req, res, next) => {
+    try {
+        const media = await Media.findOne({ filename: req.params.filename }).select('data mimeType');
+        if (!media || !media.data) {
+            return res.status(404).send('File not found');
+        }
+        res.set('Content-Type', media.mimeType);
+        res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+        res.send(media.data);
+    } catch (err) {
+        next(err);
+    }
+});
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);

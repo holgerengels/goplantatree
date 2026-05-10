@@ -7,6 +7,14 @@
         "singular": "Projekt",
         "plural": "Projekte"
     },
+    "jsonld": {
+        "@type": "Event",
+        "mapping": {
+            "name": "name",
+            "description": "description",
+            "url": "slug"
+        }
+    },
     "icon": "Folder",
     "admin": {
         "columns": [

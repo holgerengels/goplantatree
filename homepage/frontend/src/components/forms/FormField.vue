@@ -1,105 +1,94 @@
 <template>
-  <div class="form-field-content">
+  <div class="form-field-content" v-if="field">
     <!-- Date -->
-    <div v-if="field.type === 'Date'" class="form-group">
-      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <input
-        type="date"
-        class="form-input"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        :value="formatDateForInput(modelValue)"
-        @change="updateValue($event.target.value)"
-      />
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-input
+      v-if="field.type === 'Date'"
+      type="date"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="formatDateForInput(modelValue)"
+      :help-text="field.hint"
+      @change="updateValue($event.target.value)"
+    ></wa-input>
 
     <!-- Time -->
-    <div v-else-if="field.type === 'Time'" class="form-group">
-      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <input
-        type="time"
-        class="form-input"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        :value="modelValue || ''"
-        @change="updateValue($event.target.value)"
-      />
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-input
+      v-else-if="field.type === 'Time'"
+      type="time"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="modelValue || ''"
+      :help-text="field.hint"
+      @change="updateValue($event.target.value)"
+    ></wa-input>
 
     <!-- Select -->
-    <div v-else-if="field.type === 'Select'" class="form-group">
-      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <select
-        class="form-select"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        :value="normalizedSelectValue"
-        @change="updateValue($event.target.value)"
-      >
-        <option value="" disabled>Bitte wählen …</option>
-        <option v-for="opt in resolvedOptions" :key="opt.value" :value="opt.value">
-          {{ opt.label }}
-        </option>
-      </select>
-      <!-- Offering notice -->
-      <div v-if="selectedOffering?.notice" class="offering-notice">
-        ⚠️ {{ selectedOffering.notice }}
-      </div>
-      <!-- Offering addons -->
-      <div v-if="selectedOffering?.addons?.length" class="offering-addons">
-        <p class="addons-title">Zusatzoptionen:</p>
-        <label v-for="addon in selectedOffering.addons" :key="addon.name" class="form-checkbox addon-checkbox">
-          <input
-            type="checkbox"
-            :checked="isAddonSelected(addon.name)"
-            @change="toggleAddon(addon.name, $event.target.checked)"
-          />
-          <span>{{ addon.name }}</span>
-          <span v-if="addon.description" class="addon-desc">– {{ addon.description }}</span>
-        </label>
-      </div>
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-select
+      v-else-if="field.type === 'Select'"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="normalizedSelectValue"
+      :help-text="field.hint"
+      @change="updateValue($event.target.value)"
+    >
+      <wa-option value="" disabled>Bitte wählen …</wa-option>
+      <wa-option v-for="opt in resolvedOptions" :key="opt.value" :value="opt.value">
+        {{ opt.label }}
+      </wa-option>
+    </wa-select>
+
+    <!-- Relation -->
+    <RelationSelector
+      v-else-if="field.type === 'Relation'"
+      :field="field"
+      :modelValue="modelValue"
+      @update:modelValue="updateValue"
+    />
+
+    <!-- OfferingSelector -->
+    <OfferingSelector
+      v-else-if="field.type === 'OfferingSelector'"
+      :field="field"
+      :context="context"
+      :modelValue="modelValue"
+      @update:modelValue="updateValue"
+    />
 
     <!-- Boolean / Checkbox -->
-    <div v-else-if="field.type === 'Boolean'" class="form-group">
-      <label class="form-checkbox">
-        <input
-          type="checkbox"
-          :checked="modelValue === true"
-          :disabled="field.readonly === true"
-          :required="field.required === true"
-          @change="updateValue($event.target.checked)"
-        />
-        <span>{{ field.label }}</span>
-      </label>
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-checkbox
+      v-else-if="field.type === 'Boolean'"
+      :checked="modelValue === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :required="field.required === true"
+      :help-text="field.hint"
+      @change="updateValue($event.target.checked)"
+    >
+      <span>{{ field.label }}</span>
+    </wa-checkbox>
 
     <!-- Integer -->
-    <div v-else-if="field.type === 'Integer'" class="form-group">
-      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <input
-        type="number"
-        step="1"
-        min="1"
-        class="form-input"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        :value="modelValue || ''"
-        @change="updateValue(parseInt($event.target.value) || '')"
-      />
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-input
+      v-else-if="field.type === 'Integer'"
+      type="number"
+      step="1"
+      min="1"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="modelValue || ''"
+      :help-text="field.hint"
+      @change="updateValue(parseInt($event.target.value) || '')"
+    ></wa-input>
 
     <!-- RichText -->
     <div v-else-if="field.type === 'RichText'" class="form-group">
       <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
       <RichTextEditor
         :modelValue="modelValue || ''"
-        :disabled="field.readonly === true"
+        :disabled="field.readonly === true ? true : undefined"
         @update:modelValue="updateValue($event)"
       />
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
@@ -110,7 +99,7 @@
       <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
       <HtmlEditor
         :modelValue="modelValue || ''"
-        :disabled="field.readonly === true"
+        :disabled="field.readonly === true ? true : undefined"
         @update:modelValue="updateValue($event)"
       />
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
@@ -125,7 +114,7 @@
       <div v-for="(item, index) in (modelValue || [])" :key="index" class="object-array-item card">
         <div class="object-array-header">
           <span class="object-array-title">Eintrag {{ index + 1 }}</span>
-          <button type="button" @click="removeArrayItem(index)" class="btn btn-sm btn-outline btn-warning">Entfernen</button>
+          <wa-button size="small" variant="warning" @click="removeArrayItem(index)">Entfernen</wa-button>
         </div>
         <div class="object-array-fields">
           <FormField
@@ -139,9 +128,9 @@
         </div>
       </div>
       </div>
-      <button type="button" @click="addArrayItem" class="btn btn-secondary btn-sm" style="margin-top: var(--space-sm);">
+      <wa-button size="small" @click="addArrayItem" style="margin-top: var(--space-sm);">
         + Neuer Eintrag
-      </button>
+      </wa-button>
       <span v-if="field.hint" class="form-hint" style="display:block; margin-top:var(--space-sm);">{{ field.hint }}</span>
     </div>
 
@@ -158,13 +147,21 @@
     <!-- File (for direct uploads) -->
     <div v-else-if="field.type === 'File'" class="form-group">
       <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <input
-        type="file"
-        class="form-input"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        @change="updateValue($event.target.files[0])"
-      />
+      <div class="file-upload-wrapper" style="display: flex; align-items: center; gap: 1rem;">
+        <wa-button @click="$refs.fileInput.click()">
+          <wa-icon slot="prefix" name="cloud-arrow-up"></wa-icon>
+          Datei auswählen
+        </wa-button>
+        <span v-if="modelValue?.name" class="file-name">{{ modelValue.name }}</span>
+        <input
+          ref="fileInput"
+          type="file"
+          hidden
+          :required="field.required === true && !modelValue"
+          :disabled="field.readonly === true ? true : undefined"
+          @change="updateValue($event.target.files[0])"
+        />
+      </div>
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
     </div>
 
@@ -179,27 +176,27 @@
     </div>
 
     <!-- Default: Text -->
-    <div v-else class="form-group">
-      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
-      <input
-        type="text"
-        class="form-input"
-        :required="field.required === true"
-        :disabled="field.readonly === true"
-        :value="modelValue || ''"
-        :placeholder="field.placeholder || ''"
-        @input="updateValue($event.target.value)"
-      />
-      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
-    </div>
+    <wa-input
+      v-else
+      type="text"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="modelValue || ''"
+      :placeholder="field.placeholder || ''"
+      :help-text="field.hint"
+      @input="handleTextInput($event.target.value)"
+    ></wa-input>
   </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed, watch, inject } from 'vue';
+import { defineProps, defineEmits, computed, watch } from 'vue';
 import RichTextEditor from './RichTextEditor.vue';
 import HtmlEditor from './HtmlEditor.vue';
 import MediaSelector from './MediaSelector.vue';
+import RelationSelector from './RelationSelector.vue';
+import OfferingSelector from './OfferingSelector.vue';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -214,7 +211,32 @@ const updateValue = (val) => {
     emit('update:modelValue', val);
 };
 
-// For Select fields: if modelValue is a populated object (e.g. {_id, name}), extract _id
+const handleTextInput = (val) => {
+    let result = val;
+    if (props.field?.name === 'license') {
+        const l = val.toLowerCase().replace(/[^a-z0-9]/g, '');
+        let link = '';
+        let norm = val;
+
+        if (l === 'ccby40') { norm = 'CC BY 4.0'; link = 'https://creativecommons.org/licenses/by/4.0/deed.de'; }
+        else if (l === 'ccbysa40') { norm = 'CC BY-SA 4.0'; link = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'; }
+        else if (l === 'cc0' || l === 'cc010') { norm = 'CC0 1.0 Universal'; link = 'https://creativecommons.org/publicdomain/zero/1.0/deed.de'; }
+        else if (l === 'ccbync40') { norm = 'CC BY-NC 4.0'; link = 'https://creativecommons.org/licenses/by-nc/4.0/deed.de'; }
+        else if (l === 'ccbyncsa40') { norm = 'CC BY-NC-SA 4.0'; link = 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de'; }
+        else if (l === 'ccbynd40') { norm = 'CC BY-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nd/4.0/deed.de'; }
+        else if (l === 'ccbyncnd40') { norm = 'CC BY-NC-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de'; }
+
+        if (link && props.context) {
+            if (!props.context.licenseLink || props.context.licenseLink.includes('creativecommons.org')) {
+                props.context.licenseLink = link;
+                result = norm;
+            }
+        }
+    }
+    updateValue(result);
+};
+
+// Ensure empty string representation
 const normalizedSelectValue = computed(() => {
     if (props.modelValue && typeof props.modelValue === 'object' && props.modelValue._id) {
         return props.modelValue._id;
@@ -233,78 +255,21 @@ const formatDateForInput = (val) => {
     }
 };
 
-// Resolve dynamic options (e.g., "dynamic:offerings" loads from injected data)
-const dynamicSources = {
-    offerings: inject('dynamicOfferings', null),
-    trees: inject('dynamicTrees', null),
-    projects: inject('dynamicProjects', null),
-    profiles: inject('dynamicProfiles', null)
-};
-
 const resolvedOptions = computed(() => {
     if (!props.field.options) return [];
     
-    // Dynamic options: "dynamic:offerings" → load from injected source
-    if (typeof props.field.options === 'string' && props.field.options.startsWith('dynamic:')) {
-        const sourceKey = props.field.options.replace('dynamic:', '');
-        const source = dynamicSources[sourceKey];
-        if (source && source.value) {
-            return source.value.map(item => ({
-                value: item._id,
-                label: item.name + (item.category ? ` (${item.category})` : '')
-            }));
-        }
-        return [];
-    }
-    
-    // Static options
+    // Static options only for generic Select
     return props.field.options.map(opt => {
         if (typeof opt === 'string') return { value: opt, label: opt };
         return opt;
     });
 });
 
-// For dynamic:offerings — find the full offering object for the currently selected value
-const isDynamicOfferings = computed(() => {
-    return typeof props.field.options === 'string' && props.field.options === 'dynamic:offerings';
-});
-
-const selectedOffering = computed(() => {
-    if (!isDynamicOfferings.value || !props.modelValue) return null;
-    const source = dynamicSources.offerings;
-    if (!source?.value) return null;
-    return source.value.find(item => item._id === props.modelValue) || null;
-});
-
-// Addon management — stores selected addon names in context.selectedAddons
-const isAddonSelected = (addonName) => {
-    const addons = props.context?.selectedAddons;
-    return Array.isArray(addons) && addons.includes(addonName);
-};
-
-const toggleAddon = (addonName, checked) => {
-    const current = Array.isArray(props.context?.selectedAddons) ? [...props.context.selectedAddons] : [];
-    if (checked && !current.includes(addonName)) {
-        current.push(addonName);
-    } else if (!checked) {
-        const idx = current.indexOf(addonName);
-        if (idx >= 0) current.splice(idx, 1);
-    }
-    // Write directly to context (reactive order data)
-    props.context.selectedAddons = current;
-};
-// Clear addon selections when offering changes
-watch(() => props.modelValue, () => {
-    if (isDynamicOfferings.value && props.context) {
-        props.context.selectedAddons = [];
-    }
-});
-
 // Set default values
-watch(() => [props.field.type, props.field.default], ([, newDefault]) => {
+watch(() => [props.field?.type, props.field?.default], ([, newDefault]) => {
     if (props.modelValue === undefined && newDefault !== undefined) {
         updateValue(newDefault);
-    } else if (props.field.type === 'ObjectArray' && !props.modelValue) {
+    } else if (props.field?.type === 'ObjectArray' && !props.modelValue) {
         // Initialize empty array for ObjectArray
         updateValue([]);
     }
@@ -334,6 +299,14 @@ const updateArrayItemField = (index, fieldName, value) => {
 </script>
 
 <style scoped>
+.form-field-content > * {
+    margin-bottom: var(--space-md);
+    display: block;
+}
+.form-field-content > *:last-child {
+    margin-bottom: 0;
+}
+
 .form-textarea {
     resize: vertical;
     min-height: 100px;
@@ -394,52 +367,5 @@ const updateArrayItemField = (index, fieldName, value) => {
     max-height: 300px;
     object-fit: contain;
     border-radius: var(--radius-sm);
-}
-
-/* Offering notice */
-.offering-notice {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: rgba(255, 152, 0, 0.1);
-    border: 1px solid rgba(255, 152, 0, 0.35);
-    border-radius: var(--radius-md);
-    color: #8B6914;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    line-height: 1.5;
-}
-
-/* Offering addons */
-.offering-addons {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: var(--color-primary-50, rgba(46, 86, 65, 0.06));
-    border: 1px solid rgba(46, 86, 65, 0.15);
-    border-radius: var(--radius-md);
-}
-
-.addons-title {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--color-primary);
-    margin: 0 0 var(--space-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.addon-checkbox {
-    display: flex !important;
-    align-items: center;
-    gap: var(--space-xs);
-    font-size: var(--text-sm);
-    margin-bottom: var(--space-xs);
-}
-.addon-checkbox:last-child {
-    margin-bottom: 0;
-}
-
-.addon-desc {
-    color: var(--color-text-muted);
-    font-size: var(--text-xs);
 }
 </style>

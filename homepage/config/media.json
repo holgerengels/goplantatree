@@ -21,6 +21,13 @@
             "readonly": true
         },
         {
+            "name": "_id",
+            "label": "Media ID (für Makros)",
+            "type": "Text",
+            "readonly": true,
+            "hint": "Kopiere diese ID und nutze [[media id=\"HIER_EINFÜGEN\"]] im Text-Editor."
+        },
+        {
             "name": "url",
             "label": "Oder externe URL (für verlinkte Bilder)",
             "type": "Text"
@@ -64,7 +71,9 @@
     ],
     "grid": [
         "_preview _preview _preview _preview",
+        "_id _id _id _id",
         "file file file file",
+        "url url url url",
         "title title format format",
         "author authorLink license licenseLink",
         "sourceLink sourceLink sourceLink sourceLink"

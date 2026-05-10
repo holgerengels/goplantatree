@@ -58,6 +58,7 @@ import DynamicForm from '../components/forms/DynamicForm.vue';
 import { useProjectsStore } from '../stores/projects.js';
 import { useOrdersStore } from '../stores/orders.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
+import { useJsonLd } from '../composables/useJsonLd.js';
 
 const route = useRoute();
 const projectsStore = useProjectsStore();
@@ -75,7 +76,15 @@ const orderNumber = ref('');
 const offerings = ref([]);
 provide('dynamicOfferings', offerings);
 
-
+useJsonLd(() => {
+    if (!project.value) return null;
+    return {
+        "@type": "WebPage",
+        "name": `Bestellung: ${project.value.name}`,
+        "description": "Bestellformular für Bäume.",
+        "url": window.location.href
+    };
+});
 
 const submitOrder = async () => {
     if (!formRef.value.validate()) return;

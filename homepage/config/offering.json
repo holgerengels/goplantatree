@@ -50,15 +50,17 @@
         {
             "name": "project",
             "label": "Projekt",
-            "type": "Select",
+            "type": "Relation",
             "required": true,
-            "options": "dynamic:projects"
+            "reference": "/api/v1/projects?all=true",
+            "labelField": "name"
         },
         {
             "name": "tree",
             "label": "Baumsteckbrief (Verweis)",
-            "type": "Select",
-            "options": "dynamic:trees"
+            "type": "Relation",
+            "reference": "/api/v1/trees",
+            "labelField": "name"
         },
         {
             "name": "category",

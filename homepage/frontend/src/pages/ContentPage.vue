@@ -23,8 +23,11 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
+import { useConfigStore } from '../stores/config.js';
+import { useJsonLd } from '../composables/useJsonLd.js';
 
 const route = useRoute();
+const configStore = useConfigStore();
 
 const props = defineProps({
     pageSlugOverride: { type: String, default: '' }
@@ -42,6 +45,16 @@ const hasWideMacro = computed(() => {
     return /\[(trees|posts|projects|offerings)/i.test(page.value.content);
 });
 
+useJsonLd(() => {
+    if (!page.value) return null;
+    return {
+        "@type": "WebPage",
+        "name": page.value.title,
+        "description": page.value.heroSubtitle || page.value.title,
+        "url": window.location.href
+    };
+});
+
 const loadPage = async () => {
     if (!slug.value) return;
     loading.value = true;
@@ -53,13 +66,20 @@ const loadPage = async () => {
             throw new Error('Fehler beim Laden der Seite');
         }
         page.value = await res.json();
+        configStore.pageHeroMode = !!page.value.heroSubtitle;
     } catch (err) {
         error.value = err.message;
         page.value = null;
+        configStore.pageHeroMode = false;
     } finally {
         loading.value = false;
     }
 };
+
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+    configStore.pageHeroMode = false;
+});
 
 onMounted(loadPage);
 watch(slug, loadPage);

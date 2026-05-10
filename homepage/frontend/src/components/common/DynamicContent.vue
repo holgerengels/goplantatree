@@ -27,6 +27,7 @@ import MacroTeam from '../macros/MacroTeam.vue';
 import MacroSponsors from '../macros/MacroSponsors.vue';
 import MacroOfferings from '../macros/MacroOfferings.vue';
 import MacroNewsletter from '../macros/MacroNewsletter.vue';
+import MacroMedia from '../macros/MacroMedia.vue';
 
 const props = defineProps({
     content: {
@@ -44,17 +45,16 @@ const resolveMacro = (name) => {
         'team': MacroTeam,
         'sponsors': MacroSponsors,
         'offerings': MacroOfferings,
-        'newsletter': MacroNewsletter
+        'newsletter': MacroNewsletter,
+        'media': MacroMedia
     };
     return macros[name] || null;
 };
 
 const parsedBlocks = computed(() => {
     const html = props.content || '';
-    // Regex matches [macroName key="val" key2="val"] or just [macroName]
-    // The macro name is group 1, the props string is group 2.
-    // Also ignores [ inside pre/code blocks if possible, but for simplicity we just match global.
-    const regex = /\[([a-zA-Z0-9_-]+)(.*?)\]/g;
+    // Regex matches [[macroName key="val"]] or [macroName key="val"]
+    const regex = /\[{1,2}([a-zA-Z0-9_-]+)(.*?)\]{1,2}/g;
     const blocks = [];
     let lastIndex = 0;
     let match;

@@ -1,18 +1,17 @@
 <template>
   <div class="rich-text-editor">
-    <div class="editor-header">
-      <button 
-        type="button" 
+    <div class="quill-wrapper" :class="{ 'source-mode': showSource }">
+      <wa-button 
+        size="small"
+        appearance="plain"
         class="btn-toggle-source" 
         @click="showSource = !showSource"
         title="Quelltext-Ansicht umschalten"
       >
-        {{ showSource ? '👁️ WYSIWYG Editor' : '🧑‍💻 HTML Code' }}
-      </button>
-    </div>
+        <wa-icon :name="showSource ? 'eye' : 'code-slash'" slot="prefix"></wa-icon>
+        {{ showSource ? 'WYSIWYG' : 'HTML' }}
+      </wa-button>
 
-    <!-- WYSIWYG View -->
-    <div v-show="!showSource" class="quill-wrapper">
       <QuillEditor 
         theme="snow" 
         :content="modelValue" 
@@ -24,14 +23,14 @@
     </div>
 
     <!-- Source Code View -->
-    <textarea
+    <wa-textarea
       v-if="showSource"
       class="source-editor"
       :value="modelValue"
       @input="updateContent($event.target.value)"
       :disabled="disabled"
       placeholder="<p>HTML Code hier eingeben...</p>"
-    ></textarea>
+    ></wa-textarea>
   </div>
 </template>
 
@@ -63,48 +62,39 @@ const updateContent = (content) => {
   overflow: hidden;
 }
 
-.editor-header {
-  display: flex;
-  justify-content: flex-end;
-  background: var(--color-bg, #f8fafc);
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--color-border-light, #e2e8f0);
-}
-
 .btn-toggle-source {
-  background: none;
-  border: 1px solid transparent;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 10;
   color: var(--color-text-muted, #64748b);
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.btn-toggle-source:hover {
-  background: var(--color-border-light, #e2e8f0);
-  color: var(--color-primary-dark, #1e293b);
 }
 
 .quill-wrapper {
-    background: var(--color-bg, white);
+  position: relative;
+  background: var(--color-bg, white);
+  display: flex;
+  flex-direction: column;
 }
 
 .source-editor {
   width: 100%;
+}
+.source-editor::part(base) {
+  border: none;
+  border-radius: 0;
+}
+.source-editor::part(textarea) {
   min-height: 200px;
   padding: 1rem;
   font-family: monospace;
   font-size: 0.9rem;
-  border: none;
   background: #1e1e1e;
   color: #d4d4d4;
   resize: vertical;
   line-height: 1.5;
 }
-
-.source-editor:focus {
+.source-editor::part(textarea):focus {
   outline: none;
 }
 
@@ -115,6 +105,17 @@ const updateContent = (content) => {
     border: none;
     border-bottom: 1px solid var(--color-border-light, #e2e8f0) !important;
     background: var(--color-bg, #f8fafc);
+    padding-right: 120px; /* Space for absolute button */
+}
+.source-mode :deep(.ql-toolbar.ql-snow) {
+    border-bottom: none !important;
+}
+.source-mode :deep(.ql-formats) {
+    opacity: 0.4;
+    pointer-events: none;
+}
+.source-mode :deep(.ql-container) {
+    display: none !important;
 }
 :deep(.ql-container.ql-snow) {
     border: none !important;

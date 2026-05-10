@@ -13,12 +13,12 @@
       </div>
 
       <div class="editor-actions">
-        <button v-if="!editing && auth.hasPermission(resourceName, 'create')" class="btn btn-primary" @click="startCreate">
-          + Neu
-        </button>
-        <button v-if="editing" class="btn btn-secondary" @click="cancelEdit">
-          ← Zurück zur Liste
-        </button>
+        <wa-button v-if="!editing && auth.hasPermission(resourceName, 'create')" variant="primary" @click="startCreate">
+          <wa-icon name="plus" slot="prefix"></wa-icon> Neu
+        </wa-button>
+        <wa-button v-if="editing" variant="default" @click="cancelEdit">
+          <wa-icon name="arrow-left" slot="prefix"></wa-icon> Zurück zur Liste
+        </wa-button>
       </div>
     </div>
 
@@ -32,12 +32,12 @@
         v-model="formData"
       />
       <div class="form-actions">
-        <button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" class="btn btn-accent" @click="save" :disabled="saving">
-          {{ saving ? 'Speichern …' : '💾 Speichern' }}
-        </button>
-        <button v-if="editingId && auth.hasPermission(resourceName, 'delete')" class="btn btn-secondary btn-danger" @click="remove">
-          🗑 Löschen
-        </button>
+        <wa-button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
+          <wa-icon name="check" slot="prefix"></wa-icon> Speichern
+        </wa-button>
+        <wa-button v-if="editingId && auth.hasPermission(resourceName, 'delete')" variant="danger" @click="remove">
+          <wa-icon name="trash" slot="prefix"></wa-icon> Löschen
+        </wa-button>
       </div>
     </div>
 
@@ -69,7 +69,12 @@
             <div v-else class="grid-placeholder">Kein Bild</div>
           </div>
           <div class="grid-card-content">
-            <h4>{{ item.title || item.name || 'Ohne Titel' }}</h4>
+            <div class="grid-card-info">
+              <h4>{{ item.title || item.name || 'Ohne Titel' }}</h4>
+              <span v-if="config.entity === 'media'" class="macro-copy" @click.stop="copyMacro(item._id, $event)" title="Makro in die Zwischenablage kopieren">
+                <component :is="icons.Clipboard" :size="14" /> Makro kopieren
+              </span>
+            </div>
             <div class="grid-actions">
               <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
                 <component :is="icons.Edit2" />
@@ -155,36 +160,10 @@ const currentEntityInfo = ref(null);
 
 const resourceName = computed(() => {
     if (!currentEntityInfo.value) return '';
-    const name = currentEntityInfo.value.configName;
+    const name = config.value?.entity || currentEntityInfo.value.configName;
     return name === 'media' ? 'media' : name + 's';
 });
 
-const dynamicProjects = ref([]);
-const dynamicTrees = ref([]);
-const dynamicOfferings = ref([]);
-const dynamicProfiles = ref([]);
-
-provide('dynamicProjects', dynamicProjects);
-provide('dynamicTrees', dynamicTrees);
-provide('dynamicOfferings', dynamicOfferings);
-provide('dynamicProfiles', dynamicProfiles);
-
-const fetchDynamics = async () => {
-    try {
-        const [proj, trees, off, prof] = await Promise.all([
-            fetch('/api/v1/projects?all=true', { headers: auth.authHeaders }).then(r => r.json()),
-            fetch('/api/v1/trees', { headers: auth.authHeaders }).then(r => r.json()),
-            fetch('/api/v1/offerings', { headers: auth.authHeaders }).then(r => r.json()),
-            fetch('/api/v1/profiles', { headers: auth.authHeaders }).then(r => r.json())
-        ]);
-        dynamicProjects.value = proj;
-        dynamicTrees.value = trees;
-        dynamicOfferings.value = off;
-        dynamicProfiles.value = prof;
-    } catch (err) {
-        console.error('Failed to load dynamics', err);
-    }
-};
 
 const columns = computed(() => config.value?.admin?.columns || []);
 
@@ -302,6 +281,22 @@ const remove = async () => {
     }
 };
 
+const copyMacro = async (id, event) => {
+    try {
+        await navigator.clipboard.writeText(`[[media id="${id}"]]`);
+        const el = event.currentTarget;
+        const originalHtml = el.innerHTML;
+        el.innerHTML = '✓ Kopiert!';
+        el.style.color = 'var(--color-success)';
+        setTimeout(() => {
+            el.innerHTML = originalHtml;
+            el.style.color = '';
+        }, 2000);
+    } catch (err) {
+        console.error('Copy failed', err);
+    }
+};
+
 // Data loading
 const loadData = async () => {
     if (!config.value?.api) return;
@@ -333,8 +328,7 @@ const loadConfig = async () => {
         if (config.value.projectFilter) {
             await projectsStore.fetchProjects(); // Ensure projects are loaded
         }
-        await fetchDynamics();
-        await loadData();
+        await loadData(); // Load table data immediately
     }
 };
 
@@ -581,5 +575,30 @@ watch(() => route.params.entity, async () => {
 .grid-actions .btn-icon svg {
     width: 16px;
     height: 16px;
+}
+
+.grid-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.macro-copy {
+    font-size: 10px;
+    color: var(--color-primary);
+    background: var(--color-primary-50);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid var(--color-primary-100);
+    transition: all var(--transition-fast);
+}
+.macro-copy:hover {
+    background: var(--color-primary-100);
 }
 </style>

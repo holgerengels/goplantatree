@@ -75,9 +75,9 @@
         {
             "name": "offering",
             "label": "Gewünschter Baum",
-            "type": "Select",
-            "required": true,
-            "options": "dynamic:offerings"
+            "type": "OfferingSelector",
+            "reference": "/api/v1/offerings",
+            "required": true
         },
         {
             "name": "quantity",

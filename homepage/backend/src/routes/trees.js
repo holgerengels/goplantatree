@@ -3,6 +3,7 @@ import Tree from '../models/Tree.js';
 
 export default createCrudRouter(Tree, 'trees', {
     publicRead: true,
+    lookupField: 'slug',
     populate: 'image',
     buildFilter: (req) => {
         const filter = {};

@@ -19,7 +19,7 @@
     </HeroSection>
 
     <!-- Intro / Content from Page -->
-    <section class="section section-surface text-lg-relaxed" v-if="homePage?.content">
+    <section class="section section-surface" v-if="homePage?.content">
       <div class="container content-html">
         <DynamicContent :content="homePage.content" />
       </div>
@@ -108,6 +108,7 @@ import { useProjectsStore } from '../stores/projects.js';
 import { usePostsStore } from '../stores/posts.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
 import { api } from '../services/api.js';
+import { useJsonLd } from '../composables/useJsonLd.js';
 
 const projectsStore = useProjectsStore();
 const postsStore = usePostsStore();
@@ -123,6 +124,12 @@ const features = [
     { icon: 'Briefcase', title: 'Arbeit & Alltag', description: 'Überall kann man Platz für Bäume entdecken. Sprich die Menschen darauf an! Biete Deine Hilfe an!' }
 ];
 
+useJsonLd(() => ({
+    "@type": "WebSite",
+    "name": "Go Plant A Tree",
+    "url": window.location.origin,
+    "description": "Initiative zum Pflanzen von Bäumen."
+}));
 
 onMounted(async () => {
     try {

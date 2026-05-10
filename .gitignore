@@ -29,11 +29,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Backend Scripts
-homepage/backend/scripts/
-homepage/backend/migrate_*.js
-homepage/backend/check_perms.js
-
-# Uploads
-homepage/backend/uploads/

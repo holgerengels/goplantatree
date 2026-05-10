@@ -4,8 +4,16 @@
     "menuOrder": 30,
     "api": "/api/v1/trees",
     "label": {
-        "singular": "Baumsteckbrief",
-        "plural": "Baumwissen"
+        "singular": "Baum",
+        "plural": "Bäume"
+    },
+    "jsonld": {
+        "@type": "Article",
+        "mapping": {
+            "headline": "name",
+            "description": "description",
+            "image": "image.url"
+        }
     },
     "icon": "TreePine",
     "detail": {
@@ -21,11 +29,11 @@
                     },
                     {
                         "key": "height",
-                        "label": "📏 Höhe (exakt)"
+                        "label": "📏 Höhe"
                     },
                     {
                         "key": "width",
-                        "label": "↔️ Breite (exakt)"
+                        "label": "↔️ Breite"
                     },
                     {
                         "key": "flowering",
@@ -74,8 +82,8 @@
                 "label": "Name"
             },
             {
-                "key": "shortName",
-                "label": "Kürzel"
+                "key": "slug",
+                "label": "Slug"
             },
             {
                 "key": "category",
@@ -100,8 +108,8 @@
             "required": true
         },
         {
-            "name": "shortName",
-            "label": "Kurzname",
+            "name": "slug",
+            "label": "Slug (URL-Name)",
             "type": "Text"
         },
         {
@@ -119,16 +127,23 @@
         {
             "name": "sizeCategory",
             "label": "Größen-Kategorie",
-            "type": "Text"
+            "type": "Select",
+            "options": [
+                "bis 5 m",
+                "bis 10 m",
+                "bis 15 m",
+                "bis 20 m",
+                "ab 20 m"
+            ]
         },
         {
             "name": "height",
-            "label": "Höhe (exakt)",
+            "label": "Höhe",
             "type": "Text"
         },
         {
             "name": "width",
-            "label": "Breite (exakt)",
+            "label": "Breite",
             "type": "Text"
         },
         {
@@ -144,12 +159,31 @@
         {
             "name": "location",
             "label": "Standort",
-            "type": "Text"
+            "type": "Select",
+            "options": [
+                "Sonnig",
+                "Halbschattig",
+                "Schattig",
+                "Sonnig bis Halbschattig",
+                "Halbschattig bis Schattig",
+                "Standorttolerant (Alle)"
+            ]
         },
         {
             "name": "growthForm",
             "label": "Wuchsform",
-            "type": "Text"
+            "type": "Select",
+            "options": [
+                "Säulenförmig (schlank, aufrecht)",
+                "Eiförmig / Oval",
+                "Pyramidal / Kegelförmig",
+                "Rundkronig / Kugelig",
+                "Breitkronig / Ausladend",
+                "Schirmförmig",
+                "Hängend (Trauerform)",
+                "Strauchartig / Mehrstämmig",
+                "Unregelmäßig"
+            ]
         },
         {
             "name": "properties",
@@ -174,7 +208,7 @@
     ],
     "grid": [
         "image image image image",
-        "name name shortName shortName",
+        "name name slug slug",
         "category category sortOrder .",
         "sizeCategory sizeCategory properties properties",
         "height width flowering fruit",

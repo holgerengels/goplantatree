@@ -17,6 +17,10 @@ router.post('/', async (req, res) => {
         await order.save();
         res.status(201).json({ orderNumber: order.orderNumber, message: 'Bestellung erfolgreich aufgegeben' });
     } catch (err) {
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map(val => val.message);
+            return res.status(400).json({ error: messages.join(', ') });
+        }
         res.status(400).json({ error: err.message });
     }
 });

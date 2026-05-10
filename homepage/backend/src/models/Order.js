@@ -10,9 +10,14 @@ const orderSchema = new mongoose.Schema({
         default: 'neu'
     },
     orderedAt: { type: Date, default: Date.now },
-    name: { type: String },
-    email: { type: String },
+    name: { type: String, required: [true, 'Name ist ein Pflichtfeld'] },
+    email: { type: String, required: [true, 'E-Mail ist ein Pflichtfeld'] },
     phone: { type: String },
+    street: { type: String, required: [true, 'Straße ist ein Pflichtfeld'] },
+    zip: { type: String, required: [true, 'PLZ ist ein Pflichtfeld'] },
+    city: { type: String, required: [true, 'Stadt ist ein Pflichtfeld'] },
+    quantity: { type: Number, required: [true, 'Anzahl ist ein Pflichtfeld'], default: 1 },
+    agb: { type: Boolean, required: [true, 'AGB müssen akzeptiert werden'] },
     address: { type: String }
 }, {
     timestamps: true,

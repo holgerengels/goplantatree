@@ -7,6 +7,17 @@
         "singular": "Beitrag",
         "plural": "Beiträge"
     },
+    "jsonld": {
+        "@type": "BlogPosting",
+        "mapping": {
+            "headline": "title",
+            "description": "excerpt",
+            "articleBody": "content",
+            "image": "image.url",
+            "datePublished": "publishedAt",
+            "author": "author"
+        }
+    },
     "icon": "FileText",
     "detail": {
         "titleField": "title",

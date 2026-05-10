@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  */
 const treeSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    shortName: { type: String, index: true },
+    slug: { type: String, index: true },
     category: { type: String },
     height: { type: String },
     width: { type: String },

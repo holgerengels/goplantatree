@@ -21,10 +21,6 @@
           </span>
         </div>
 
-        <!-- Subtitle -->
-        <p v-if="config.detail.subtitleField && item[config.detail.subtitleField]" class="detail-subtitle">
-          {{ item[config.detail.subtitleField] }}
-        </p>
       </div>
     </section>
 
@@ -46,11 +42,14 @@
             </span>
           </div>
 
-          <!-- Sections -->
-          <div class="detail-content">
-            <template v-for="section in config.detail.sections" :key="section.label">
+          <!-- Short Sections (Specs, Notice, Subtitle) next to image -->
+          <div class="detail-content detail-sidebar">
+            <!-- Subtitle (Excerpt) moved here -->
+            <p v-if="config.detail.subtitleField && item[config.detail.subtitleField]" class="detail-subtitle">
+              {{ item[config.detail.subtitleField] }}
+            </p>
 
-              <!-- Specs layout: grid of label+value pairs -->
+            <template v-for="section in shortSections" :key="section.label">
               <div v-if="section.layout === 'specs' && hasAnySpecField(section)" class="section-specs">
                 <h3 v-if="section.label">{{ section.label }}</h3>
                 <div class="specs-grid">
@@ -61,26 +60,26 @@
                 </div>
               </div>
 
-              <!-- Notice layout: highlighted warning box -->
               <div v-else-if="section.layout === 'notice' && item[section.field]" class="section-notice card">
                 <p>⚠️ {{ item[section.field] }}</p>
               </div>
-
-              <!-- HTML layout: rendered content -->
-              <div v-else-if="section.layout === 'html' && item[section.field]" class="section-html">
-                <h3 v-if="section.label && section.label !== 'Inhalt'">{{ section.label }}</h3>
-                <DynamicContent :content="item[section.field]" />
-              </div>
-
-              <!-- Text layout: plain text block -->
-              <div v-else-if="section.layout === 'text' && item[section.field]" class="section-text">
-                <h3 v-if="section.label">{{ section.label }}</h3>
-                <p>{{ item[section.field] }}</p>
-              </div>
             </template>
-
-
           </div>
+        </div>
+
+        <!-- Long Sections (HTML, Text) below image and specs -->
+        <div class="detail-main-content">
+          <template v-for="section in longSections" :key="section.label">
+            <div v-if="section.layout === 'html' && item[section.field]" class="section-html">
+              <h3 v-if="section.label && section.label !== 'Inhalt'">{{ section.label }}</h3>
+              <DynamicContent :content="item[section.field]" />
+            </div>
+
+            <div v-else-if="section.layout === 'text' && item[section.field]" class="section-text">
+              <h3 v-if="section.label">{{ section.label }}</h3>
+              <p>{{ item[section.field] }}</p>
+            </div>
+          </template>
         </div>
       </div>
     </section>
@@ -96,6 +95,7 @@ import { useConfigStore } from '../stores/config.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
 import { buildCaption } from '../utils/media.js';
 import DynamicContent from '../components/common/DynamicContent.vue';
+import { useJsonLd } from '../composables/useJsonLd.js';
 
 const route = useRoute();
 const configStore = useConfigStore();
@@ -122,7 +122,15 @@ const badges = computed(() => {
     return result;
 });
 
+const shortSections = computed(() => {
+    if (!config.value?.detail?.sections) return [];
+    return config.value.detail.sections.filter(s => s.layout !== 'html' && s.layout !== 'text');
+});
 
+const longSections = computed(() => {
+    if (!config.value?.detail?.sections) return [];
+    return config.value.detail.sections.filter(s => s.layout === 'html' || s.layout === 'text');
+});
 
 const placeholderStyle = computed(() => {
     const cat = item.value?.category || item.value?.type || '';
@@ -140,7 +148,33 @@ const hasAnySpecField = (section) => {
     return section.fields?.some(sf => item.value?.[sf.key]);
 };
 
+const resolvePath = (obj, path) => {
+    return path.split('.').reduce((o, i) => o ? o[i] : null, obj);
+};
 
+useJsonLd(() => {
+    if (!config.value?.jsonld || !item.value) return null;
+    
+    const ld = {
+        "@type": config.value.jsonld["@type"] || config.value.jsonld.type,
+        "url": window.location.href
+    };
+    
+    if (config.value.jsonld.mapping) {
+        for (const [ldKey, itemPath] of Object.entries(config.value.jsonld.mapping)) {
+            const val = resolvePath(item.value, itemPath);
+            if (val) {
+                if (typeof val === 'string' && val.startsWith('/')) {
+                    ld[ldKey] = window.location.origin + val;
+                } else {
+                    ld[ldKey] = val;
+                }
+            }
+        }
+    }
+    
+    return ld;
+});
 
 const loadData = async () => {
     const slug = route.params.entity;
@@ -293,9 +327,13 @@ figure {
 }
 
 /* Section: HTML */
+.detail-main-content {
+    margin-top: var(--space-3xl);
+    max-width: 900px;
+}
+
 .section-html {
     line-height: 1.8;
-    max-width: 800px;
 }
 .section-html h3 {
     margin-bottom: var(--space-md);

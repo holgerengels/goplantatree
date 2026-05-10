@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -22,18 +24,40 @@ body {
     overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-display);
     font-weight: 700;
     line-height: 1.2;
     color: var(--color-primary-dark);
 }
 
-h1 { font-size: var(--text-5xl); letter-spacing: -0.02em; }
-h2 { font-size: var(--text-4xl); letter-spacing: -0.01em; }
-h3 { font-size: var(--text-2xl); }
-h4 { font-size: var(--text-xl); }
-h5 { font-size: var(--text-lg); font-weight: 600; }
+h1 {
+    font-size: var(--text-5xl);
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: var(--text-4xl);
+    letter-spacing: -0.01em;
+}
+
+h3 {
+    font-size: var(--text-2xl);
+}
+
+h4 {
+    font-size: var(--text-xl);
+}
+
+h5 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+}
 
 p {
     margin-bottom: var(--space-md);
@@ -46,6 +70,7 @@ a {
     font-weight: 500;
     transition: color var(--transition-fast);
 }
+
 a:hover {
     color: var(--color-accent-dark);
 }
@@ -61,7 +86,8 @@ img {
     filter: hue-rotate(-24deg) saturate(0.85);
 }
 
-ul, ol {
+ul,
+ol {
     list-style: none;
 }
 
@@ -73,7 +99,9 @@ button {
     font-size: inherit;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     font-family: inherit;
     font-size: inherit;
 }
@@ -96,9 +124,11 @@ input, select, textarea {
     text-align: center;
     margin-bottom: var(--space-3xl);
 }
+
 .section-title h2 {
     margin-bottom: var(--space-sm);
 }
+
 .section-title p {
     font-size: var(--text-lg);
     color: var(--color-text-muted);
@@ -126,6 +156,7 @@ input, select, textarea {
     color: white;
     box-shadow: 0 4px 14px rgba(46, 86, 65, 0.3);
 }
+
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(46, 86, 65, 0.4);
@@ -137,6 +168,7 @@ input, select, textarea {
     color: var(--color-primary);
     border: 2px solid var(--color-border);
 }
+
 .btn-secondary:hover {
     border-color: var(--color-primary);
     background: var(--color-primary-50);
@@ -148,6 +180,7 @@ input, select, textarea {
     font-weight: 700;
     box-shadow: 0 4px 14px rgba(163, 222, 116, 0.4);
 }
+
 .btn-accent:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(163, 222, 116, 0.5);
@@ -169,6 +202,7 @@ input, select, textarea {
     box-shadow: var(--shadow-md);
     transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
+
 .card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-4px) scale(1.01);
@@ -193,15 +227,32 @@ input, select, textarea {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-.badge-primary { background: var(--color-primary-50); color: var(--color-primary); }
-.badge-accent { background: rgba(163, 222, 116, 0.2); color: var(--color-olive); }
-.badge-warning { background: rgba(255, 152, 0, 0.1); color: var(--color-warning); }
-.badge-success { background: rgba(76, 175, 80, 0.1); color: var(--color-success); }
+
+.badge-primary {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+}
+
+.badge-accent {
+    background: rgba(163, 222, 116, 0.2);
+    color: var(--color-olive);
+}
+
+.badge-warning {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--color-warning);
+}
+
+.badge-success {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--color-success);
+}
 
 /* Form inputs (public pages) */
 .form-group {
     margin-bottom: var(--space-md);
 }
+
 .form-label {
     display: block;
     font-size: var(--text-sm);
@@ -209,10 +260,12 @@ input, select, textarea {
     color: var(--color-text);
     margin-bottom: var(--space-xs);
 }
+
 .form-label.required::after {
     content: ' *';
     color: var(--color-error);
 }
+
 .form-input {
     width: 100%;
     padding: var(--space-sm) var(--space-md);
@@ -223,11 +276,13 @@ input, select, textarea {
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     font-size: var(--text-base);
 }
+
 .form-input:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(46, 86, 65, 0.1);
 }
+
 .form-input::placeholder {
     color: var(--color-text-muted);
 }
@@ -248,6 +303,7 @@ input, select, textarea {
     background-position: right 12px center;
     padding-right: 36px;
 }
+
 .form-select:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -260,6 +316,7 @@ input, select, textarea {
     gap: var(--space-sm);
     cursor: pointer;
 }
+
 .form-checkbox input[type="checkbox"] {
     width: 20px;
     height: 20px;
@@ -286,6 +343,7 @@ input, select, textarea {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -293,8 +351,13 @@ input, select, textarea {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideInLeft {
@@ -302,6 +365,7 @@ input, select, textarea {
         opacity: 0;
         transform: translateX(-30px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -311,8 +375,14 @@ input, select, textarea {
 .animate-fade-in-up {
     animation: fadeInUp 0.6s ease forwards;
 }
+
 .animate-fade-in {
     animation: fadeIn 0.4s ease forwards;
+}
+
+section {
+    font-size: var(--text-lg);
+    line-height: 1.8;
 }
 
 /* Reusable Section Backgrounds & Utilities */
@@ -330,6 +400,7 @@ input, select, textarea {
     background: var(--color-primary);
     color: rgba(255, 255, 255, 0.9);
 }
+
 .section-primary h1,
 .section-primary h2,
 .section-primary h3,
@@ -338,12 +409,15 @@ input, select, textarea {
 .section-primary h6 {
     color: #ffffff;
 }
+
 .section-primary p {
     color: rgba(255, 255, 255, 0.85);
 }
+
 .section-primary a {
     color: var(--color-accent);
 }
+
 .section-primary a:hover {
     color: var(--color-accent-light);
 }
@@ -351,11 +425,6 @@ input, select, textarea {
 .section-primary-50 {
     background: var(--color-primary-50);
     color: var(--color-text);
-}
-
-.text-lg-relaxed {
-    font-size: var(--text-lg);
-    line-height: 1.8;
 }
 
 /* Breakout utility: forces a section to span the full viewport width, 
@@ -374,50 +443,55 @@ input, select, textarea {
 
 /* Feature Cards */
 .features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-xl);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-xl);
 }
 
 .feature-card {
-  text-align: center;
-  transition: transform var(--transition-base);
+    text-align: center;
+    transition: transform var(--transition-base);
 }
 
 .feature-card:hover {
-  transform: translateY(-6px);
+    transform: translateY(-6px);
 }
 
 .feature-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--space-md);
-  color: var(--color-primary);
-  background: var(--color-primary-50);
-  padding: var(--space-md);
-  border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md);
+    color: var(--color-primary);
+    background: var(--color-primary-50);
+    padding: var(--space-md);
+    border-radius: var(--radius-full);
 }
 
 .feature-icon svg {
-  width: 32px;
-  height: 32px;
+    width: 32px;
+    height: 32px;
 }
 
 .feature-card h3 {
-  margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    h1 { font-size: var(--text-3xl); }
-    h2 { font-size: var(--text-2xl); }
-    
+    h1 {
+        font-size: var(--text-3xl);
+    }
+
+    h2 {
+        font-size: var(--text-2xl);
+    }
+
     .container {
         padding-left: var(--space-md);
         padding-right: var(--space-md);
     }
-    
+
     .section {
         padding: var(--space-2xl) 0;
     }

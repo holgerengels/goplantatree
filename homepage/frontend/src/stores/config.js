@@ -14,6 +14,8 @@ export const useConfigStore = defineStore('config', () => {
 
     const menu = ref(null);
     const menuLoaded = ref(false);
+    
+    const pageHeroMode = ref(false);
 
     /**
      * Load the list of all entity configs (for navigation).
@@ -87,7 +89,7 @@ export const useConfigStore = defineStore('config', () => {
 
     return {
         entities, configCache, loaded,
-        menu, menuLoaded,
+        menu, menuLoaded, pageHeroMode,
         fetchEntities, fetchConfig, findBySlug, fetchMenu,
         headerMenu, footerMenu,
         publicEntities, adminEntities
