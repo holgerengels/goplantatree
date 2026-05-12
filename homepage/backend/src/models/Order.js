@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Counter from './Counter.js';
 
 const orderSchema = new mongoose.Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
@@ -24,12 +25,16 @@ const orderSchema = new mongoose.Schema({
     strict: false
 });
 
-// Auto-generate order number before save
+// Auto-generate order number using atomic counter before save
 orderSchema.pre('save', async function (next) {
     if (!this.orderNumber) {
-        const count = await mongoose.model('Order').countDocuments({ project: this.project });
         const year = new Date().getFullYear();
-        this.orderNumber = `GPT-${year}-${String(count + 1).padStart(4, '0')}`;
+        const counter = await Counter.findOneAndUpdate(
+            { _id: `order-${this.project}-${year}` },
+            { $inc: { seq: 1 } },
+            { upsert: true, new: true }
+        );
+        this.orderNumber = `GPT-${year}-${String(counter.seq).padStart(4, '0')}`;
     }
     next();
 });

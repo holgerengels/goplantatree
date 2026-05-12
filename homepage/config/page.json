@@ -72,5 +72,6 @@
         "title title slug slug",
         "heroSubtitle heroSubtitle published .",
         "content content content content"
-    ]
+    ],
+    "resource": "pages"
 }

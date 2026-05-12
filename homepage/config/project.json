@@ -49,7 +49,7 @@
         {
             "name": "description",
             "label": "Beschreibung",
-            "type": "RichText"
+            "type": "Html"
         },
         {
             "name": "orderFormConfig",
@@ -106,12 +106,63 @@
                     "default": "upcoming"
                 }
             ]
+        },
+        {
+            "name": "content.team",
+            "label": "Unser Team",
+            "type": "ObjectArray",
+            "description": "Füge hier Teammitglieder für dieses Projekt hinzu.",
+            "itemFields": [
+                {
+                    "name": "name",
+                    "label": "Name",
+                    "type": "Text",
+                    "required": true
+                },
+                {
+                    "name": "role",
+                    "label": "Rolle / Position",
+                    "type": "Text",
+                    "required": true
+                },
+                {
+                    "name": "avatar",
+                    "label": "Profilbild",
+                    "type": "Media"
+                }
+            ]
+        },
+        {
+            "name": "content.sponsors",
+            "label": "Partner & Sponsoren",
+            "type": "ObjectArray",
+            "description": "Füge hier Partner und Sponsoren hinzu.",
+            "itemFields": [
+                {
+                    "name": "name",
+                    "label": "Name",
+                    "type": "Text",
+                    "required": true
+                },
+                {
+                    "name": "url",
+                    "label": "Website URL",
+                    "type": "Text"
+                },
+                {
+                    "name": "logo",
+                    "label": "Logo",
+                    "type": "Media"
+                }
+            ]
         }
     ],
     "grid": [
         "name name slug slug",
         "orderFormConfig orderFormConfig active .",
         "description description description description",
-        "content.timeline content.timeline content.timeline content.timeline"
-    ]
+        "content.timeline content.timeline content.team content.team",
+        "content.sponsors content.sponsors . ."
+    ],
+    "resource": "projects"
 }

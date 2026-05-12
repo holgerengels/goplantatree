@@ -90,8 +90,8 @@ describe('Orders API', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
-            expect(res.body.orders.length).toBe(1);
-            expect(res.body.orders[0].name).toBe('Jane Doe');
+            expect(res.body.items.length).toBe(1);
+            expect(res.body.items[0].name).toBe('Jane Doe');
             expect(res.body.total).toBe(1);
         });
     });
@@ -130,7 +130,7 @@ describe('Orders API', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
-            expect(res.body.message).toBe('Bestellung gelöscht');
+            expect(res.body.message).toBe('Eintrag gelöscht');
 
             const dbOrder = await Order.findById(order._id);
             expect(dbOrder).toBeNull();

@@ -7,15 +7,33 @@
     <div class="offerings-grid">
       <div v-for="offering in offerings" :key="offering._id" class="offering-card card">
         <div class="offering-image" :style="imageStyle(offering)">
-          <span class="badge badge-accent">{{ offering.category }}</span>
+          <div class="badge-group">
+            <span class="badge badge-accent">{{ offering.category }}</span>
+            <router-link v-if="offering.tree" :to="`/baeume/${offering.tree.slug || offering.tree._id}`" class="badge badge-primary tree-badge-link" target="_blank" title="Steckbrief in neuem Tab öffnen">
+              → mehr Infos
+            </router-link>
+          </div>
           <span v-if="!offering.available" class="badge badge-warning offering-unavailable">Vergriffen</span>
         </div>
         <div class="offering-body">
           <h3>{{ offering.name }}</h3>
-          <div class="offering-meta" v-if="offering.tree">
-            <router-link :to="`/baeume/${offering.tree._id}`" class="tree-link">
-              📖 Baumsteckbrief →
-            </router-link>
+          <div class="offering-details">
+            <div class="detail-row" v-if="offering.pflanzgroesseHoehe || offering.pflanzgroesseStammumfang">
+              <strong>🌱 Pflanzgröße:</strong> 
+              <span class="size-specs">
+                <span v-if="offering.pflanzgroesseHoehe">↕ {{ offering.pflanzgroesseHoehe }}</span><span v-if="offering.pflanzgroesseHoehe && offering.pflanzgroesseStammumfang">, </span><span v-if="offering.pflanzgroesseStammumfang">◯ {{ offering.pflanzgroesseStammumfang }}</span>
+              </span>
+            </div>
+            <div class="detail-row" v-if="offering.endgroesseHoehe || offering.endgroesseBreite">
+              <strong>🌳 Endgröße:</strong> 
+              <span class="size-specs">
+                <span v-if="offering.endgroesseHoehe">↕ {{ offering.endgroesseHoehe }}</span><span v-if="offering.endgroesseHoehe && offering.endgroesseBreite">, </span><span v-if="offering.endgroesseBreite">↔ {{ offering.endgroesseBreite }}</span>
+              </span>
+            </div>
+            <div class="detail-row" v-if="offering.bemerkung">
+              <strong>🌿 Verwendung / Sonstiges: </strong>
+              <span class="properties-text">{{ offering.bemerkung }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -30,6 +48,8 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { api } from '../../services/api.js';
+import { getCategoryGradient } from '../../utils/gradients.js';
 
 const props = defineProps({
     project: { type: String, required: true },
@@ -41,21 +61,15 @@ const projectSlug = ref('');
 
 const imageStyle = (offering) => {
     if (offering.image?.url) return { backgroundImage: `url(${offering.image.url})` };
-    const gradients = {
-        'Laubbaum': 'linear-gradient(135deg, #4CAF50, #81C784)',
-        'Obstbaum': 'linear-gradient(135deg, #FF9800, #FFB74D)',
-        'Halbstamm-Obstbaum': 'linear-gradient(135deg, #FF9800, #FFB74D)',
-        'Hochstamm-Obstbaum': 'linear-gradient(135deg, #8D6E63, #BCAAA4)'
-    };
-    return { background: gradients[offering.category] || 'linear-gradient(135deg, #2E5641, #A3DE74)' };
+    if (offering.tree?.image?.url) return { backgroundImage: `url(${offering.tree.image.url})` };
+    return { background: getCategoryGradient(offering.category) };
 };
 
 watch(() => props.project, async (newVal) => {
     if (!newVal) return;
     projectSlug.value = newVal;
     try {
-        const res = await fetch(`/api/v1/offerings?project=${newVal}&available=true`);
-        if (res.ok) offerings.value = await res.json();
+        offerings.value = await api.get(`/offerings?project=${newVal}&available=true`);
     } catch { /* empty */ }
 }, { immediate: true });
 </script>
@@ -68,17 +82,43 @@ watch(() => props.project, async (newVal) => {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--space-xl);
 }
-.offering-card { overflow: hidden; padding: 0 !important; }
+.offering-card { overflow: hidden; padding: 0 !important; display: flex; flex-direction: column; }
 .offering-image {
-    height: 160px; background-size: cover; background-position: center;
+    height: 200px; background-size: cover; background-position: center;
     display: flex; align-items: flex-start; justify-content: space-between;
     padding: var(--space-sm);
 }
+
+.offering-image .badge {
+    background: var(--color-surface);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+}
+
+.badge-group {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.tree-badge-link {
+    text-decoration: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tree-badge-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
 .offering-unavailable { margin-left: auto; }
-.offering-body { padding: var(--space-lg); }
+.offering-body { padding: var(--space-lg); display: flex; flex-direction: column; }
 .offering-body h3 { font-size: var(--text-lg); margin-bottom: var(--space-sm); color: var(--color-primary-dark); }
-.offering-meta { margin-top: var(--space-xs); }
-.tree-link { font-size: var(--text-xs); color: var(--color-primary); }
-.tree-link:hover { color: var(--color-accent-dark); }
+.offering-details { display: flex; flex-direction: column; gap: var(--space-xs); font-size: var(--text-sm); color: var(--color-text-secondary); }
+.detail-row { line-height: 1.4; }
+.detail-row strong { color: var(--color-primary-dark); }
+.properties-text { margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--color-text-muted); }
+.size-specs { color: var(--color-text-muted); font-size: var(--text-xs); margin-left: 4px; }
 .section-more { text-align: center; margin-top: var(--space-2xl); }
 </style>

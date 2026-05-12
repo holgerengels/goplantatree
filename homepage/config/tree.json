@@ -25,11 +25,11 @@
                 "fields": [
                     {
                         "key": "sizeCategory",
-                        "label": "📏 Größenklasse"
+                        "label": "🌳 Größenklasse"
                     },
                     {
                         "key": "height",
-                        "label": "📏 Höhe"
+                        "label": "↕️ Höhe"
                     },
                     {
                         "key": "width",
@@ -76,6 +76,9 @@
         ]
     },
     "admin": {
+        "filters": [
+            "category"
+        ],
         "columns": [
             {
                 "key": "name",
@@ -215,5 +218,7 @@
         "location location growthForm growthForm",
         "notice notice notice notice",
         "description description description description"
-    ]
+    ],
+    "resource": "trees",
+    "listPage": "/seite/baeume"
 }

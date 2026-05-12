@@ -52,7 +52,7 @@ describe('EditorPage.vue', () => {
                 return Promise.resolve({
                     ok: true,
                     json: () => Promise.resolve([
-                        { name: 'Bestellungen', configName: 'order', slug: 'bestellungen' }
+                        { name: 'Bestellungen', configName: 'order', slug: 'bestellungen', resource: 'orders' }
                     ])
                 });
             }
@@ -62,6 +62,7 @@ describe('EditorPage.vue', () => {
                     json: () => Promise.resolve({
                         entity: 'order',
                         api: '/api/v1/orders',
+                        resource: 'orders',
                         label: { singular: 'Bestellung', plural: 'Bestellungen' },
                         fields: [
                             { name: 'name', label: 'Name', type: 'Text', required: true }
@@ -72,7 +73,7 @@ describe('EditorPage.vue', () => {
             if (url.includes('/api/v1/orders')) {
                 return Promise.resolve({
                     ok: true,
-                    json: () => Promise.resolve([]) // empty data list
+                    json: () => Promise.resolve({ items: [], total: 0 })
                 });
             }
             return Promise.resolve({
@@ -127,7 +128,7 @@ describe('EditorPage.vue', () => {
         await wrapper.vm.save();
         await wrapper.vm.$nextTick();
 
-        // Fetch (POST) should NOT be called due to validation
+        // api.post (via fetch) should NOT be called due to validation
         const postCalls = fetch.mock.calls.filter(c => c[1]?.method === 'POST');
         expect(postCalls.length).toBe(0);
 
@@ -160,7 +161,7 @@ describe('EditorPage.vue', () => {
         await wrapper.vm.save();
         await wrapper.vm.$nextTick();
 
-        // Fetch (POST) should be called
+        // api.post calls go through the api service which uses fetch internally
         const postCalls = fetch.mock.calls.filter(c => c[1]?.method === 'POST');
         expect(postCalls.length).toBe(1);
         expect(postCalls[0][0]).toBe('/api/v1/orders');

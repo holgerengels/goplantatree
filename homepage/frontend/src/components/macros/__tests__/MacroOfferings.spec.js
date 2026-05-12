@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import MacroOfferings from '../MacroOfferings.vue';
 
-// Mock the global fetch
-global.fetch = vi.fn();
+// Mock the api service
+vi.mock('../../../services/api.js', () => ({
+    api: {
+        get: vi.fn()
+    }
+}));
+
+import { api } from '../../../services/api.js';
 
 describe('MacroOfferings.vue', () => {
     beforeEach(() => {
@@ -12,16 +18,12 @@ describe('MacroOfferings.vue', () => {
 
     it('fetches offerings on mount and renders them', async () => {
         const mockOfferings = [
-            { _id: '1', name: 'Tree 1', category: 'Laubbaum', tree: { notice: 'Notice 1' }, image: { url: 'img1.jpg' } },
+            { _id: '1', name: 'Tree 1', category: 'Laubbaum', tree: { slug: 't1' }, image: { url: 'img1.jpg' } },
             { _id: '2', name: 'Tree 2', category: 'Obstbaum', tree: {} }
         ];
 
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => mockOfferings
-        });
+        api.get.mockResolvedValueOnce(mockOfferings);
 
-        // Use mount with a stubbed router-link
         const wrapper = mount(MacroOfferings, {
             props: { project: 'test-project' },
             global: {
@@ -31,10 +33,10 @@ describe('MacroOfferings.vue', () => {
 
         // Wait for the immediate watch and fetch to resolve
         await vi.dynamicImportSettled();
-        await new Promise(r => setTimeout(r, 10)); // flush promises
+        await new Promise(r => setTimeout(r, 10));
 
-        expect(global.fetch).toHaveBeenCalledWith('/api/v1/offerings?project=test-project&available=true');
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(api.get).toHaveBeenCalledWith('/offerings?project=test-project&available=true');
+        expect(api.get).toHaveBeenCalledTimes(1);
 
         const cards = wrapper.findAll('.offering-card');
         expect(cards.length).toBe(2);
@@ -43,10 +45,7 @@ describe('MacroOfferings.vue', () => {
     });
 
     it('refetches when project prop changes', async () => {
-        global.fetch.mockResolvedValue({
-            ok: true,
-            json: async () => []
-        });
+        api.get.mockResolvedValue([]);
 
         const wrapper = mount(MacroOfferings, {
             props: { project: 'project-a' },
@@ -56,13 +55,13 @@ describe('MacroOfferings.vue', () => {
         });
 
         await new Promise(r => setTimeout(r, 10));
-        expect(global.fetch).toHaveBeenCalledWith('/api/v1/offerings?project=project-a&available=true');
+        expect(api.get).toHaveBeenCalledWith('/offerings?project=project-a&available=true');
 
         // Change prop
         await wrapper.setProps({ project: 'project-b' });
         await new Promise(r => setTimeout(r, 10));
 
-        expect(global.fetch).toHaveBeenCalledWith('/api/v1/offerings?project=project-b&available=true');
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(api.get).toHaveBeenCalledWith('/offerings?project=project-b&available=true');
+        expect(api.get).toHaveBeenCalledTimes(2);
     });
 });

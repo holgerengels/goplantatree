@@ -107,7 +107,7 @@
 
     <!-- Object Array (Recursive nested form fields) -->
     <div v-else-if="field.type === 'ObjectArray'" class="form-group object-array-container">
-      <label class="form-label">{{ field.label }}</label>
+      <label class="form-label object-array-main-label">{{ field.label }}</label>
       <p v-if="field.description" class="form-hint" style="margin-bottom: var(--space-sm);">{{ field.description }}</p>
       
       <div class="object-array">
@@ -341,9 +341,19 @@ const updateArrayItemField = (index, fieldName, value) => {
 }
 
 .object-array-title {
-    font-weight: 600;
-    font-size: var(--text-sm);
-    color: var(--color-primary);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-base);
+    color: var(--color-primary-dark);
+}
+
+.object-array-main-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-xs);
+    display: block;
 }
 
 .object-array-fields {

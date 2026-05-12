@@ -9,8 +9,10 @@
     },
     "icon": "ShoppingCart",
     "adminOnly": true,
-    "projectFilter": true,
     "admin": {
+        "filters": [
+            "project"
+        ],
         "columns": [
             {
                 "key": "name",
@@ -149,5 +151,6 @@
         "notice notice notice notice",
         "addons addons addons addons",
         "sortOrder sortOrder . ."
-    ]
+    ],
+    "resource": "offerings"
 }

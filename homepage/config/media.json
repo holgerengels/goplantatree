@@ -99,5 +99,6 @@
             }
         ],
         "viewType": "grid"
-    }
+    },
+    "resource": "media"
 }

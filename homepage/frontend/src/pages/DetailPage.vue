@@ -2,7 +2,7 @@
   <div class="detail-page" v-if="config && item">
     <section class="section detail-header">
       <div class="container">
-        <router-link :to="`/${config.slug}`" class="back-link">
+        <router-link :to="listUrl" class="back-link">
           ← Zurück zu {{ config.label.plural }}
         </router-link>
 
@@ -94,6 +94,8 @@ import * as icons from 'lucide-vue-next';
 import { useConfigStore } from '../stores/config.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
 import { buildCaption } from '../utils/media.js';
+import { getCategoryGradient } from '../utils/gradients.js';
+import { api } from '../services/api.js';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { useJsonLd } from '../composables/useJsonLd.js';
 
@@ -102,6 +104,11 @@ const configStore = useConfigStore();
 
 const config = ref(null);
 const item = ref(null);
+
+const listUrl = computed(() => {
+    if (config.value?.listPage) return config.value.listPage;
+    return `/${config.value?.slug}`;
+});
 
 const badges = computed(() => {
     if (!config.value?.detail?.badges || !item.value) return [];
@@ -134,14 +141,7 @@ const longSections = computed(() => {
 
 const placeholderStyle = computed(() => {
     const cat = item.value?.category || item.value?.type || '';
-    const gradients = {
-        'Laubbaum': 'linear-gradient(135deg, #4CAF50, #81C784)',
-        'Halbstamm-Obstbaum': 'linear-gradient(135deg, #FF9800, #FFB74D)',
-        'Hochstamm-Obstbaum': 'linear-gradient(135deg, #8D6E63, #BCAAA4)',
-        'news': 'linear-gradient(135deg, #2E5641, #637648)',
-        'pflanzung': 'linear-gradient(135deg, #A3DE74, #4CAF50)'
-    };
-    return { background: gradients[cat] || 'linear-gradient(135deg, #2E5641, #A3DE74)' };
+    return { background: getCategoryGradient(cat) };
 });
 
 const hasAnySpecField = (section) => {
@@ -185,11 +185,10 @@ const loadData = async () => {
 
     config.value = await configStore.fetchConfig(entityInfo.configName);
 
-    // Load single item — try by slug first, fallback to ID
-    const res = await fetch(`${config.value.api}/${id}`);
-    if (res.ok) {
-        item.value = await res.json();
-    }
+    // Load single item
+    try {
+        item.value = await api.get(`${config.value.api.replace('/api/v1', '')}/${id}`);
+    } catch { /* 404 or error */ }
 };
 
 onMounted(loadData);

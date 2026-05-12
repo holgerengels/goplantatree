@@ -41,7 +41,9 @@ router.get('/entities', (req, res) => {
                         hasPublicList: !!content.list,
                         hasPublicDetail: !!content.detail,
                         configName: file.replace('.json', ''),
-                        menuOrder: content.menuOrder !== undefined ? content.menuOrder : 999
+                        menuOrder: content.menuOrder !== undefined ? content.menuOrder : 999,
+                        resource: content.resource || null,
+                        listPage: content.listPage || null
                     });
                 }
             } catch {

@@ -9,8 +9,10 @@
     },
     "icon": "Mail",
     "adminOnly": true,
-    "projectFilter": true,
     "admin": {
+        "filters": [
+            "project"
+        ],
         "columns": [
             {
                 "key": "project",
@@ -76,5 +78,6 @@
         "project project . .",
         "email email name name",
         "topic topic . ."
-    ]
+    ],
+    "resource": "subscribers"
 }

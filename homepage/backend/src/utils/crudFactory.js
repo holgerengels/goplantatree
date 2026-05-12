@@ -1,5 +1,42 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { auth, requirePermission, optionalAuth } from '../middleware/auth.js';
+
+/**
+ * Resolves query parameters to ObjectIds using the resolveParams config.
+ * e.g. resolveParams: { project: { model: 'Project', lookupField: 'slug' } }
+ * will resolve ?project=my-slug to the ObjectId of the matching Project.
+ */
+const resolveQueryParams = async (req, resolveParams) => {
+    const resolved = {};
+    for (const [param, config] of Object.entries(resolveParams)) {
+        const val = req.query[param];
+        if (!val) continue;
+        
+        // If it's already an ObjectId, use it directly
+        if (val.match?.(/^[0-9a-fA-F]{24}$/)) {
+            resolved[param] = val;
+        } else {
+            const RefModel = mongoose.model(config.model);
+            const doc = await RefModel.findOne({ [config.lookupField]: val });
+            if (doc) resolved[param] = doc._id;
+        }
+    }
+    return resolved;
+};
+
+/**
+ * Apply populate to a query, handling arrays and single values.
+ */
+const applyPopulate = (query, populate) => {
+    if (!populate) return query;
+    if (Array.isArray(populate)) {
+        populate.forEach(p => query = query.populate(p));
+    } else {
+        query = query.populate(populate);
+    }
+    return query;
+};
 
 /**
  * Creates a generic CRUD router for a Mongoose Model.
@@ -8,19 +45,30 @@ import { auth, requirePermission, optionalAuth } from '../middleware/auth.js';
  * @param {String} resourceName - Name of the resource in permissions (e.g. 'projects')
  * @param {Object} options - Configuration options
  * @param {Boolean} options.publicRead - If true, GET is public (optionalAuth)
+ * @param {Boolean} options.publicCreate - If true, POST is public (no auth required)
  * @param {String} options.lookupField - Field to use for GET /:id (default: '_id', often 'slug')
- * @param {Function} options.buildFilter - Function to build filter query from req
+ * @param {Function} options.buildFilter - Function to build filter query from req (after resolveParams)
+ * @param {Object} options.resolveParams - Map of query params to resolve: { project: { model: 'Project', lookupField: 'slug' } }
  * @param {Object} options.sort - Default sort object
- * @param {String} options.populate - Fields to populate
+ * @param {String|Array} options.populate - Fields to populate
+ * @param {Boolean} options.pagination - If true, return { items, total } with skip/limit support
+ * @param {Function} options.preCreate - Async hook called before saving a new item: (item, req) => {}
+ * @param {Function} options.postCreate - Async hook called after saving a new item: (item, req) => response override
+ * @param {Array} options.disableRoutes - Routes to disable: ['list', 'detail', 'create', 'update', 'delete']
  */
 export const createCrudRouter = (Model, resourceName, options = {}) => {
     const router = Router();
     const { 
-        publicRead = false, 
+        publicRead = false,
+        publicCreate = false,
         lookupField = '_id', 
-        buildFilter = (req) => ({}), 
+        buildFilter = () => ({}), 
+        resolveParams = {},
         sort = { _id: 1 }, 
         populate = '',
+        pagination = false,
+        preCreate,
+        postCreate,
         disableRoutes = []
     } = options;
 
@@ -42,8 +90,14 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
     if (!disableRoutes.includes('list')) {
         router.get('/', ...readMiddleware, async (req, res, next) => {
             try {
-                let filter = await buildFilter(req);
+                // Resolve slug-based query params to ObjectIds
+                const resolvedIds = await resolveQueryParams(req, resolveParams);
+
+                let filter = await buildFilter(req, resolvedIds);
                 
+                // Merge resolved IDs into filter
+                Object.assign(filter, resolvedIds);
+
                 if (req.query.all === 'true' && req.user?.permissions?.[resourceName]?.read === 'all') {
                     filter = {};
                 } else {
@@ -51,18 +105,22 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 }
 
                 let query = Model.find(filter).sort(sort);
-                if (populate) {
-                    if (Array.isArray(populate)) {
-                        populate.forEach(p => query = query.populate(p));
-                    } else {
-                        query = query.populate(populate);
-                    }
-                }
+                query = applyPopulate(query, populate);
                 
-                if (req.query.limit) query = query.limit(Number(req.query.limit));
+                const limit = parseInt(req.query.limit) || (pagination ? 100 : 0);
+                const skip = parseInt(req.query.skip) || 0;
+
+                if (skip) query = query.skip(skip);
+                if (limit) query = query.limit(limit);
 
                 const items = await query;
-                res.json(items);
+
+                if (pagination) {
+                    const total = await Model.countDocuments(filter);
+                    res.json({ items, total });
+                } else {
+                    res.json(items);
+                }
             } catch (err) {
                 next(err);
             }
@@ -85,13 +143,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 queryObj = scopeQuery(req, queryObj);
 
                 let query = Model.findOne(queryObj);
-                if (populate) {
-                    if (Array.isArray(populate)) {
-                        populate.forEach(p => query = query.populate(p));
-                    } else {
-                        query = query.populate(populate);
-                    }
-                }
+                query = applyPopulate(query, populate);
 
                 const item = await query;
                 if (!item) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
@@ -104,18 +156,39 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
     // POST / — Create
     if (!disableRoutes.includes('create')) {
-        router.post('/', auth, requirePermission(resourceName, 'create'), async (req, res, next) => {
+        const createMiddleware = publicCreate
+            ? []
+            : [auth, requirePermission(resourceName, 'create')];
+
+        router.post('/', ...createMiddleware, async (req, res, next) => {
             try {
                 const data = { ...req.body };
-                if (req.permissionScope === 'own' && req.user?.project) {
+                if (!publicCreate && req.permissionScope === 'own' && req.user?.project) {
                     data.project = req.user.project;
                 }
                 
                 const item = new Model(data);
+                
+                if (preCreate) await preCreate(item, req);
+                
                 await item.save();
+
+                if (postCreate) {
+                    const response = await postCreate(item, req);
+                    if (response) return res.status(201).json(response);
+                }
+
                 res.status(201).json(item);
             } catch (err) {
-                err.status = 400;
+                if (err.name === 'ValidationError') {
+                    const messages = Object.values(err.errors).map(val => val.message);
+                    return res.status(400).json({ error: messages.join(', ') });
+                }
+                if (err.code === 11000) {
+                    err.status = 409;
+                    err.message = 'Ein Eintrag mit diesen Daten existiert bereits.';
+                }
+                err.status = err.status || 400;
                 next(err);
             }
         });
@@ -127,6 +200,10 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
             try {
                 let queryObj = { _id: req.params.id };
                 queryObj = scopeQuery(req, queryObj);
+
+                if (req.permissionScope === 'own' && req.user?.project) {
+                    req.body.project = req.user.project;
+                }
 
                 const item = await Model.findOneAndUpdate(queryObj, req.body, { new: true, runValidators: true });
                 if (!item) return res.status(404).json({ error: 'Eintrag nicht gefunden oder keine Berechtigung' });

@@ -119,4 +119,20 @@ const parsedBlocks = computed(() => {
     font-size: var(--text-sm);
     text-align: center;
 }
+
+:deep(.content-html ul) {
+    list-style-type: disc;
+    margin-left: var(--space-xl);
+    margin-bottom: var(--space-md);
+}
+
+:deep(.content-html ol) {
+    list-style-type: decimal;
+    margin-left: var(--space-xl);
+    margin-bottom: var(--space-md);
+}
+
+:deep(.content-html li) {
+    margin-bottom: var(--space-xs);
+}
 </style>

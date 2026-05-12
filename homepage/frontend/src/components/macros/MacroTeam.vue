@@ -5,7 +5,8 @@
     </div>
     <div class="team-grid">
       <div v-for="member in members" :key="member.name" class="team-card card">
-        <div class="team-avatar">{{ member.name.charAt(0) }}</div>
+        <img v-if="member.avatar && member.avatar.url" :src="member.avatar.url" :alt="member.name" class="team-avatar team-avatar-img" />
+        <div v-else class="team-avatar">{{ member.name.charAt(0) }}</div>
         <h4>{{ member.name }}</h4>
         <p class="team-role">{{ member.role }}</p>
       </div>
@@ -40,7 +41,6 @@ watch(() => props.project, async (newVal) => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-xl);
-    max-width: 800px;
     margin: 0 auto;
     padding: 0 var(--space-lg);
 }
@@ -51,6 +51,10 @@ watch(() => props.project, async (newVal) => {
     color: white; font-size: var(--text-2xl); font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto var(--space-md);
+}
+.team-avatar-img {
+    object-fit: cover;
+    background: none;
 }
 .team-card h4 { margin-bottom: var(--space-xs); }
 .team-role { font-size: var(--text-sm); color: var(--color-text-muted); margin: 0; }

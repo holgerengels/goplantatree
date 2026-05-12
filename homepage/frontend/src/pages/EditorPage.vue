@@ -51,13 +51,22 @@
           class="form-input search-input"
           :placeholder="`${config.label.plural} suchen …`"
         />
-        
-        <select v-if="config.projectFilter" v-model="selectedProject" class="form-select project-filter">
-          <option value="">Alle Projekte</option>
-          <option v-for="p in projectsStore.projects" :key="p._id" :value="p.slug">
-            {{ p.name }}
-          </option>
-        </select>
+
+
+        <!-- Generic Filters -->
+        <template v-if="config.admin?.filters">
+          <select 
+            v-for="filterKey in config.admin.filters" 
+            :key="filterKey" 
+            v-model="activeFilters[filterKey]" 
+            class="form-select generic-filter"
+          >
+            <option :value="undefined">{{ getFilterLabel(filterKey) }}: alle</option>
+            <option v-for="opt in getFilterOptions(filterKey)" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </template>
       </div>
 
       <!-- Grid View -->
@@ -139,6 +148,7 @@ import { useConfigStore } from '../stores/config.js';
 import { useAuthStore } from '../stores/auth.js';
 import { useProjectsStore } from '../stores/projects.js';
 import { formatDate } from '../utils/format.js';
+import { api } from '../services/api.js';
 
 const route = useRoute();
 const configStore = useConfigStore();
@@ -153,19 +163,46 @@ const formData = reactive({});
 const formRef = ref(null);
 const saving = ref(false);
 const searchQuery = ref('');
-const selectedProject = ref('');
+const activeFilters = reactive({});
 const sortField = ref(null);
 const sortAsc = ref(true);
 const currentEntityInfo = ref(null);
 
 const resourceName = computed(() => {
-    if (!currentEntityInfo.value) return '';
-    const name = config.value?.entity || currentEntityInfo.value.configName;
-    return name === 'media' ? 'media' : name + 's';
+    return config.value?.resource || currentEntityInfo.value?.resource || '';
 });
 
 
 const columns = computed(() => config.value?.admin?.columns || []);
+
+const getFilterOptions = (key) => {
+    if (key === 'project') {
+        return projectsStore.projects.map(p => ({ label: p.name, value: p.slug }));
+    }
+
+    if (!config.value || !config.value.fields) return [];
+    
+    // First try to find options in field config
+    const fieldDef = config.value.fields.find(f => f.name === key);
+    if (fieldDef && fieldDef.options && Array.isArray(fieldDef.options)) {
+        return fieldDef.options.map(opt => typeof opt === 'string' ? { label: opt, value: opt } : opt);
+    }
+    
+    // Fallback: extract unique values from current items
+    const uniqueValues = new Set();
+    items.value.forEach(item => {
+        if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
+            uniqueValues.add(item[key]);
+        }
+    });
+    return Array.from(uniqueValues).sort().map(val => ({ label: val, value: val }));
+};
+
+const getFilterLabel = (key) => {
+    if (!config.value || !config.value.fields) return key;
+    const fieldDef = config.value.fields.find(f => f.name === key);
+    return fieldDef ? fieldDef.label : key;
+};
 
 // Search + sort
 const filteredItems = computed(() => {
@@ -229,34 +266,34 @@ const save = async () => {
     if (formRef.value && !formRef.value.validate()) return;
     saving.value = true;
     try {
+        const endpoint = config.value.api.replace('/api/v1', '');
         const url = editingId.value
-            ? `${config.value.api}/${editingId.value}`
-            : config.value.api;
-        const method = editingId.value ? 'PUT' : 'POST';
+            ? `${endpoint}/${editingId.value}`
+            : endpoint;
+        const method = editingId.value ? 'put' : 'post';
         
-        let body;
-        let headers = { ...auth.authHeaders };
-
-        // Check if there is a File object in formData
+        // Check if there is a File object in formData (needs FormData/multipart)
         const hasFile = Object.values(formData).some(val => val instanceof File);
         
         if (hasFile) {
-            delete headers['Content-Type']; // let browser set it with boundary
-            body = new FormData();
+            // Fall back to raw fetch for multipart uploads
+            let headers = { ...auth.authHeaders };
+            delete headers['Content-Type'];
+            const body = new FormData();
             Object.entries(formData).forEach(([k, v]) => {
                 if (v !== undefined && v !== null) {
                     body.append(k, v);
                 }
             });
+            const res = await fetch(`/api/v1${url}`, { method: method.toUpperCase(), headers, body });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Fehler beim Speichern');
+            }
         } else {
-            body = JSON.stringify(formData);
+            await api[method](url, formData);
         }
 
-        const res = await fetch(url, { method, headers, body });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Fehler beim Speichern');
-        }
         cancelEdit();
         await loadData();
     } catch (err) {
@@ -269,11 +306,8 @@ const save = async () => {
 const remove = async () => {
     if (!confirm(`${config.value.label.singular} wirklich löschen?`)) return;
     try {
-        const res = await fetch(`${config.value.api}/${editingId.value}`, {
-            method: 'DELETE',
-            headers: auth.authHeaders
-        });
-        if (!res.ok) throw new Error('Fehler beim Löschen');
+        const endpoint = config.value.api.replace('/api/v1', '');
+        await api.delete(`${endpoint}/${editingId.value}`);
         cancelEdit();
         await loadData();
     } catch (err) {
@@ -301,21 +335,32 @@ const copyMacro = async (id, event) => {
 const loadData = async () => {
     if (!config.value?.api) return;
     try {
-        let url = config.value.api;
-        if (config.value.projectFilter && selectedProject.value) {
-            url += `?project=${selectedProject.value}`;
+        let endpoint = config.value.api.replace('/api/v1', '');
+        const queryParams = new URLSearchParams();
+        
+        if (config.value.admin?.filters) {
+            for (const f of config.value.admin.filters) {
+                if (activeFilters[f] !== undefined && activeFilters[f] !== '') {
+                    queryParams.append(f, activeFilters[f]);
+                }
+            }
         }
-        const res = await fetch(url, { headers: auth.authHeaders });
-        const data = await res.json();
-        items.value = Array.isArray(data) ? data : (data.orders || data.items || Object.values(data).find(v => Array.isArray(v)) || []);
+        
+        const qs = queryParams.toString();
+        if (qs) endpoint += `?${qs}`;
+        
+        const data = await api.get(endpoint);
+        items.value = Array.isArray(data) ? data : (data.items || data.orders || Object.values(data).find(v => Array.isArray(v)) || []);
     } catch (err) {
         console.error('Load error:', err);
     }
 };
 
-watch(selectedProject, () => {
+
+
+watch(activeFilters, () => {
     if (config.value) loadData();
-});
+}, { deep: true });
 
 const loadConfig = async () => {
     const slug = route.params.entity;
@@ -324,8 +369,7 @@ const loadConfig = async () => {
     currentEntityInfo.value = entityInfo || null;
     if (entityInfo) {
         config.value = await configStore.fetchConfig(entityInfo.configName);
-        selectedProject.value = ''; // Reset filter when entity changes
-        if (config.value.projectFilter) {
+        if (config.value.admin?.filters?.includes('project')) {
             await projectsStore.fetchProjects(); // Ensure projects are loaded
         }
         await loadData(); // Load table data immediately
@@ -339,6 +383,7 @@ watch(() => route.params.entity, async () => {
     items.value = [];
     editing.value = false;
     searchQuery.value = '';
+    Object.keys(activeFilters).forEach(k => delete activeFilters[k]);
     await loadConfig();
 });
 </script>
@@ -403,13 +448,6 @@ watch(() => route.params.entity, async () => {
     max-width: 400px;
 }
 
-.project-filter {
-    max-width: 250px;
-}
-
-.search-input {
-    max-width: 400px;
-}
 
 .data-table {
     width: 100%;

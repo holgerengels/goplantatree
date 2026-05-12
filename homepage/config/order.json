@@ -9,8 +9,11 @@
     },
     "icon": "Package",
     "adminOnly": true,
-    "projectFilter": true,
     "admin": {
+        "filters": [
+            "project",
+            "status"
+        ],
         "columns": [
             {
                 "key": "orderNumber",
@@ -36,6 +39,14 @@
         ]
     },
     "fields": [
+        {
+            "name": "project",
+            "label": "Projekt",
+            "type": "Relation",
+            "required": true,
+            "reference": "/api/v1/projects?all=true",
+            "labelField": "name"
+        },
         {
             "name": "name",
             "label": "Vor- und Nachname",
@@ -122,11 +133,12 @@
         }
     ],
     "grid": [
-        "name name email email",
-        "phone phone status status",
+        "project project name name",
+        "email email phone phone",
         "street street zip city",
-        "offering offering quantity .",
+        "offering offering quantity status",
         "gardenType gardenType notes notes",
         "agb agb agb agb"
-    ]
+    ],
+    "resource": "orders"
 }

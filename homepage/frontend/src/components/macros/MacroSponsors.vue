@@ -12,7 +12,8 @@
         rel="noopener"
         class="sponsor-card card"
       >
-        <span class="sponsor-name">{{ sponsor.name }}</span>
+        <img v-if="sponsor.logo && sponsor.logo.url" :src="sponsor.logo.url" :alt="sponsor.name" class="sponsor-logo" />
+        <span v-else class="sponsor-name">{{ sponsor.name }}</span>
       </a>
     </div>
   </section>
@@ -47,6 +48,12 @@ watch(() => props.project, async (newVal) => {
     display: flex; align-items: center; justify-content: center;
     padding: var(--space-lg) var(--space-xl) !important;
     text-decoration: none; min-width: 200px;
+    min-height: 120px;
 }
 .sponsor-name { font-weight: 600; color: var(--color-primary); }
+.sponsor-logo {
+    max-width: 160px;
+    max-height: 80px;
+    object-fit: contain;
+}
 </style>

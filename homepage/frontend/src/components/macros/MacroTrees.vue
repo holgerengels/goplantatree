@@ -3,8 +3,8 @@
     <!-- Filter bar -->
     <div class="tree-filter" v-if="filterOptions.length">
       <button
-        :class="['btn', !activeCategory ? 'btn-primary' : 'btn-secondary']"
-        @click="activeCategory = ''"
+        :class="['btn', !activeCategory && !activeSizeCategory && !activeProperty ? 'btn-primary' : 'btn-secondary']"
+        @click="clearFilters"
       >
         Alle ({{ trees.length }})
       </button>
@@ -12,10 +12,22 @@
         v-for="opt in filterOptions"
         :key="opt.value"
         :class="['btn', activeCategory === opt.value ? 'btn-primary' : 'btn-secondary']"
-        @click="activeCategory = opt.value"
+        @click="setCategory(opt.value)"
       >
         {{ opt.label }} ({{ countByCategory(opt.value) }})
       </button>
+    </div>
+
+    <!-- Active generic filters -->
+    <div class="active-filters" v-if="activeSizeCategory || activeProperty">
+      <span class="filter-badge" v-if="activeSizeCategory">
+        Größe: {{ activeSizeCategory }}
+        <button class="remove-filter" @click="activeSizeCategory = ''">×</button>
+      </span>
+      <span class="filter-badge" v-if="activeProperty">
+        Eigenschaft: {{ activeProperty }}
+        <button class="remove-filter" @click="activeProperty = ''">×</button>
+      </span>
     </div>
 
     <!-- Card grid -->
@@ -32,7 +44,7 @@
         <div class="tree-card-body">
           <h3>{{ tree.name }}</h3>
           <div class="tree-card-specs" v-if="tree.height || tree.width">
-            <span v-if="tree.height" class="spec">📏 {{ tree.height }}</span>
+            <span v-if="tree.height" class="spec">↕️ {{ tree.height }}</span>
             <span v-if="tree.width" class="spec">↔️ {{ tree.width }}</span>
           </div>
           <p v-if="tree.notice" class="tree-card-notice">{{ tree.notice }}</p>
@@ -47,7 +59,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../../services/api.js';
+import { getCategoryGradient } from '../../utils/gradients.js';
 
 const props = defineProps({
     category: { type: String, default: '' },
@@ -56,11 +70,36 @@ const props = defineProps({
 
 const trees = ref([]);
 const loading = ref(true);
-const activeCategory = ref(props.category || '');
+const route = useRoute();
+const router = useRouter();
+
+const activeCategory = ref(props.category || route.query.category || '');
+const activeSizeCategory = ref(route.query.sizeCategory || '');
+const activeProperty = ref(route.query.property || '');
 
 watch(() => props.category, (newVal) => {
     activeCategory.value = newVal || '';
 });
+
+// Sync query params when route changes
+watch(() => route.query, (newQuery) => {
+    if (newQuery.category) activeCategory.value = newQuery.category;
+    if (newQuery.sizeCategory) activeSizeCategory.value = newQuery.sizeCategory;
+    if (newQuery.property) activeProperty.value = newQuery.property;
+}, { deep: true });
+
+const clearFilters = () => {
+    activeCategory.value = '';
+    activeSizeCategory.value = '';
+    activeProperty.value = '';
+    router.replace({ query: {} });
+};
+
+const setCategory = (cat) => {
+    activeCategory.value = cat;
+    // Keep other query params but update category? Or clear others?
+    // Let's just update local state and let the query param stay as is or be cleared
+};
 
 const filterOptions = [
     { value: 'Laubbaum', label: '🌳 Laubbäume' },
@@ -75,6 +114,13 @@ const filteredTrees = computed(() => {
     if (activeCategory.value) {
         list = list.filter(t => t.category === activeCategory.value);
     }
+    if (activeSizeCategory.value) {
+        list = list.filter(t => t.sizeCategory === activeSizeCategory.value);
+    }
+    if (activeProperty.value) {
+        const queryProp = activeProperty.value.toLowerCase();
+        list = list.filter(t => t.properties && t.properties.toLowerCase().includes(queryProp));
+    }
     if (props.limit > 0) return list.slice(0, props.limit);
     return list;
 });
@@ -85,14 +131,7 @@ const cardImageStyle = (tree) => {
     if (tree.image && typeof tree.image === 'object' && tree.image.url) {
         return { backgroundImage: `url(${tree.image.url})` };
     }
-    const gradients = {
-        'Laubbaum': 'linear-gradient(135deg, #4CAF50, #81C784)',
-        'Obstbaum': 'linear-gradient(135deg, #FF9800, #FFB74D)',
-        'Nadelbaum': 'linear-gradient(135deg, #558B2F, #8BC34A)',
-        'Großstrauch': 'linear-gradient(135deg, #26A69A, #80CBC4)',
-        'Strauch': 'linear-gradient(135deg, #66BB6A, #A5D6A7)'
-    };
-    return { background: gradients[tree.category] || 'linear-gradient(135deg, #2E5641, #A3DE74)' };
+    return { background: getCategoryGradient(tree.category) };
 };
 
 onMounted(async () => {
@@ -109,7 +148,40 @@ onMounted(async () => {
     flex-wrap: wrap;
     gap: var(--space-sm);
     justify-content: center;
+    margin-bottom: var(--space-md);
+}
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    justify-content: center;
     margin-bottom: var(--space-2xl);
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-primary-50);
+    color: var(--color-primary-dark);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+.remove-filter {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+}
+.remove-filter:hover {
+    color: var(--color-error);
 }
 
 .tree-grid {
@@ -137,6 +209,13 @@ onMounted(async () => {
     display: flex;
     align-items: flex-start;
     padding: var(--space-sm);
+}
+
+.tree-card-image .badge {
+    background: var(--color-surface);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border-light);
 }
 
 .tree-card-body {

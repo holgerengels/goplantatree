@@ -10,10 +10,6 @@
       <div class="hero-actions animate-fade-in-up" v-if="$slots.actions" style="animation-delay: 0.3s">
         <slot name="actions"></slot>
       </div>
-      <div class="hero-counter animate-fade-in-up" v-if="counter" style="animation-delay: 0.4s">
-        <span class="counter-number">{{ counter }}</span>
-        <span class="counter-label">{{ counterLabel }}</span>
-      </div>
     </div>
   </section>
 </template>
@@ -26,8 +22,6 @@ const props = defineProps({
     subtitle: { type: String },
     badge: { type: String },
     backgroundImage: { type: String },
-    counter: { type: [String, Number] },
-    counterLabel: { type: String },
     height: { type: String, default: '70vh' }
 });
 
@@ -92,29 +86,6 @@ const heroStyle = computed(() => ({
     gap: var(--space-md);
     justify-content: center;
     flex-wrap: wrap;
-}
-
-.hero-counter {
-    display: inline-flex;
-    align-items: baseline;
-    gap: var(--space-sm);
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(10px);
-    padding: var(--space-sm) var(--space-xl);
-    border-radius: var(--radius-full);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    margin-top: var(--space-2xl);
-}
-
-.counter-number {
-    font-size: var(--text-3xl);
-    font-weight: 800;
-    color: var(--color-accent);
-}
-
-.counter-label {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: var(--text-sm);
 }
 
 @media (max-width: 768px) {

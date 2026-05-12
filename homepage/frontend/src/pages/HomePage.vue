@@ -4,15 +4,13 @@
     <HeroSection
       title="go plant a tree!"
       subtitle="Es gibt so viele Stellen, an denen man noch Bäume pflanzen könnte … es müsste nur jemand tun!"
-      counter="350+"
-      counterLabel="Bäume verschenkt"
       height="85vh"
     >
       <template #actions>
-        <router-link to="/baeume" class="btn btn-accent btn-lg">
+        <router-link to="/seite/baeume" class="btn btn-accent btn-lg">
           <component :is="icons.TreePine" class="btn-icon" /> Baumwissen entdecken
         </router-link>
-        <router-link to="/post" class="btn btn-secondary btn-lg btn-white-glass">
+        <router-link to="/seite/blog" class="btn btn-secondary btn-lg btn-white-glass">
           Neuigkeiten lesen <component :is="icons.ArrowRight" class="btn-icon-right" />
         </router-link>
       </template>

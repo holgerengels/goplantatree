@@ -19,12 +19,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { useConfigStore } from '../stores/config.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
+import { api } from '../services/api.js';
 
 const route = useRoute();
 const configStore = useConfigStore();
@@ -60,15 +61,10 @@ const loadPage = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const res = await fetch(`/api/v1/pages/${slug.value}`);
-        if (!res.ok) {
-            if (res.status === 404) throw new Error('Seite nicht gefunden');
-            throw new Error('Fehler beim Laden der Seite');
-        }
-        page.value = await res.json();
+        page.value = await api.get(`/pages/${slug.value}`);
         configStore.pageHeroMode = !!page.value.heroSubtitle;
     } catch (err) {
-        error.value = err.message;
+        error.value = err.message || 'Seite nicht gefunden';
         page.value = null;
         configStore.pageHeroMode = false;
     } finally {
@@ -76,7 +72,6 @@ const loadPage = async () => {
     }
 };
 
-import { onUnmounted } from 'vue';
 onUnmounted(() => {
     configStore.pageHeroMode = false;
 });

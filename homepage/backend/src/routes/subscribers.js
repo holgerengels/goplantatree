@@ -6,14 +6,9 @@ const router = createCrudRouter(Subscriber, 'subscribers', {
     disableRoutes: ['create', 'update', 'detail'],
     populate: { path: 'project', select: 'name slug' },
     sort: { subscribedAt: -1 },
-    buildFilter: async (req) => {
+    resolveParams: { project: { model: 'Project', lookupField: 'slug' } },
+    buildFilter: (req, resolved) => {
         const filter = {};
-        if (req.permissionScope === 'own' && req.user?.project) {
-            filter.project = req.user.project;
-        } else if (req.query.project) {
-            const project = await Project.findOne({ slug: req.query.project });
-            if (project) filter.project = project._id;
-        }
         if (req.query.topic) filter.topic = req.query.topic;
         if (req.query.confirmed !== undefined) filter.confirmed = req.query.confirmed === 'true';
         return filter;
