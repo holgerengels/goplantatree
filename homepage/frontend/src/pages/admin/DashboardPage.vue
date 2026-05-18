@@ -39,11 +39,10 @@
 import { ref, onMounted } from 'vue';
 import * as icons from 'lucide-vue-next';
 import AdminLayout from '../../components/admin/AdminLayout.vue';
-import { useAuthStore } from '../../stores/auth.js';
 import { useConfigStore } from '../../stores/config.js';
 import { formatDate } from '../../utils/format.js';
+import { api } from '../../services/api.js';
 
-const auth = useAuthStore();
 const configStore = useConfigStore();
 
 const stats = ref([]);
@@ -58,16 +57,14 @@ const statusBadge = (s) => ({
 
 onMounted(async () => {
     await configStore.fetchEntities();
-    const headers = auth.authHeaders;
 
     // Gather stats dynamically from entity configs
     const statPromises = configStore.adminEntities.map(async (entity) => {
         try {
             const cfg = await configStore.fetchConfig(entity.configName);
             if (!cfg.api) return null;
-            const res = await fetch(cfg.api, { headers });
-            const data = await res.json();
-            const count = Array.isArray(data) ? data.length : (data.total || data.orders?.length || 0);
+            const data = await api.get(cfg.api);
+            const count = Array.isArray(data) ? data.length : (data.total || 0);
             return { icon: entity.icon, label: entity.label.plural, value: count, slug: entity.slug };
         } catch { 
             return null; 
@@ -79,9 +76,8 @@ onMounted(async () => {
 
     // Load recent orders
     try {
-        const res = await fetch('/api/v1/orders?limit=10', { headers });
-        const data = await res.json();
-        recentOrders.value = data.orders || [];
+        const data = await api.get('/orders?limit=10');
+        recentOrders.value = data.items || [];
     } catch { /* skip */ }
 });
 </script>

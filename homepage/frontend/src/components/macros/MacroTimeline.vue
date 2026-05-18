@@ -9,8 +9,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { api } from '../../services/api.js';
+import { useProjectContent } from '../../composables/useProjectContent.js';
 import Timeline from '../common/Timeline.vue';
 
 const props = defineProps({
@@ -19,15 +18,7 @@ const props = defineProps({
     subtitle: { type: String, default: 'Von der Bestellung bis zur Ausgabe' }
 });
 
-const timelineItems = ref([]);
-
-watch(() => props.project, async (newVal) => {
-    if (!newVal) return;
-    try {
-        const project = await api.get(`/projects/${newVal}`);
-        timelineItems.value = project?.content?.timeline || [];
-    } catch { /* empty */ }
-}, { immediate: true });
+const timelineItems = useProjectContent(() => props.project, 'timeline');
 </script>
 
 <style scoped>

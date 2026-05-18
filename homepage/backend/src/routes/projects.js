@@ -4,7 +4,7 @@ import Project from '../models/Project.js';
 export default createCrudRouter(Project, 'projects', {
     publicRead: true,
     lookupField: 'slug',
-    buildFilter: () => ({ active: true }),
+    publishedField: 'active',
     sort: { name: 1 },
     populate: [
         { path: 'content.sponsors.logo', model: 'Media' },

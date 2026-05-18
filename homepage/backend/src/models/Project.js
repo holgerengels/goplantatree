@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const projectSchema = new mongoose.Schema({
     slug: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true },
-    description: { type: String },
+    text: { type: String },
     orderPeriod: {
         start: Date,
         end: Date

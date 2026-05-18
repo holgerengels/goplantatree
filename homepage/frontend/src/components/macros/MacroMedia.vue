@@ -15,6 +15,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { buildCaption } from '../../utils/media.js';
+import { api } from '../../services/api.js';
 
 const props = defineProps({
     id: {
@@ -44,9 +45,7 @@ const captionHtml = computed(() => {
 onMounted(async () => {
     if (!props.id) return;
     try {
-        const res = await fetch(`/api/v1/media/${props.id}/info`);
-        if (!res.ok) throw new Error('Media not found');
-        media.value = await res.json();
+        media.value = await api.get(`/media/${props.id}/info`);
     } catch (err) {
         console.error('Failed to load macro media:', err);
         error.value = true;

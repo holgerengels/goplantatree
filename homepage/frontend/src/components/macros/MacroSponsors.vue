@@ -20,23 +20,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { api } from '../../services/api.js';
+import { useProjectContent } from '../../composables/useProjectContent.js';
 
 const props = defineProps({
     project: { type: String, required: true },
     title: { type: String, default: 'Partner & Sponsoren' }
 });
 
-const sponsors = ref([]);
-
-watch(() => props.project, async (newVal) => {
-    if (!newVal) return;
-    try {
-        const project = await api.get(`/projects/${newVal}`);
-        sponsors.value = project?.content?.sponsors || [];
-    } catch { /* empty */ }
-}, { immediate: true });
+const sponsors = useProjectContent(() => props.project, 'sponsors');
 </script>
 
 <style scoped>

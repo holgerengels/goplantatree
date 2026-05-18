@@ -5,12 +5,6 @@ export default createCrudRouter(Page, 'pages', {
     publicRead: true,
     lookupField: 'slug',
     populate: 'image',
-    buildFilter: (req) => {
-        const filter = {};
-        if (!req.user || req.user.permissions?.pages?.read !== 'all') {
-            filter.published = true;
-        }
-        return filter;
-    },
+    publishedField: 'published',
     sort: { title: 1 }
 });

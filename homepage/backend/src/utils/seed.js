@@ -33,7 +33,7 @@ const seedData = async () => {
         projectUlm = await Project.create({
             slug: 'klimabaumaktion-ulm',
             name: 'Klimabaumaktion Ulm',
-            description: 'Die Klimabaumaktion Ulm verschenkt klimaresiliente Bäume an Bürgerinnen und Bürger der Stadt Ulm.',
+            text: 'Die Klimabaumaktion Ulm verschenkt klimaresiliente Bäume an Bürgerinnen und Bürger der Stadt Ulm.',
             orderPeriod: { start: new Date('2025-09-01'), end: new Date('2025-10-31') },
             active: true,
             orderFormConfig: 'klimabaumaktion-order',
@@ -66,7 +66,7 @@ const seedData = async () => {
         projectBC = await Project.create({
             slug: '100-baeume-bc',
             name: '100 Bäume BC',
-            description: '100 Bäume für Biberach — ein Projekt zur Begrünung der Stadt.',
+            text: '100 Bäume für Biberach — ein Projekt zur Begrünung der Stadt.',
             orderPeriod: { start: new Date('2025-10-01'), end: new Date('2025-11-30') },
             active: true,
             orderFormConfig: '100-baeume-bc-order',

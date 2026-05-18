@@ -29,6 +29,29 @@ describe('Projects API', () => {
             expect(res.body[0].name).toBe('Public Project');
         });
 
+        it('should hide inactive projects for public users (publishedField)', async () => {
+            await Project.create({ name: 'Active', slug: 'active', active: true });
+            await Project.create({ name: 'Inactive', slug: 'inactive', active: false });
+
+            const res = await request(app).get('/api/v1/projects');
+            expect(res.statusCode).toBe(200);
+            expect(res.body.length).toBe(1);
+            expect(res.body[0].name).toBe('Active');
+        });
+
+        it('should show all projects for admin users with read:all', async () => {
+            await Project.create({ name: 'Active', slug: 'active', active: true });
+            await Project.create({ name: 'Inactive', slug: 'inactive', active: false });
+
+            const token = generateToken({ projects: { read: 'all' } });
+            const res = await request(app)
+                .get('/api/v1/projects')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.length).toBe(2);
+        });
+
         it('should return 404 for unknown project detail', async () => {
             const res = await request(app).get('/api/v1/projects/unknown-slug');
             expect(res.statusCode).toBe(404);

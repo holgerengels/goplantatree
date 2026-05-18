@@ -16,7 +16,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useAuthStore } from '../../stores/auth.js';
+import { api } from '../../services/api.js';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -24,7 +24,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
-const auth = useAuthStore();
 
 const options = ref([]);
 const loading = ref(false);
@@ -53,8 +52,7 @@ const loadData = async () => {
     if (!props.field.reference) return;
     loading.value = true;
     try {
-        const res = await fetch(props.field.reference, { headers: auth.authHeaders });
-        const data = await res.json();
+        const data = await api.get(props.field.reference);
         options.value = Array.isArray(data) ? data : (data.items || Object.values(data).find(v => Array.isArray(v)) || []);
     } catch (err) {
         console.error('Failed to load relation data for', props.field.name, err);

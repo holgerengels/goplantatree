@@ -60,7 +60,7 @@
               <h3>{{ project.name }}</h3>
               <span v-if="project.active" class="badge badge-success">Aktiv</span>
             </div>
-            <p>{{ project.description }}</p>
+            <p>{{ project.text }}</p>
             <div class="project-card-meta" v-if="project.orderPeriod">
               <span class="meta-date">
                 <component :is="icons.Calendar" class="inline-icon" /> {{ formatDate(project.orderPeriod.start) }} – {{ formatDate(project.orderPeriod.end) }}

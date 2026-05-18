@@ -59,6 +59,7 @@ import { useProjectsStore } from '../stores/projects.js';
 import { useOrdersStore } from '../stores/orders.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
+import { api } from '../services/api.js';
 
 const route = useRoute();
 const projectsStore = useProjectsStore();
@@ -109,13 +110,15 @@ onMounted(async () => {
     await projectsStore.fetchProject(slug);
 
     // Load available offerings for this project
-    const offeringsRes = await fetch(`/api/v1/offerings?project=${slug}&available=true`);
-    if (offeringsRes.ok) offerings.value = await offeringsRes.json();
+    try {
+        offerings.value = await api.get(`/offerings?project=${slug}&available=true`);
+    } catch { /* skip */ }
 
     // Load form config
     if (project.value?.orderFormConfig) {
-        const res = await fetch(`/api/v1/config/${project.value.orderFormConfig}`);
-        if (res.ok) formConfig.value = await res.json();
+        try {
+            formConfig.value = await api.get(`/config/${project.value.orderFormConfig}`);
+        } catch { /* skip */ }
     }
 });
 </script>

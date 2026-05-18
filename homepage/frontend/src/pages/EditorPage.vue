@@ -276,20 +276,13 @@ const save = async () => {
         const hasFile = Object.values(formData).some(val => val instanceof File);
         
         if (hasFile) {
-            // Fall back to raw fetch for multipart uploads
-            let headers = { ...auth.authHeaders };
-            delete headers['Content-Type'];
             const body = new FormData();
             Object.entries(formData).forEach(([k, v]) => {
                 if (v !== undefined && v !== null) {
                     body.append(k, v);
                 }
             });
-            const res = await fetch(`/api/v1${url}`, { method: method.toUpperCase(), headers, body });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Fehler beim Speichern');
-            }
+            await api.upload(url, body, method.toUpperCase());
         } else {
             await api[method](url, formData);
         }

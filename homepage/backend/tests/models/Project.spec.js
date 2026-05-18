@@ -7,7 +7,7 @@ describe('Project Model', () => {
         const projectData = {
             name: 'Test Project',
             slug: 'test-project',
-            description: 'A project for testing'
+            text: 'A project for testing'
         };
         const project = new Project(projectData);
         const savedProject = await project.save();
@@ -36,6 +36,9 @@ describe('Project Model', () => {
     });
 
     it('should enforce unique slugs', async () => {
+        // Ensure the unique index is built before testing
+        await Project.ensureIndexes();
+
         const projectData = {
             name: 'Duplicate Project',
             slug: 'duplicate'

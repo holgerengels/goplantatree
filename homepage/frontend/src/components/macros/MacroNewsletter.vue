@@ -18,6 +18,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { api } from '../../services/api.js';
 
 const props = defineProps({
     project: {
@@ -42,21 +43,11 @@ const subscribe = async () => {
             payload.project = props.project;
         }
 
-        const res = await fetch('/api/v1/subscribers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        
-        if (res.ok) {
-            subscribeMessage.value = '✅ ' + data.message;
-            email.value = '';
-        } else {
-            subscribeMessage.value = '⚠ ' + (data.error || 'Fehler beim Anmelden');
-        }
-    } catch {
-        subscribeMessage.value = '⚠ Netzwerkfehler. Bitte versuche es später erneut.';
+        const data = await api.post('/subscribers', payload);
+        subscribeMessage.value = '✅ ' + data.message;
+        email.value = '';
+    } catch (err) {
+        subscribeMessage.value = '⚠ ' + (err.message || 'Fehler beim Anmelden');
     } finally {
         subscribing.value = false;
     }

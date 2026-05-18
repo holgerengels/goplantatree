@@ -1,5 +1,5 @@
 <template>
-  <div class="dynamic-content">
+  <div class="dynamic-content" ref="contentEl">
     <template v-for="(block, idx) in parsedBlocks" :key="idx">
       <div v-if="block.type === 'html'" v-html="block.content" class="content-html"></div>
       
@@ -18,7 +18,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import MacroPosts from '../macros/MacroPosts.vue';
 import MacroProjects from '../macros/MacroProjects.vue';
 import MacroTrees from '../macros/MacroTrees.vue';
@@ -34,6 +35,41 @@ const props = defineProps({
         type: String,
         default: ''
     }
+});
+
+const router = useRouter();
+const contentEl = ref(null);
+
+/**
+ * Intercept clicks on <a> tags inside v-html content blocks
+ * and route them through Vue Router for client-side navigation.
+ */
+const handleContentClick = (e) => {
+    const anchor = e.target.closest('a[href]');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute('href');
+    if (!href) return;
+
+    // Skip external links, anchors, mailto, tel, etc.
+    if (href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+    // Skip links that open in a new tab
+    if (anchor.target === '_blank') return;
+
+    e.preventDefault();
+
+    // Resolve relative paths (e.g. ./baeume from /seite/baumwissen → /seite/baeume)
+    const resolved = new URL(href, window.location.href).pathname;
+    router.push(resolved);
+};
+
+onMounted(() => {
+    contentEl.value?.addEventListener('click', handleContentClick);
+});
+
+onUnmounted(() => {
+    contentEl.value?.removeEventListener('click', handleContentClick);
 });
 
 const resolveMacro = (name) => {

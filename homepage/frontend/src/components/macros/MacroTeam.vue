@@ -15,23 +15,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { api } from '../../services/api.js';
+import { useProjectContent } from '../../composables/useProjectContent.js';
 
 const props = defineProps({
     project: { type: String, required: true },
     title: { type: String, default: 'Unser Team' }
 });
 
-const members = ref([]);
-
-watch(() => props.project, async (newVal) => {
-    if (!newVal) return;
-    try {
-        const project = await api.get(`/projects/${newVal}`);
-        members.value = project?.content?.team || [];
-    } catch { /* empty */ }
-}, { immediate: true });
+const members = useProjectContent(() => props.project, 'team');
 </script>
 
 <style scoped>

@@ -11,7 +11,7 @@
         "@type": "Event",
         "mapping": {
             "name": "name",
-            "description": "description",
+            "description": "text",
             "url": "slug"
         }
     },
@@ -47,10 +47,12 @@
             "required": true
         },
         {
-            "name": "description",
-            "label": "Beschreibung",
-            "type": "Html"
+            "name": "text",
+            "label": "Kurztext",
+            "type": "Textarea",
+            "description": "Wird auf der Projekt-Card angezeigt"
         },
+
         {
             "name": "orderFormConfig",
             "label": "Bestellformular-Config",
@@ -160,7 +162,7 @@
     "grid": [
         "name name slug slug",
         "orderFormConfig orderFormConfig active .",
-        "description description description description",
+        "text text text text",
         "content.timeline content.timeline content.team content.team",
         "content.sponsors content.sponsors . ."
     ],

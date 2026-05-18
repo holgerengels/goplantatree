@@ -49,6 +49,9 @@ const applyPopulate = (query, populate) => {
  * @param {String} options.lookupField - Field to use for GET /:id (default: '_id', often 'slug')
  * @param {Function} options.buildFilter - Function to build filter query from req (after resolveParams)
  * @param {Object} options.resolveParams - Map of query params to resolve: { project: { model: 'Project', lookupField: 'slug' } }
+ * @param {String} options.publishedField - Field name for published/active filtering (e.g. 'published', 'active').
+ *   When set, public list requests automatically filter by {field: true}. Admin users with read:'all'
+ *   permission or ?all=true bypass this filter.
  * @param {Object} options.sort - Default sort object
  * @param {String|Array} options.populate - Fields to populate
  * @param {Boolean} options.pagination - If true, return { items, total } with skip/limit support
@@ -64,6 +67,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
         lookupField = '_id', 
         buildFilter = () => ({}), 
         resolveParams = {},
+        publishedField = null,
         sort = { _id: 1 }, 
         populate = '',
         pagination = false,
@@ -86,6 +90,13 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
         return query;
     };
 
+    /**
+     * Determines if the current user can bypass the published filter.
+     */
+    const isFullReadUser = (req) => {
+        return req.user?.permissions?.[resourceName]?.read === 'all';
+    };
+
     // GET / — List
     if (!disableRoutes.includes('list')) {
         router.get('/', ...readMiddleware, async (req, res, next) => {
@@ -98,11 +109,17 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 // Merge resolved IDs into filter
                 Object.assign(filter, resolvedIds);
 
-                if (req.query.all === 'true' && req.user?.permissions?.[resourceName]?.read === 'all') {
-                    filter = {};
-                } else {
-                    filter = scopeQuery(req, filter);
+                // Apply published/active filter for non-admin users
+                if (publishedField && !isFullReadUser(req)) {
+                    filter[publishedField] = true;
                 }
+
+                if (req.query.all === 'true' && isFullReadUser(req)) {
+                    // Admin override: remove the published filter to see all items
+                    delete filter[publishedField];
+                }
+
+                filter = scopeQuery(req, filter);
 
                 let query = Model.find(filter).sort(sort);
                 query = applyPopulate(query, populate);

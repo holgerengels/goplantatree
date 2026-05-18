@@ -96,14 +96,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { useAuthStore } from '../../stores/auth.js';
+import { api } from '../../services/api.js';
 
 const props = defineProps({
   modelValue: { type: [String, Object], default: null }
 });
 
 const emit = defineEmits(['update:modelValue']);
-const authStore = useAuthStore();
 
 const showUploadModal = ref(false);
 const showGalleryModal = ref(false);
@@ -153,12 +152,7 @@ const previewUrl = computed(() => {
 const loadMediaDetails = async () => {
   if (props.modelValue && typeof props.modelValue === 'string') {
     try {
-      const res = await fetch(`/api/v1/media/${props.modelValue}`, {
-        headers: { 'Authorization': `Bearer ${authStore.token}` }
-      });
-      if (res.ok) {
-        mediaDetails.value = await res.json();
-      }
+      mediaDetails.value = await api.get(`/media/${props.modelValue}`);
     } catch (e) {
       console.error('Failed to load media details', e);
     }
@@ -177,27 +171,16 @@ const updateMediaDetails = async () => {
   if (!mediaDetails.value || !mediaDetails.value._id) return;
   savingDetails.value = true;
   try {
-    const res = await fetch(`/api/v1/media/${mediaDetails.value._id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        title: mediaDetails.value.title,
-        author: mediaDetails.value.author,
-        authorLink: mediaDetails.value.authorLink,
-        license: mediaDetails.value.license,
-        licenseLink: mediaDetails.value.licenseLink,
-        sourceLink: mediaDetails.value.sourceLink
-      })
+    await api.put(`/media/${mediaDetails.value._id}`, {
+      title: mediaDetails.value.title,
+      author: mediaDetails.value.author,
+      authorLink: mediaDetails.value.authorLink,
+      license: mediaDetails.value.license,
+      licenseLink: mediaDetails.value.licenseLink,
+      sourceLink: mediaDetails.value.sourceLink
     });
-    if (!res.ok) {
-      const err = await res.json();
-      alert('Speichern fehlgeschlagen: ' + err.error);
-    }
   } catch (e) {
-    alert('Netzwerkfehler beim Speichern');
+    alert('Speichern fehlgeschlagen: ' + e.message);
   } finally {
     savingDetails.value = false;
   }
@@ -230,23 +213,12 @@ const submitUpload = async () => {
   });
 
   try {
-    const res = await fetch('/api/v1/media', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authStore.token}` },
-      body: formData
-    });
-    
-    if (res.ok) {
-      const result = await res.json();
-      mediaDetails.value = result;
-      emit('update:modelValue', result._id);
-      showUploadModal.value = false;
-    } else {
-      const err = await res.json();
-      alert('Upload fehlgeschlagen: ' + err.error);
-    }
+    const result = await api.upload('/media', formData);
+    mediaDetails.value = result;
+    emit('update:modelValue', result._id);
+    showUploadModal.value = false;
   } catch (e) {
-    alert('Netzwerkfehler beim Upload');
+    alert('Upload fehlgeschlagen: ' + e.message);
   } finally {
     uploading.value = false;
   }
@@ -261,19 +233,14 @@ const loadGalleryItems = async (skip = 0) => {
   if (galleryLoading.value) return;
   galleryLoading.value = true;
   try {
-    const res = await fetch(`/api/v1/media?limit=50&skip=${skip}`, {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (skip === 0) {
-        galleryItems.value = data.items || [];
-      } else {
-        galleryItems.value.push(...(data.items || []));
-      }
-      galleryTotal.value = data.total || 0;
-      gallerySkip.value = skip;
+    const data = await api.get(`/media?limit=50&skip=${skip}`);
+    if (skip === 0) {
+      galleryItems.value = data.items || [];
+    } else {
+      galleryItems.value.push(...(data.items || []));
     }
+    galleryTotal.value = data.total || 0;
+    gallerySkip.value = skip;
   } catch (e) {
     console.error('Failed to load gallery', e);
   } finally {
