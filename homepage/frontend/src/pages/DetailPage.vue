@@ -53,9 +53,12 @@
               <div v-if="section.layout === 'specs' && hasAnySpecField(section)" class="section-specs">
                 <h3 v-if="section.label">{{ section.label }}</h3>
                 <div class="specs-grid">
-                  <div v-for="sf in section.fields" :key="sf.key" v-show="item[sf.key]" class="spec">
+                  <div v-for="sf in section.fields" :key="sf.key" v-show="hasSpecValue(item[sf.key])" class="spec">
                     <span class="spec-label">{{ sf.label }}</span>
-                    <span class="spec-value">{{ item[sf.key] }}</span>
+                    <span v-if="Array.isArray(item[sf.key])" class="spec-value spec-tags">
+                      <span v-for="tag in item[sf.key]" :key="tag" class="spec-tag">{{ tag }}</span>
+                    </span>
+                    <span v-else class="spec-value">{{ item[sf.key] }}</span>
                   </div>
                 </div>
               </div>
@@ -144,8 +147,13 @@ const placeholderStyle = computed(() => {
     return { background: getCategoryGradient(cat) };
 });
 
+const hasSpecValue = (val) => {
+    if (Array.isArray(val)) return val.length > 0;
+    return !!val;
+};
+
 const hasAnySpecField = (section) => {
-    return section.fields?.some(sf => item.value?.[sf.key]);
+    return section.fields?.some(sf => hasSpecValue(item.value?.[sf.key]));
 };
 
 const resolvePath = (obj, path) => {
@@ -310,6 +318,22 @@ figure {
 .spec-value {
     font-weight: 600;
     color: var(--color-primary-dark);
+}
+
+.spec-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.spec-tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-50, rgba(46, 86, 65, 0.1));
+    color: var(--color-primary-dark);
+    font-size: var(--text-xs);
+    font-weight: 500;
 }
 
 /* Section: Notice */

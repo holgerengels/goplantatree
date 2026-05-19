@@ -175,6 +175,19 @@
       <p v-else class="form-hint">Keine Vorschau verfügbar.</p>
     </div>
 
+    <!-- Tags / Chips -->
+    <TagsInput
+      v-else-if="field.type === 'Tags'"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true"
+      :options="field.options || []"
+      :reference="field.reference || ''"
+      :hint="field.hint"
+      :modelValue="modelValue || []"
+      @update:modelValue="updateValue"
+    />
+
     <!-- Default: Text -->
     <wa-input
       v-else
@@ -197,6 +210,7 @@ import HtmlEditor from './HtmlEditor.vue';
 import MediaSelector from './MediaSelector.vue';
 import RelationSelector from './RelationSelector.vue';
 import OfferingSelector from './OfferingSelector.vue';
+import TagsInput from './TagsInput.vue';
 
 const props = defineProps({
     field: { type: Object, required: true },

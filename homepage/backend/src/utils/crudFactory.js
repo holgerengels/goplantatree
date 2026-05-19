@@ -97,6 +97,27 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
         return req.user?.permissions?.[resourceName]?.read === 'all';
     };
 
+    // GET /distinct/:field — Distinct values for a field (for autocomplete)
+    if (!disableRoutes.includes('distinct')) {
+        router.get('/distinct/:field', ...readMiddleware, async (req, res, next) => {
+            try {
+                const field = req.params.field;
+                // Sanitize: only allow simple field names (no dots, no $)
+                if (!/^[a-zA-Z_]+$/.test(field)) {
+                    return res.status(400).json({ error: 'Ungültiger Feldname' });
+                }
+                const values = await Model.distinct(field);
+                // Filter out null/empty, sort alphabetically
+                const cleaned = values
+                    .filter(v => v != null && v !== '')
+                    .sort((a, b) => String(a).localeCompare(String(b)));
+                res.json(cleaned);
+            } catch (err) {
+                next(err);
+            }
+        });
+    }
+
     // GET / — List
     if (!disableRoutes.includes('list')) {
         router.get('/', ...readMiddleware, async (req, res, next) => {

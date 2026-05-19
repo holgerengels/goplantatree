@@ -4,6 +4,10 @@ node_modules/
 .vscode/
 dist/
 newsletter/
+coverage/
+.env
+.env.*
+!.env.example
 
 # Logs
 logs

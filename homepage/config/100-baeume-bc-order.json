@@ -79,8 +79,9 @@
         "name name email email",
         "phone phone . .",
         "street street zip city",
-        "offering offering quantity .",
-        "gardenType gardenType notes notes",
+        "offering offering offering offering",
+        "quantity quantity gardenType gardenType",
+        "notes notes notes notes",
         "agb agb agb agb"
     ]
 }

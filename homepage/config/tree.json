@@ -191,7 +191,19 @@
         {
             "name": "properties",
             "label": "Eigenschaften",
-            "type": "Text"
+            "type": "Tags",
+            "reference": "/trees/distinct/properties",
+            "options": [
+                "bienenfreundlich",
+                "hitzetolerant",
+                "trockenheitstolerant",
+                "vogelfreundlich",
+                "insektenfreundlich",
+                "frühblüher",
+                "winterhart",
+                "schattenverträglich",
+                "windresistent"
+            ]
         },
         {
             "name": "sortOrder",

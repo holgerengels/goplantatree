@@ -19,13 +19,13 @@
           <h3>{{ offering.name }}</h3>
           <div class="offering-details">
             <div class="detail-row" v-if="offering.pflanzgroesseHoehe || offering.pflanzgroesseStammumfang">
-              <strong>🌱 Pflanzgröße:</strong> 
+              <strong>🌱 Pflanzgröße:&nbsp;</strong> 
               <span class="size-specs">
                 <span v-if="offering.pflanzgroesseHoehe">↕ {{ offering.pflanzgroesseHoehe }}</span><span v-if="offering.pflanzgroesseHoehe && offering.pflanzgroesseStammumfang">, </span><span v-if="offering.pflanzgroesseStammumfang">◯ {{ offering.pflanzgroesseStammumfang }}</span>
               </span>
             </div>
             <div class="detail-row" v-if="offering.endgroesseHoehe || offering.endgroesseBreite">
-              <strong>🌳 Endgröße:</strong> 
+              <strong>🌳 Endgröße:&nbsp;</strong> 
               <span class="size-specs">
                 <span v-if="offering.endgroesseHoehe">↕ {{ offering.endgroesseHoehe }}</span><span v-if="offering.endgroesseHoehe && offering.endgroesseBreite">, </span><span v-if="offering.endgroesseBreite">↔ {{ offering.endgroesseBreite }}</span>
               </span>

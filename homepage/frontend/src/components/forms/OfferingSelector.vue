@@ -1,5 +1,5 @@
 <template>
-  <div class="dynamic-select-wrapper">
+  <div class="offering-selector">
     <wa-select
       :label="field.label"
       :required="field.required === true"
@@ -13,24 +13,61 @@
         {{ opt.name }}{{ opt.category ? ` (${opt.category})` : '' }}
       </wa-option>
     </wa-select>
-    
-    <!-- Offering notice -->
-    <div v-if="selectedOffering?.notice" class="offering-notice">
-      ⚠️ {{ selectedOffering.notice }}
-    </div>
-    
-    <!-- Offering addons -->
-    <div v-if="selectedOffering?.addons?.length" class="offering-addons">
-      <p class="addons-title">Zusatzoptionen:</p>
-      <div v-for="addon in selectedOffering.addons" :key="addon.name" class="addon-checkbox-wrapper">
-        <wa-checkbox
-          class="addon-checkbox"
-          :checked="isAddonSelected(addon.name)"
-          @change="toggleAddon(addon.name, $event.target.checked)"
-        >
-          <span>{{ addon.name }}</span>
-          <span v-if="addon.description" class="addon-desc">– {{ addon.description }}</span>
-        </wa-checkbox>
+
+    <!-- Selected offering card -->
+    <div v-if="selectedOffering" class="selected-card card">
+      <div class="selected-card-image" :style="cardImageStyle">
+        <div class="badge-group">
+          <span class="badge badge-accent">{{ selectedOffering.category }}</span>
+          <a
+            v-if="selectedOffering.tree?.slug"
+            :href="`/baeume/${selectedOffering.tree.slug}`"
+            class="badge badge-primary tree-link"
+            target="_blank"
+            title="Steckbrief öffnen"
+          >→ Steckbrief</a>
+        </div>
+        <span v-if="!selectedOffering.available" class="badge badge-warning">Vergriffen</span>
+      </div>
+      <div class="selected-card-body">
+        <h4>{{ selectedOffering.name }}</h4>
+        <div class="card-details">
+          <div v-if="selectedOffering.pflanzgroesseHoehe || selectedOffering.pflanzgroesseStammumfang" class="detail-row">
+            <strong>🌱 Pflanzgröße:&nbsp;</strong>
+            <span v-if="selectedOffering.pflanzgroesseHoehe">↕ {{ selectedOffering.pflanzgroesseHoehe }}</span>
+            <span v-if="selectedOffering.pflanzgroesseHoehe && selectedOffering.pflanzgroesseStammumfang">, </span>
+            <span v-if="selectedOffering.pflanzgroesseStammumfang">◯ {{ selectedOffering.pflanzgroesseStammumfang }}</span>
+          </div>
+          <div v-if="selectedOffering.endgroesseHoehe || selectedOffering.endgroesseBreite" class="detail-row">
+            <strong>🌳 Endgröße:&nbsp;</strong>
+            <span v-if="selectedOffering.endgroesseHoehe">↕ {{ selectedOffering.endgroesseHoehe }}</span>
+            <span v-if="selectedOffering.endgroesseHoehe && selectedOffering.endgroesseBreite">, </span>
+            <span v-if="selectedOffering.endgroesseBreite">↔ {{ selectedOffering.endgroesseBreite }}</span>
+          </div>
+          <div v-if="selectedOffering.bemerkung" class="detail-row bemerkung">
+            🌿 {{ selectedOffering.bemerkung }}
+          </div>
+        </div>
+
+        <!-- Notice -->
+        <div v-if="selectedOffering.notice" class="offering-notice">
+          ⚠️ {{ selectedOffering.notice }}
+        </div>
+
+        <!-- Addons -->
+        <div v-if="selectedOffering.addons?.length" class="offering-addons">
+          <p class="addons-title">Zusatzoptionen:</p>
+          <div v-for="addon in selectedOffering.addons" :key="addon.name">
+            <wa-checkbox
+              class="addon-checkbox"
+              :checked="isAddonSelected(addon.name)"
+              @change="toggleAddon(addon.name, $event.target.checked)"
+            >
+              <span>{{ addon.name }}</span>
+              <span v-if="addon.description" class="addon-desc">– {{ addon.description }}</span>
+            </wa-checkbox>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -39,6 +76,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { api } from '../../services/api.js';
+import { getCategoryGradient } from '../../utils/gradients.js';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -65,6 +103,14 @@ const normalizedValue = computed(() => {
 const selectedOffering = computed(() => {
     if (!props.modelValue) return null;
     return options.value.find(item => item._id === normalizedValue.value) || null;
+});
+
+const cardImageStyle = computed(() => {
+    const o = selectedOffering.value;
+    if (!o) return {};
+    if (o.image?.url) return { backgroundImage: `url(${o.image.url})` };
+    if (o.tree?.image?.url) return { backgroundImage: `url(${o.tree.image.url})` };
+    return { background: getCategoryGradient(o.category) };
 });
 
 // Addon management — stores selected addon names in context.selectedAddons
@@ -108,14 +154,94 @@ onMounted(loadData);
 </script>
 
 <style scoped>
-.dynamic-select-wrapper {
+.offering-selector {
     display: block;
     margin-bottom: var(--space-md);
 }
 
+/* Selected offering card */
+.selected-card {
+    margin-top: var(--space-md);
+    overflow: hidden;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: row;
+    animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.selected-card-image {
+    width: 200px;
+    min-height: 160px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--space-sm);
+}
+
+.badge-group {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.selected-card-image .badge {
+    background: var(--color-surface);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border-light);
+    font-size: var(--text-xs);
+}
+
+.tree-link {
+    text-decoration: none;
+    transition: transform var(--transition-fast);
+}
+.tree-link:hover {
+    transform: translateY(-1px);
+}
+
+.selected-card-body {
+    padding: var(--space-md) var(--space-lg);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.selected-card-body h4 {
+    font-size: var(--text-lg);
+    color: var(--color-primary-dark);
+    margin: 0;
+}
+
+.card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+}
+.detail-row strong {
+    color: var(--color-primary-dark);
+}
+.bemerkung {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+/* Notice */
 .offering-notice {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
     background: rgba(255, 152, 0, 0.1);
     border: 1px solid rgba(255, 152, 0, 0.35);
     border-radius: var(--radius-md);
@@ -125,9 +251,9 @@ onMounted(loadData);
     line-height: 1.5;
 }
 
+/* Addons */
 .offering-addons {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
     background: var(--color-primary-50, rgba(46, 86, 65, 0.06));
     border: 1px solid rgba(46, 86, 65, 0.15);
     border-radius: var(--radius-md);
@@ -157,4 +283,15 @@ onMounted(loadData);
     color: var(--color-text-muted);
     font-size: var(--text-xs);
 }
+
+@media (max-width: 600px) {
+    .selected-card {
+        flex-direction: column;
+    }
+    .selected-card-image {
+        width: 100%;
+        min-height: 140px;
+    }
+}
 </style>
+

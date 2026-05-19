@@ -119,7 +119,7 @@ const filteredTrees = computed(() => {
     }
     if (activeProperty.value) {
         const queryProp = activeProperty.value.toLowerCase();
-        list = list.filter(t => t.properties && t.properties.toLowerCase().includes(queryProp));
+        list = list.filter(t => Array.isArray(t.properties) && t.properties.some(p => p.toLowerCase().includes(queryProp)));
     }
     if (props.limit > 0) return list.slice(0, props.limit);
     return list;

@@ -13,10 +13,17 @@
               <li>Du erhältst eine Bestätigungs-E-Mail</li>
               <li>Hole deinen Baum am Ausgabetermin ab</li>
             </ol>
-            <p v-if="project?.orderPeriod">
-              <strong>Bestellzeitraum:</strong>
-              {{ formatDate(project.orderPeriod.start) }} – {{ formatDate(project.orderPeriod.end) }}
-            </p>
+            <div v-if="timeline.length" class="order-timeline">
+              <div
+                v-for="item in timeline"
+                :key="item.label"
+                :class="['timeline-entry', item.status]"
+              >
+                <span class="tl-icon">{{ item.status === 'done' ? '✅' : item.status === 'active' ? '🔵' : '⏳' }}</span>
+                <span class="tl-date">{{ formatDate(item.date) }}</span>
+                <span class="tl-label">{{ item.label }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="order-form card">
@@ -77,6 +84,8 @@ const orderNumber = ref('');
 const offerings = ref([]);
 provide('dynamicOfferings', offerings);
 
+const timeline = computed(() => project.value?.content?.timeline || []);
+
 useJsonLd(() => {
     if (!project.value) return null;
     return {
@@ -126,11 +135,55 @@ onMounted(async () => {
 <style scoped>
 .order-wrapper {
     display: grid;
-    grid-template-columns: 350px 1fr;
+    grid-template-columns: 300px 1fr;
     gap: var(--space-2xl);
     align-items: start;
 }
 
+.order-info {
+    position: sticky;
+    top: calc(var(--header-height, 64px) + var(--space-lg));
+}
+
+.order-timeline {
+    margin-top: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.timeline-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    padding: 4px 0;
+}
+
+.timeline-entry.done {
+    color: var(--color-text-muted);
+}
+
+.timeline-entry.active {
+    color: var(--color-primary-dark);
+    font-weight: 600;
+}
+
+.tl-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.tl-date {
+    font-weight: 600;
+    min-width: 80px;
+    white-space: nowrap;
+}
+
+.tl-label {
+    color: var(--color-text-secondary);
+}
 .order-info ol {
     padding-left: var(--space-lg);
     margin: var(--space-md) 0;
@@ -140,6 +193,10 @@ onMounted(async () => {
     margin-bottom: var(--space-sm);
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
+}
+
+.order-form {
+    padding: var(--space-2xl) !important;
 }
 
 .order-form h2 {
@@ -177,9 +234,12 @@ onMounted(async () => {
     color: var(--color-text-muted);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .order-wrapper {
         grid-template-columns: 1fr;
+    }
+    .order-info {
+        position: static;
     }
 }
 </style>

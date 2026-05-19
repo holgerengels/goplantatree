@@ -11,13 +11,13 @@ export function formatDate(d) {
 }
 
 /**
- * Format a date string in long German format: "6. Mai 2026"
+ * Format a date string in long German format: "06.05.2026"
  */
 export function formatDateLong(d) {
     if (!d) return '';
     return new Date(d).toLocaleDateString('de-DE', {
-        day: 'numeric',
-        month: 'long',
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric'
     });
 }

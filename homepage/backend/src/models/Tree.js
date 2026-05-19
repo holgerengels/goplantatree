@@ -16,7 +16,7 @@ const treeSchema = new mongoose.Schema({
     fruit: { type: String },
     location: { type: String },
     growthForm: { type: String },
-    properties: { type: String },
+    properties: [{ type: String }],
     description: { type: String },
     image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
     notice: { type: String },

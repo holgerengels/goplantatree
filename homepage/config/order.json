@@ -98,6 +98,12 @@
             "default": 1
         },
         {
+            "name": "selectedAddons",
+            "label": "Zusatzoptionen",
+            "type": "Tags",
+            "readonly": true
+        },
+        {
             "name": "gardenType",
             "label": "Pflanzort",
             "type": "Select",
@@ -137,8 +143,8 @@
         "email email phone phone",
         "street street zip city",
         "offering offering quantity status",
-        "gardenType gardenType notes notes",
-        "agb agb agb agb"
+        "selectedAddons selectedAddons gardenType gardenType",
+        "notes notes agb agb"
     ],
     "resource": "orders"
 }
