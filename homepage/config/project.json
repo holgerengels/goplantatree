@@ -30,6 +30,10 @@
                 "key": "active",
                 "label": "Aktiv",
                 "type": "boolean"
+            },
+            {
+                "key": "sortOrder",
+                "label": "#"
             }
         ]
     },
@@ -63,6 +67,11 @@
             "label": "Aktiv",
             "type": "Boolean",
             "default": true
+        },
+        {
+            "name": "sortOrder",
+            "label": "Reihenfolge",
+            "type": "Integer"
         },
         {
             "name": "content.timeline",
@@ -161,7 +170,7 @@
     ],
     "grid": [
         "name name slug slug",
-        "orderFormConfig orderFormConfig active .",
+        "orderFormConfig orderFormConfig active sortOrder",
         "text text text text",
         "content.timeline content.timeline content.team content.team",
         "content.sponsors content.sponsors . ."

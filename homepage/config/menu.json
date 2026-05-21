@@ -16,6 +16,10 @@
             "to": "/seite/blog"
         },
         {
+            "label": "Pflanzblog",
+            "to": "/seite/pflanzblog"
+        },
+        {
             "label": "Über uns",
             "to": "/seite/ueber-uns"
         }
@@ -33,6 +37,10 @@
             {
                 "label": "Blog",
                 "to": "/seite/blog"
+            },
+            {
+                "label": "Pflanzblog",
+                "to": "/seite/pflanzblog"
             },
             {
                 "label": "Über uns",

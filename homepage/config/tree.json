@@ -91,10 +91,6 @@
             {
                 "key": "category",
                 "label": "Kategorie"
-            },
-            {
-                "key": "sortOrder",
-                "label": "Reihenfolge"
             }
         ]
     },
@@ -205,11 +201,7 @@
                 "windresistent"
             ]
         },
-        {
-            "name": "sortOrder",
-            "label": "Reihenfolge",
-            "type": "Integer"
-        },
+
         {
             "name": "notice",
             "label": "Hinweis",
@@ -224,7 +216,7 @@
     "grid": [
         "image image image image",
         "name name slug slug",
-        "category category sortOrder .",
+        "category category . .",
         "sizeCategory sizeCategory properties properties",
         "height width flowering fruit",
         "location location growthForm growthForm",

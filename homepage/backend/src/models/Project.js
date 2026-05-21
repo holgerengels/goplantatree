@@ -6,7 +6,8 @@ const projectSchema = new mongoose.Schema({
     text: { type: String },
     active: { type: Boolean, default: true },
     orderFormConfig: { type: String },
-    content: { type: mongoose.Schema.Types.Mixed, default: {} }
+    content: { type: mongoose.Schema.Types.Mixed, default: {} },
+    sortOrder: { type: Number, default: 0 }
 }, {
     timestamps: true,
     strict: false

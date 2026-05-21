@@ -50,7 +50,8 @@
             "label": "Anzahl",
             "type": "Integer",
             "required": true,
-            "default": 1
+            "default": 1,
+            "visible": false
         },
         {
             "name": "gardenType",
@@ -70,7 +71,7 @@
         },
         {
             "name": "agb",
-            "label": "Ich akzeptiere die Teilnahmebedingungen und verpflichte mich, den Baum sachgemäß zu pflanzen und zu pflegen.",
+            "label": "Ich akzeptiere die Teilnahmebedingungen und verpflichte mich, den Baum im Stadtgebiet Biberach zu pflanzen.",
             "type": "Boolean",
             "required": true
         }
@@ -80,7 +81,7 @@
         "phone phone . .",
         "street street zip city",
         "offering offering offering offering",
-        "quantity quantity gardenType gardenType",
+        "gardenType gardenType gardenType gardenType",
         "notes notes notes notes",
         "agb agb agb agb"
     ]

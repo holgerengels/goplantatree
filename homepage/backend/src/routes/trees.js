@@ -10,5 +10,5 @@ export default createCrudRouter(Tree, 'trees', {
         if (req.query.category) filter.category = req.query.category;
         return filter;
     },
-    sort: { sortOrder: 1, name: 1 }
+    sort: { name: 1 }
 });

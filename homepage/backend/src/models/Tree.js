@@ -19,8 +19,7 @@ const treeSchema = new mongoose.Schema({
     properties: [{ type: String }],
     description: { type: String },
     image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
-    notice: { type: String },
-    sortOrder: { type: Number, default: 0 }
+    notice: { type: String }
 }, {
     timestamps: true,
     strict: false

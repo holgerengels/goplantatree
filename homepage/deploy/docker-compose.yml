@@ -1,13 +1,9 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7
     container_name: goplantatree-mongo
     volumes:
       - mongo-data:/data/db
-    ports:
-      - "27017:27017"
     restart: unless-stopped
 
   backend:
@@ -15,14 +11,14 @@ services:
     container_name: goplantatree-backend
     depends_on:
       - mongodb
+    env_file:
+      - .env
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/goplantatree
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
-      - PORT=3001
+      - CONFIG_DIR=/app/config
     ports:
       - "3001:3001"
     volumes:
-      - uploads:/app/uploads
+      - ./config:/app/config
     restart: unless-stopped
 
   frontend:
@@ -36,4 +32,3 @@ services:
 
 volumes:
   mongo-data:
-  uploads:

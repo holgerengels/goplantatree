@@ -1,0 +1,38 @@
+{
+    "accounts": {
+        "klimabaumaktion-ulm": {
+            "from": "Klimabaumaktion Ulm <klimabaumaktion-ulm@goplantatree.org>",
+            "smtpHost": "smtp.ionos.de",
+            "smtpPort": 465,
+            "smtpSecure": true,
+            "imapHost": "imap.ionos.de",
+            "imapPort": 993,
+            "envUser": "MAIL_USER_KLIMA_ULM",
+            "envPass": "MAIL_PASS_KLIMA_ULM"
+        },
+        "100-baeume-bc": {
+            "from": "100 Bäume BC <100-baeume-bc@goplantatree.org>",
+            "smtpHost": "smtp.ionos.de",
+            "smtpPort": 465,
+            "smtpSecure": true,
+            "imapHost": "imap.ionos.de",
+            "imapPort": 993,
+            "envUser": "MAIL_USER_100BC",
+            "envPass": "MAIL_PASS_100BC"
+        },
+        "info": {
+            "from": "Go Plant A Tree <info@goplantatree.org>",
+            "smtpHost": "smtp.ionos.de",
+            "smtpPort": 465,
+            "smtpSecure": true,
+            "imapHost": "imap.ionos.de",
+            "imapPort": 993,
+            "envUser": "MAIL_USER_INFO",
+            "envPass": "MAIL_PASS_INFO"
+        }
+    },
+    "defaults": {
+        "rateLimitMs": 1500,
+        "maxPerHour": 200
+    }
+}

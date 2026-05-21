@@ -16,15 +16,17 @@
         <wa-button v-if="!editing && auth.hasPermission(resourceName, 'create')" variant="primary" @click="startCreate">
           <wa-icon name="plus" slot="prefix"></wa-icon> Neu
         </wa-button>
-        <wa-button v-if="editing" variant="default" @click="cancelEdit">
-          <wa-icon name="arrow-left" slot="prefix"></wa-icon> Zurück zur Liste
-        </wa-button>
       </div>
     </div>
 
     <!-- FORM VIEW -->
     <div v-if="editing" class="editor-form card">
-      <h2>{{ editingId ? 'Bearbeiten' : 'Neu anlegen' }}</h2>
+      <div class="form-header">
+        <button class="btn-back" @click="cancelEdit" title="Zurück zur Liste">
+          <component :is="icons.ArrowLeft" :size="20" />
+        </button>
+        <h2>{{ editingId ? 'Bearbeiten' : 'Neu anlegen' }}</h2>
+      </div>
       <DynamicForm
         ref="formRef"
         :fields="config.fields || []"
@@ -32,9 +34,14 @@
         v-model="formData"
       />
       <div class="form-actions">
-        <wa-button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
-          <wa-icon name="check" slot="prefix"></wa-icon> Speichern
-        </wa-button>
+        <div class="form-actions-left">
+          <wa-button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
+            <wa-icon name="check" slot="prefix"></wa-icon> Speichern
+          </wa-button>
+          <wa-button variant="default" @click="cancelEdit">
+            Abbrechen
+          </wa-button>
+        </div>
         <wa-button v-if="editingId && auth.hasPermission(resourceName, 'delete')" variant="danger" @click="remove">
           <wa-icon name="trash" slot="prefix"></wa-icon> Löschen
         </wa-button>
@@ -415,14 +422,47 @@ watch(() => route.params.entity, async () => {
 }
 
 /* Form view */
-.editor-form h2 {
+.form-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
     margin-bottom: var(--space-xl);
+}
+
+.form-header h2 {
+    margin: 0;
+}
+
+.btn-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+.btn-back:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+    border-color: var(--color-border);
 }
 
 .form-actions {
     display: flex;
-    gap: var(--space-md);
+    justify-content: space-between;
+    align-items: center;
     margin-top: var(--space-xl);
+}
+
+.form-actions-left {
+    display: flex;
+    gap: var(--space-md);
 }
 
 .btn-danger {

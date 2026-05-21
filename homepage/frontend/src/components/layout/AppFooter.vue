@@ -12,7 +12,7 @@
             <router-link to="/">
               <img src="/images/logo-notext.svg" alt="Go Plant A Tree" class="footer-logo logo-tint" />
             </router-link>
-            <p class="footer-mission">Wir pflanzen Bäume für eine grünere und lebenswerte Zukunft. Hilf mit!</p>
+            <p class="footer-mission">Es gibt so viele Stellen, an denen man noch Bäume pflanzen könnte … es müsste nur jemand tun!</p>
           </div>
           
           <div class="footer-links" v-if="footerNav.length">
@@ -104,7 +104,6 @@ onMounted(() => {
 
 .footer-logo {
     height: 56px;
-    filter: brightness(10);
 }
 
 .footer-links {
