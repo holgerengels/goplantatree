@@ -53,6 +53,10 @@
                 "to": "/seite/impressum"
             },
             {
+                "label": "Datenschutz",
+                "to": "/seite/datenschutzerklaerung"
+            },
+            {
                 "label": "Kontakt",
                 "href": "mailto:info@goplantatree.org"
             }

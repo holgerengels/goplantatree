@@ -38,11 +38,6 @@
         </div>
       </div>
     </div>
-    <div class="section-more" v-if="projectSlug">
-      <router-link :to="`/bestellen/${projectSlug}`" class="btn btn-accent btn-lg">
-        🌳 Jetzt bestellen
-      </router-link>
-    </div>
   </section>
 </template>
 

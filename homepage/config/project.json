@@ -63,6 +63,24 @@
             "type": "Text"
         },
         {
+            "name": "actionPath",
+            "label": "Action-Pfad",
+            "type": "Text",
+            "description": "Ziel-URL des CTA-Buttons, z.B. /bestellen/klimabaumaktion-ulm"
+        },
+        {
+            "name": "actionLabel",
+            "label": "Action-Label",
+            "type": "Text",
+            "description": "Button-Text wenn aktiv, z.B. 'Jetzt bestellen'"
+        },
+        {
+            "name": "actionDisabledLabel",
+            "label": "Action-Label (inaktiv)",
+            "type": "Text",
+            "description": "Button-Text wenn inaktiv, z.B. 'Derzeit kann nicht bestellt werden'"
+        },
+        {
             "name": "active",
             "label": "Aktiv",
             "type": "Boolean",
@@ -171,6 +189,7 @@
     "grid": [
         "name name slug slug",
         "orderFormConfig orderFormConfig active sortOrder",
+        "actionPath actionPath actionLabel actionDisabledLabel",
         "text text text text",
         "content.timeline content.timeline content.team content.team",
         "content.sponsors content.sponsors . ."

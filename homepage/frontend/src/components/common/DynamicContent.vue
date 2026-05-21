@@ -1,7 +1,7 @@
 <template>
   <div class="dynamic-content" ref="contentEl">
     <template v-for="(block, idx) in parsedBlocks" :key="idx">
-      <div v-if="block.type === 'html'" v-html="block.content" class="content-html"></div>
+      <div v-if="block.type === 'html'" v-html="block.content" class="content-html content"></div>
       
       <div v-else-if="block.type === 'macro'" class="macro-block">
         <component 
@@ -27,6 +27,7 @@ import MacroTimeline from '../macros/MacroTimeline.vue';
 import MacroTeam from '../macros/MacroTeam.vue';
 import MacroSponsors from '../macros/MacroSponsors.vue';
 import MacroOfferings from '../macros/MacroOfferings.vue';
+import MacroProjectAction from '../macros/MacroProjectAction.vue';
 import MacroNewsletter from '../macros/MacroNewsletter.vue';
 import MacroMedia from '../macros/MacroMedia.vue';
 
@@ -81,6 +82,7 @@ const resolveMacro = (name) => {
         'team': MacroTeam,
         'sponsors': MacroSponsors,
         'offerings': MacroOfferings,
+        'project-action': MacroProjectAction,
         'newsletter': MacroNewsletter,
         'media': MacroMedia
     };

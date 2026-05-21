@@ -4,7 +4,28 @@
 
     <section class="section">
       <div class="container">
-        <div class="order-wrapper" v-if="formConfig && !submitted">
+        <!-- Order closed -->
+        <div v-if="project && !project.active" class="order-closed card">
+          <div class="closed-icon">🚫</div>
+          <h2>Derzeit kann nicht bestellt werden</h2>
+          <p>Der Bestellzeitraum für dieses Projekt ist aktuell nicht aktiv. Siehe Zeitstrahl für weitere Informationen.</p>
+          <div v-if="timeline.length" class="order-timeline closed-timeline">
+            <div
+              v-for="item in timeline"
+              :key="item.label"
+              :class="['timeline-entry', item.status]"
+            >
+              <span class="tl-icon">{{ item.status === 'done' ? '✅' : item.status === 'active' ? '🔵' : '⏳' }}</span>
+              <span class="tl-date">{{ formatDate(item.date) }}</span>
+              <span class="tl-label">{{ item.label }}</span>
+            </div>
+          </div>
+          <router-link :to="`/projekt/${route.params.projectSlug}`" class="btn btn-primary" style="margin-top: var(--space-xl)">
+            Zur Projektseite
+          </router-link>
+        </div>
+
+        <div class="order-wrapper" v-if="project?.active && formConfig && !submitted">
           <div class="order-info card">
             <h3>📋 So funktioniert's</h3>
             <ol>
@@ -232,6 +253,33 @@ onMounted(async () => {
     text-align: center;
     padding: var(--space-3xl);
     color: var(--color-text-muted);
+}
+
+.order-closed {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    padding: var(--space-3xl) !important;
+}
+
+.closed-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-lg);
+}
+
+.order-closed h2 {
+    margin-bottom: var(--space-md);
+}
+
+.order-closed p {
+    margin-bottom: var(--space-lg);
+    color: var(--color-text-secondary);
+}
+
+.closed-timeline {
+    text-align: left;
+    margin: var(--space-lg) auto;
+    max-width: 320px;
 }
 
 @media (max-width: 900px) {
