@@ -28,7 +28,7 @@ COPY --from=frontend-build /build/dist /usr/share/nginx/html
 WORKDIR /app
 COPY --from=backend-build /build/node_modules ./node_modules
 COPY backend/ ./
-COPY config/ ./config/
+COPY config/ /config/
 
 # supervisord to run nginx + node
 COPY deploy/supervisord.conf /etc/supervisord.conf

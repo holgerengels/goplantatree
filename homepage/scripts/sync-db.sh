@@ -69,25 +69,13 @@ fi
 
 echo "   ✅ Dump complete"
 
-# --- Step 2: Copy dump from container to host, then to remote ---
+# Stream dump directly from container to remote (avoids docker cp Snap issues)
 echo ""
 echo "📤 Step 2: Transferring to remote server..."
 
-LOCAL_TMP="/tmp/mongodump-goplantatree-$$"
-mkdir -p "$LOCAL_TMP"
-
-# Copy from container to host
-docker cp "$LOCAL_CONTAINER:$DUMP_DIR/$LOCAL_DB" "$LOCAL_TMP/$LOCAL_DB"
-echo "   Copied from container to host"
-
-# Tar it up for efficient transfer
-tar -czf "$LOCAL_TMP/dump.tar.gz" -C "$LOCAL_TMP" "$LOCAL_DB"
-DUMP_SIZE=$(du -sh "$LOCAL_TMP/dump.tar.gz" | cut -f1)
-echo "   Dump size: $DUMP_SIZE"
-
-# Transfer to remote
 ssh "$REMOTE_HOST" "mkdir -p /tmp/mongodump-restore"
-scp -q "$LOCAL_TMP/dump.tar.gz" "$REMOTE_HOST:/tmp/mongodump-restore/dump.tar.gz"
+docker exec "$LOCAL_CONTAINER" tar -czf - -C "$DUMP_DIR" "$LOCAL_DB" \
+    | ssh "$REMOTE_HOST" "cat > /tmp/mongodump-restore/dump.tar.gz"
 echo "   ✅ Transferred to $REMOTE_HOST"
 
 # --- Step 3: Restore on remote ---
@@ -122,12 +110,12 @@ REMOTE_SCRIPT
 echo ""
 echo "🧹 Step 4: Cleaning up..."
 docker exec "$LOCAL_CONTAINER" rm -rf "$DUMP_DIR" 2>/dev/null || true
-rm -rf "$LOCAL_TMP"
 
 echo ""
-echo "✅ Sync complete! ($DUMP_SIZE transferred)"
+echo "✅ Sync complete!"
 if [[ ${#COLLECTIONS[@]} -gt 0 ]]; then
     echo "   Collections synced: ${COLLECTIONS[*]}"
 else
     echo "   All collections synced"
 fi
+

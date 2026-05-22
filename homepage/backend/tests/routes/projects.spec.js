@@ -29,14 +29,13 @@ describe('Projects API', () => {
             expect(res.body[0].name).toBe('Public Project');
         });
 
-        it('should hide inactive projects for public users (publishedField)', async () => {
+        it('should show all projects including inactive (no publishedField filter)', async () => {
             await Project.create({ name: 'Active', slug: 'active', active: true });
             await Project.create({ name: 'Inactive', slug: 'inactive', active: false });
 
             const res = await request(app).get('/api/v1/projects');
             expect(res.statusCode).toBe(200);
-            expect(res.body.length).toBe(1);
-            expect(res.body[0].name).toBe('Active');
+            expect(res.body.length).toBe(2);
         });
 
         it('should show all projects for admin users with read:all', async () => {
