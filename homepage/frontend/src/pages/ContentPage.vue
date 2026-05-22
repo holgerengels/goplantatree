@@ -63,6 +63,9 @@ const loadPage = async () => {
     try {
         page.value = await api.get(`/pages/${slug.value}`);
         configStore.pageHeroMode = !!page.value.heroSubtitle;
+        if (page.value.title) {
+            document.title = `${page.value.title} — Go Plant A Tree`;
+        }
     } catch (err) {
         error.value = err.message || 'Seite nicht gefunden';
         page.value = null;

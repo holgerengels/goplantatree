@@ -1,11 +1,11 @@
 <template>
-  <div class="macro-newsletter">
-    <div class="newsletter-box">
-      <div class="newsletter-content">
+  <div class="macro-subscribe">
+    <div class="subscribe-box">
+      <div class="subscribe-content">
         <h2>🌱 Bleib auf dem Laufenden</h2>
-        <p>Erfahre als Erste*r, wann die nächste Aktion für dieses Projekt startet.</p>
+        <p>Erfahre als Erste*r, wann die nächste Aktion startet.</p>
       </div>
-      <form class="newsletter-form" @submit.prevent="subscribe">
+      <form class="subscribe-form" @submit.prevent="subscribe">
         <input v-model="email" type="email" placeholder="Deine E-Mail-Adresse" class="form-input" required />
         <button type="submit" class="btn btn-accent" :disabled="subscribing">
           {{ subscribing ? '...' : 'Anmelden' }}
@@ -21,7 +21,11 @@ import { ref } from 'vue';
 import { api } from '../../services/api.js';
 
 const props = defineProps({
-    project: {
+    thema: {
+        type: String,
+        default: 'general'
+    },
+    projekt: {
         type: String,
         default: ''
     }
@@ -34,13 +38,13 @@ const subscribeMessage = ref('');
 const subscribe = async () => {
     subscribing.value = true;
     try {
-        const payload = { 
-            email: email.value, 
-            topic: 'general' 
+        const payload = {
+            email: email.value,
+            topic: props.thema
         };
-        
-        if (props.project) {
-            payload.project = props.project;
+
+        if (props.projekt) {
+            payload.project = props.projekt;
         }
 
         const data = await api.post('/subscribers', payload);
@@ -55,35 +59,35 @@ const subscribe = async () => {
 </script>
 
 <style scoped>
-.macro-newsletter {
+.macro-subscribe {
     background: linear-gradient(135deg, var(--color-primary-50), var(--color-bg));
     padding: var(--space-2xl) var(--space-md);
     border-radius: var(--radius-xl);
     margin: var(--space-2xl) 0;
 }
 
-.newsletter-box {
+.subscribe-box {
     max-width: 600px;
     margin: 0 auto;
     text-align: center;
 }
 
-.newsletter-content h2 {
+.subscribe-content h2 {
     margin-bottom: var(--space-sm);
     color: var(--color-primary-dark);
 }
 
-.newsletter-content p {
+.subscribe-content p {
     margin-bottom: var(--space-xl);
     color: var(--color-text);
 }
 
-.newsletter-form {
+.subscribe-form {
     display: flex;
     gap: var(--space-sm);
 }
 
-.newsletter-form .form-input {
+.subscribe-form .form-input {
     flex: 1;
 }
 
@@ -93,7 +97,7 @@ const subscribe = async () => {
 }
 
 @media (max-width: 768px) {
-    .newsletter-form {
+    .subscribe-form {
         flex-direction: column;
     }
 }

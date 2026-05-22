@@ -15,9 +15,8 @@
         ],
         "columns": [
             {
-                "key": "project",
-                "label": "Projekt",
-                "type": "relation"
+                "key": "project.slug",
+                "label": "Projekt"
             },
             {
                 "key": "email",

@@ -117,15 +117,15 @@
         <tbody>
           <tr v-for="item in filteredItems" :key="item._id" @dblclick="startEdit(item)">
             <td v-for="col in columns" :key="col.key">
-              <span v-if="col.type === 'boolean'" :class="['bool-dot', item[col.key] ? 'yes' : 'no']">
-                {{ item[col.key] ? '✓' : '✗' }}
+              <span v-if="col.type === 'boolean'" :class="['bool-dot', getVal(item, col.key) ? 'yes' : 'no']">
+                {{ getVal(item, col.key) ? '✓' : '✗' }}
               </span>
-              <span v-else-if="col.type === 'date'">{{ formatDate(item[col.key]) }}</span>
+              <span v-else-if="col.type === 'date'">{{ formatDate(getVal(item, col.key)) }}</span>
               <div v-else-if="col.type === 'image'" class="thumb-wrapper">
-                <video v-if="item.mimeType?.startsWith('video/')" :src="item[col.key]" class="admin-thumb" muted loop playsinline></video>
-                <img v-else :src="item[col.key]" class="admin-thumb" />
+                <video v-if="item.mimeType?.startsWith('video/')" :src="getVal(item, col.key)" class="admin-thumb" muted loop playsinline></video>
+                <img v-else :src="getVal(item, col.key)" class="admin-thumb" />
               </div>
-              <span v-else class="cell-text">{{ item[col.key] ?? '–' }}</span>
+              <span v-else class="cell-text">{{ getVal(item, col.key) ?? '–' }}</span>
             </td>
             <td class="col-actions">
               <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
@@ -211,6 +211,12 @@ const getFilterLabel = (key) => {
     return fieldDef ? fieldDef.label : key;
 };
 
+// Dot-notation access for column keys like 'project.slug'
+const getVal = (item, key) => {
+    if (!key.includes('.')) return item[key];
+    return key.split('.').reduce((obj, k) => obj?.[k], item);
+};
+
 // Search + sort
 const filteredItems = computed(() => {
     let result = [...items.value];
@@ -220,7 +226,7 @@ const filteredItems = computed(() => {
         const q = searchQuery.value.toLowerCase();
         result = result.filter(item =>
             columns.value.some(col => {
-                const val = item[col.key];
+                const val = getVal(item, col.key);
                 return val && String(val).toLowerCase().includes(q);
             })
         );

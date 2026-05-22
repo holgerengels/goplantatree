@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -32,6 +33,27 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(logger);
+
+// Rate limiting for public form submissions (disabled in test)
+const isTest = process.env.NODE_ENV === 'test';
+const subscribeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    message: { error: 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => isTest
+});
+const orderLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: 'Zu viele Bestellungen. Bitte versuche es später erneut.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => isTest
+});
+app.post('/api/v1/subscribers', subscribeLimiter);
+app.post('/api/v1/orders', orderLimiter);
 
 // Serve uploaded files from MongoDB
 app.get('/uploads/:filename', async (req, res, next) => {

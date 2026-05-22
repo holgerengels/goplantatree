@@ -28,8 +28,9 @@ import MacroTeam from '../macros/MacroTeam.vue';
 import MacroSponsors from '../macros/MacroSponsors.vue';
 import MacroOfferings from '../macros/MacroOfferings.vue';
 import MacroProjectAction from '../macros/MacroProjectAction.vue';
-import MacroNewsletter from '../macros/MacroNewsletter.vue';
 import MacroMedia from '../macros/MacroMedia.vue';
+import MacroSubscribe from '../macros/MacroSubscribe.vue';
+import MacroConfirm from '../macros/MacroConfirm.vue';
 
 const props = defineProps({
     content: {
@@ -83,8 +84,9 @@ const resolveMacro = (name) => {
         'sponsors': MacroSponsors,
         'offerings': MacroOfferings,
         'project-action': MacroProjectAction,
-        'newsletter': MacroNewsletter,
-        'media': MacroMedia
+        'media': MacroMedia,
+        'subscribe': MacroSubscribe,
+        'confirm': MacroConfirm
     };
     return macros[name] || null;
 };

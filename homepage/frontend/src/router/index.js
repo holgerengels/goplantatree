@@ -22,6 +22,21 @@ const routes = [
         meta: { hero: true }
     },
 
+    {
+        path: '/abmelden/:token',
+        name: 'unsubscribe',
+        component: () => import('../pages/UnsubscribePage.vue'),
+        meta: { hero: true }
+    },
+
+    {
+        path: '/bestaetigen/:token',
+        name: 'confirm',
+        component: () => import('../pages/ContentPage.vue'),
+        meta: { hero: true },
+        props: { pageSlugOverride: 'bestaetigen' }
+    },
+
     // Static content pages
     {
         path: '/seite/:slug',
@@ -58,6 +73,14 @@ const routes = [
         path: '/:entity/:id',
         name: 'entity-detail',
         component: () => import('../pages/DetailPage.vue')
+    },
+
+    // 404 catch-all (must be last)
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'not-found',
+        component: () => import('../pages/ContentPage.vue'),
+        props: { pageSlugOverride: '404' }
     }
 ];
 
@@ -79,6 +102,11 @@ router.beforeEach((to, from, next) => {
         }
     }
     next();
+});
+
+// Reset page title on navigation; pages override once data loads
+router.afterEach(() => {
+    document.title = 'Go Plant A Tree';
 });
 
 export default router;
