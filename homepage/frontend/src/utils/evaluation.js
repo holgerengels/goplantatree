@@ -59,15 +59,79 @@ export function evaluateFields(fields, data) {
 }
 
 /**
+ * Modify fields based on user permissions.
+ */
+export function applyPermissionsToFields(fields, user, resource, action, item) {
+    if (!fields) return [];
+    
+    const permissions = user?.permissions || {};
+    const resPerms = permissions[resource] || {};
+    const scope = resPerms[action] || 'none';
+    
+    const isOwnItem = (resName, itm, usr) => {
+        if (!usr || !usr.project) return false;
+        const userProjId = typeof usr.project === 'object'
+            ? (usr.project._id || usr.project.id)
+            : usr.project;
+            
+        if (!userProjId) return false;
+        
+        if (resName === 'projects') {
+            const itemId = itm?._id || itm?.id;
+            return itemId && String(itemId) === String(userProjId);
+        }
+        
+        if (itm && itm.project) {
+            const itemProjId = typeof itm.project === 'object'
+                ? (itm.project._id || itm.project.id)
+                : itm.project;
+            return itemProjId && String(itemProjId) === String(userProjId);
+        }
+        return false;
+    };
+    
+    const isUpdate = action === 'update';
+    
+    let makeAllReadonly = false;
+    if (scope === 'none') {
+        makeAllReadonly = true;
+    } else if (scope === 'own' && isUpdate && !isOwnItem(resource, item, user)) {
+        makeAllReadonly = true;
+    }
+    
+    return fields.map(field => {
+        const copy = { ...field };
+        
+        if (makeAllReadonly) {
+            copy.readonly = true;
+        } else {
+            // "die projektzuordnung ändern sollte ich nur können, wenn ich das recht habe, projektübergeordnete objekte zu editieren"
+            // If the field is 'project', check if the user has 'all' permission for the update action.
+            if (field.name === 'project') {
+                const hasAllUpdate = resPerms.update === 'all';
+                if (!hasAllUpdate) {
+                    copy.readonly = true;
+                }
+            }
+        }
+        
+        return copy;
+    });
+}
+
+/**
  * Validate data against field definitions.
  * Returns { isValid: boolean, errors: string[] }
  */
-export function validateFields(data, fields) {
+export function validateFields(data, fields, user = null, resource = '', action = '') {
     const errors = [];
     
     if (!fields) return { isValid: true, errors };
     
-    const evaluated = evaluateFields(fields, data);
+    let evaluated = evaluateFields(fields, data);
+    if (user && resource && action) {
+        evaluated = applyPermissionsToFields(evaluated, user, resource, action, data);
+    }
     
     for (const field of evaluated) {
         // Skip invisible fields

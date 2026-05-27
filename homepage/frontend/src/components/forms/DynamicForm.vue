@@ -24,16 +24,21 @@
 <script setup>
 import { defineProps, defineEmits, defineExpose, computed, watch, ref, nextTick } from 'vue';
 import FormField from './FormField.vue';
-import { evaluateFields, validateFields } from '../../utils/evaluation.js';
+import { evaluateFields, validateFields, applyPermissionsToFields } from '../../utils/evaluation.js';
+import { useAuthStore } from '../../stores/auth.js';
 
 const props = defineProps({
     fields: { type: Array, required: true },
     modelValue: { type: Object, required: true },
     grid: { type: Array, default: () => [] },
-    useWebAwesome: { type: Boolean, default: false }
+    useWebAwesome: { type: Boolean, default: false },
+    resource: { type: String, default: '' },
+    action: { type: String, default: '' }
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const auth = useAuthStore();
 
 const errors = ref([]);
 const errorBox = ref(null);
@@ -67,7 +72,13 @@ watch(() => props.modelValue, () => {
 }, { deep: true });
 
 const validate = () => {
-    const result = validateFields(props.modelValue, props.fields);
+    const result = validateFields(
+        props.modelValue,
+        props.fields,
+        props.resource && props.action && auth.isAuthenticated ? auth.user : null,
+        props.resource,
+        props.action
+    );
     errors.value = result.errors;
     if (!result.isValid) {
         nextTick(() => {
@@ -80,7 +91,13 @@ const validate = () => {
 defineExpose({ validate });
 
 // Grid logic
-const evaluatedFields = computed(() => evaluateFields(props.fields, props.modelValue));
+const evaluatedFields = computed(() => {
+    let fields = evaluateFields(props.fields, props.modelValue);
+    if (props.resource && props.action && auth.isAuthenticated) {
+        fields = applyPermissionsToFields(fields, auth.user, props.resource, props.action, props.modelValue);
+    }
+    return fields;
+});
 
 const visibleFields = computed(() => evaluatedFields.value.filter(f => f.visible !== false));
 

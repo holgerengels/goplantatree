@@ -31,18 +31,20 @@
         ref="formRef"
         :fields="config.fields || []"
         :grid="config.grid || []"
+        :resource="resourceName"
+        :action="editingId ? 'update' : 'create'"
         v-model="formData"
       />
       <div class="form-actions">
         <div class="form-actions-left">
-          <wa-button v-if="auth.hasPermission(resourceName, editingId ? 'update' : 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
+          <wa-button v-if="editingId ? auth.hasItemPermission(resourceName, 'update', formData) : auth.hasPermission(resourceName, 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
             <wa-icon name="check" slot="prefix"></wa-icon> Speichern
           </wa-button>
           <wa-button variant="default" @click="cancelEdit">
             Abbrechen
           </wa-button>
         </div>
-        <wa-button v-if="editingId && auth.hasPermission(resourceName, 'delete')" variant="danger" @click="remove">
+        <wa-button v-if="editingId && auth.hasItemPermission(resourceName, 'delete', formData)" variant="danger" @click="remove">
           <wa-icon name="trash" slot="prefix"></wa-icon> Löschen
         </wa-button>
       </div>
@@ -80,8 +82,8 @@
       <div class="data-grid" v-if="filteredItems.length && config.admin?.viewType === 'grid'">
         <div class="grid-card" v-for="item in filteredItems" :key="item._id" @dblclick="startEdit(item)">
           <div class="grid-image-wrapper">
-            <video v-if="item.mimeType?.startsWith('video/')" :src="item.url || item.file" muted loop playsinline></video>
-            <img v-else-if="item.url || item.file" :src="item.url || item.file" />
+            <video v-if="item.mimeType?.startsWith('video/')" :src="item.url || item.file" muted loop playsinline preload="none"></video>
+            <img v-else-if="item.url || item.file" :src="item.url || item.file" loading="lazy" />
             <div v-else class="grid-placeholder">Kein Bild</div>
           </div>
           <div class="grid-card-content">
@@ -92,7 +94,10 @@
               </span>
             </div>
             <div class="grid-actions">
-              <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
+              <button v-if="config.admin?.allowCopy && auth.hasPermission(resourceName, 'create')" class="btn-icon" @click="startCopy(item)" title="Kopieren">
+                <component :is="icons.Copy" />
+              </button>
+              <button v-if="auth.hasItemPermission(resourceName, 'update', item)" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
                 <component :is="icons.Edit2" />
               </button>
               <button v-else class="btn-icon" @click="startEdit(item)" title="Ansehen">
@@ -122,13 +127,16 @@
               </span>
               <span v-else-if="col.type === 'date'">{{ formatDate(getVal(item, col.key)) }}</span>
               <div v-else-if="col.type === 'image'" class="thumb-wrapper">
-                <video v-if="item.mimeType?.startsWith('video/')" :src="getVal(item, col.key)" class="admin-thumb" muted loop playsinline></video>
-                <img v-else :src="getVal(item, col.key)" class="admin-thumb" />
+                <video v-if="item.mimeType?.startsWith('video/')" :src="getVal(item, col.key)" class="admin-thumb" muted loop playsinline preload="none"></video>
+                <img v-else :src="getVal(item, col.key)" class="admin-thumb" loading="lazy" />
               </div>
               <span v-else class="cell-text">{{ getVal(item, col.key) ?? '–' }}</span>
             </td>
             <td class="col-actions">
-              <button v-if="auth.hasPermission(resourceName, 'update')" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
+              <button v-if="config.admin?.allowCopy && auth.hasPermission(resourceName, 'create')" class="btn-icon" @click="startCopy(item)" title="Kopieren">
+                <component :is="icons.Copy" />
+              </button>
+              <button v-if="auth.hasItemPermission(resourceName, 'update', item)" class="btn-icon" @click="startEdit(item)" title="Bearbeiten">
                 <component :is="icons.Edit2" />
               </button>
               <button v-else class="btn-icon" @click="startEdit(item)" title="Ansehen">
@@ -261,6 +269,12 @@ const startCreate = () => {
     editing.value = true;
     editingId.value = null;
     Object.keys(formData).forEach(k => delete formData[k]);
+    
+    // Prefill project if create permission is scoped to 'own'
+    const resPerms = auth.permissions[resourceName.value] || {};
+    if (resPerms.create === 'own' && auth.user?.project) {
+        formData.project = auth.user.project;
+    }
 };
 
 const startEdit = (item) => {
@@ -268,6 +282,25 @@ const startEdit = (item) => {
     editingId.value = item._id;
     Object.keys(formData).forEach(k => delete formData[k]);
     Object.assign(formData, JSON.parse(JSON.stringify(item)));
+};
+
+const startCopy = (item) => {
+    editing.value = true;
+    editingId.value = null;
+    Object.keys(formData).forEach(k => delete formData[k]);
+    
+    const copied = JSON.parse(JSON.stringify(item));
+    delete copied._id;
+    delete copied.id;
+    delete copied.createdAt;
+    delete copied.updatedAt;
+    delete copied.__v;
+    
+    if (copied.name) copied.name = `${copied.name} (Kopie)`;
+    if (copied.title) copied.title = `${copied.title} (Kopie)`;
+    if (copied.slug) copied.slug = `${copied.slug}-kopie`;
+    
+    Object.assign(formData, copied);
 };
 
 const cancelEdit = () => {

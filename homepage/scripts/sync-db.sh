@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Sync local MongoDB → remote server
+# Sync remote MongoDB → local server
 #
 # Usage:
 #   ./scripts/sync-db.sh                     # Full sync (all collections)
@@ -9,15 +9,11 @@
 # Environment variables (or edit defaults below):
 #   LOCAL_CONTAINER   - local mongo docker container name  (default: mongodb)
 #   LOCAL_DB          - local database name                (default: goplantatree)
+#   LOCAL_AUTH        - local mongo authentication args    (default auth provided)
 #   REMOTE_HOST       - SSH host of the server             (required)
 #   REMOTE_CONTAINER  - remote mongo docker container name (default: goplantatree-mongo)
 #   REMOTE_DB         - remote database name               (default: goplantatree)
-#
-# The script:
-#   1. Runs mongodump inside the local container
-#   2. Copies the dump to the remote server via SSH
-#   3. Runs mongorestore --drop inside the remote container
-#   4. Cleans up temp files
+#   REMOTE_AUTH       - remote mongo authentication args    (default: empty)
 #
 set -euo pipefail
 
@@ -28,6 +24,7 @@ LOCAL_AUTH="${LOCAL_AUTH:---username admin --password password --authenticationD
 REMOTE_HOST="${REMOTE_HOST:-}"
 REMOTE_CONTAINER="${REMOTE_CONTAINER:-goplantatree-mongo}"
 REMOTE_DB="${REMOTE_DB:-goplantatree}"
+REMOTE_AUTH="${REMOTE_AUTH:-}"
 DUMP_DIR="/tmp/mongodump-goplantatree"
 
 # --- Argument handling ---
@@ -39,14 +36,14 @@ if [[ -z "$REMOTE_HOST" ]]; then
     exit 1
 fi
 
-echo "🔄 MongoDB Sync: local ($LOCAL_CONTAINER/$LOCAL_DB) → remote ($REMOTE_HOST/$REMOTE_CONTAINER/$REMOTE_DB)"
+echo "🔄 MongoDB Sync: remote ($REMOTE_HOST/$REMOTE_CONTAINER/$REMOTE_DB) → local ($LOCAL_CONTAINER/$LOCAL_DB)"
 
-# --- Step 1: Dump local database ---
+# --- Step 1: Dump remote database ---
 echo ""
-echo "📦 Step 1: Dumping local database..."
+echo "📦 Step 1: Dumping remote database..."
 
-# Clean up previous dump
-docker exec "$LOCAL_CONTAINER" rm -rf "$DUMP_DIR" 2>/dev/null || true
+# Clean up previous dump inside remote container
+ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR 2>/dev/null || true"
 
 if [[ ${#COLLECTIONS[@]} -gt 0 ]]; then
     echo "   Collections: ${COLLECTIONS[*]}"
@@ -54,62 +51,52 @@ if [[ ${#COLLECTIONS[@]} -gt 0 ]]; then
     for col in "${COLLECTIONS[@]}"; do
         DUMP_ARGS="$DUMP_ARGS --collection $col"
     done
-    docker exec "$LOCAL_CONTAINER" mongodump \
-        $LOCAL_AUTH \
-        --db "$LOCAL_DB" \
+    ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER mongodump \
+        $REMOTE_AUTH \
+        --db $REMOTE_DB \
         $DUMP_ARGS \
-        --out "$DUMP_DIR"
+        --out $DUMP_DIR"
 else
     echo "   All collections"
-    docker exec "$LOCAL_CONTAINER" mongodump \
-        $LOCAL_AUTH \
-        --db "$LOCAL_DB" \
-        --out "$DUMP_DIR"
+    ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER mongodump \
+        $REMOTE_AUTH \
+        --db $REMOTE_DB \
+        --out $DUMP_DIR"
 fi
 
-echo "   ✅ Dump complete"
+echo "   ✅ Remote dump complete"
 
-# Stream dump directly from container to remote (avoids docker cp Snap issues)
+# --- Step 2: Stream dump from remote container to local container ---
 echo ""
-echo "📤 Step 2: Transferring to remote server..."
+echo "📥 Step 2: Streaming dump to local container..."
 
-ssh "$REMOTE_HOST" "mkdir -p /tmp/mongodump-restore"
-docker exec "$LOCAL_CONTAINER" tar -czf - -C "$DUMP_DIR" "$LOCAL_DB" \
-    | ssh "$REMOTE_HOST" "cat > /tmp/mongodump-restore/dump.tar.gz"
-echo "   ✅ Transferred to $REMOTE_HOST"
+# Clean up and recreate temp restore directory inside local container
+docker exec "$LOCAL_CONTAINER" rm -rf /tmp/mongorestore-data 2>/dev/null || true
+docker exec "$LOCAL_CONTAINER" mkdir -p /tmp/mongorestore-data
 
-# --- Step 3: Restore on remote ---
+# Stream over SSH and extract directly inside the local container
+ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER tar -czf - -C $DUMP_DIR $REMOTE_DB" \
+    | docker exec -i "$LOCAL_CONTAINER" tar -xzf - -C /tmp/mongorestore-data
+
+echo "   ✅ Transferred and unpacked in local container"
+
+# --- Step 3: Restore locally ---
 echo ""
-echo "📥 Step 3: Restoring on remote server..."
+echo "📤 Step 3: Restoring to local database..."
 
-ssh "$REMOTE_HOST" bash -s "$REMOTE_CONTAINER" "$REMOTE_DB" <<'REMOTE_SCRIPT'
-    CONTAINER="$1"
-    DB="$2"
-    
-    # Unpack on the host
-    cd /tmp/mongodump-restore
-    tar -xzf dump.tar.gz
-    
-    # Copy into the container
-    docker cp "/tmp/mongodump-restore/$DB" "$CONTAINER:/tmp/mongorestore-data"
-    
-    # Restore with --drop (replaces existing data)
-    docker exec "$CONTAINER" mongorestore \
-        --db "$DB" \
-        --drop \
-        "/tmp/mongorestore-data"
-    
-    # Cleanup
-    docker exec "$CONTAINER" rm -rf /tmp/mongorestore-data
-    rm -rf /tmp/mongodump-restore
-    
-    echo "   ✅ Restore complete"
-REMOTE_SCRIPT
+docker exec "$LOCAL_CONTAINER" mongorestore \
+    $LOCAL_AUTH \
+    --db "$LOCAL_DB" \
+    --drop \
+    "/tmp/mongorestore-data/$REMOTE_DB"
+
+echo "   ✅ Local restore complete"
 
 # --- Step 4: Cleanup ---
 echo ""
-echo "🧹 Step 4: Cleaning up..."
-docker exec "$LOCAL_CONTAINER" rm -rf "$DUMP_DIR" 2>/dev/null || true
+echo "🧹 Step 4: Cleaning up temp files..."
+ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR 2>/dev/null || true"
+docker exec "$LOCAL_CONTAINER" rm -rf /tmp/mongorestore-data 2>/dev/null || true
 
 echo ""
 echo "✅ Sync complete!"
@@ -118,4 +105,3 @@ if [[ ${#COLLECTIONS[@]} -gt 0 ]]; then
 else
     echo "   All collections synced"
 fi
-

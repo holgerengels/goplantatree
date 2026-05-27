@@ -32,11 +32,12 @@
             "type": "Text"
         },
         {
-            "name": "profile",
-            "label": "Rechte-Profil",
+            "name": "profiles",
+            "label": "Rechte-Profile",
             "type": "Relation",
             "reference": "/api/v1/profiles",
             "labelField": "name",
+            "multiple": true,
             "required": true
         },
         {
@@ -50,7 +51,7 @@
     "grid": [
         "username displayName",
         "email passwordHash",
-        "profile project"
+        "profiles project"
     ],
     "admin": {
         "columns": [

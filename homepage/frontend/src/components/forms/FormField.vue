@@ -114,21 +114,22 @@
       <div v-for="(item, index) in (modelValue || [])" :key="index" class="object-array-item card">
         <div class="object-array-header">
           <span class="object-array-title">Eintrag {{ index + 1 }}</span>
-          <wa-button size="small" variant="warning" @click="removeArrayItem(index)">Entfernen</wa-button>
+          <wa-button size="small" variant="warning" @click="removeArrayItem(index)" :disabled="field.readonly === true ? true : undefined">Entfernen</wa-button>
         </div>
-        <div class="object-array-fields">
+        <div class="object-array-fields" :style="getObjectArrayFieldsStyle(field)">
           <FormField
             v-for="subField in field.itemFields"
             :key="subField.name"
-            :field="subField"
+            :field="field.readonly === true ? { ...subField, readonly: true } : subField"
             :context="item"
             :modelValue="item[subField.name]"
+            :style="getObjectArrayFieldStyle(subField, field)"
             @update:modelValue="updateArrayItemField(index, subField.name, $event)"
           />
         </div>
       </div>
       </div>
-      <wa-button size="small" @click="addArrayItem" style="margin-top: var(--space-sm);">
+      <wa-button size="small" @click="addArrayItem" :disabled="field.readonly === true ? true : undefined" style="margin-top: var(--space-sm);">
         + Neuer Eintrag
       </wa-button>
       <span v-if="field.hint" class="form-hint" style="display:block; margin-top:var(--space-sm);">{{ field.hint }}</span>
@@ -309,6 +310,34 @@ const updateArrayItemField = (index, fieldName, value) => {
     if (!arr[index]) arr[index] = {};
     arr[index] = { ...arr[index], [fieldName]: value };
     updateValue(arr);
+};
+
+const getObjectArrayFieldsStyle = (fieldDef) => {
+    if (!fieldDef.grid || fieldDef.grid.length === 0) return {};
+    
+    // Count columns from the first row of the grid definition
+    const firstRowTokens = fieldDef.grid[0].trim().split(/\s+/);
+    const colsCount = firstRowTokens.length;
+    
+    const safeAreas = fieldDef.grid.map(row => {
+        return row.split(/\s+/).map(token => {
+            if (token === '.') return '.';
+            return token.replace(/\./g, '_');
+        }).join(' ');
+    });
+    
+    return {
+        display: 'grid',
+        gridTemplateColumns: `repeat(${colsCount}, minmax(0, 1fr))`,
+        gridTemplateRows: 'auto',
+        gridTemplateAreas: safeAreas.map(row => `"${row}"`).join(' '),
+        gap: '1rem'
+    };
+};
+
+const getObjectArrayFieldStyle = (subField, fieldDef) => {
+    if (!fieldDef.grid || fieldDef.grid.length === 0) return {};
+    return { gridArea: subField.name.replace(/\./g, '_') };
 };
 </script>
 

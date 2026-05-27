@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateExpression, evaluateFields, validateFields } from '../evaluation.js';
+import { evaluateExpression, evaluateFields, validateFields, applyPermissionsToFields } from '../evaluation.js';
 
 describe('Evaluation Utils', () => {
     describe('evaluateExpression', () => {
@@ -93,6 +93,57 @@ describe('Evaluation Utils', () => {
             const result = validateFields(data, fields);
             expect(result.isValid).toBe(false);
             expect(result.errors).toContain('Ungültige E-Mail');
+        });
+    });
+
+    describe('applyPermissionsToFields', () => {
+        const fields = [
+            { name: 'name', label: 'Name', type: 'Text' },
+            { name: 'project', label: 'Projekt', type: 'Relation' }
+        ];
+
+        it('should make all fields readonly if scope is none', () => {
+            const user = { permissions: { posts: { update: 'none' } } };
+            const result = applyPermissionsToFields(fields, user, 'posts', 'update', { project: 'proj1' });
+            expect(result[0].readonly).toBe(true);
+            expect(result[1].readonly).toBe(true);
+        });
+
+        it('should make all fields readonly if scope is own but item belongs to other project', () => {
+            const user = { permissions: { posts: { update: 'own' } }, project: 'proj1' };
+            const result = applyPermissionsToFields(fields, user, 'posts', 'update', { project: 'proj2' });
+            expect(result[0].readonly).toBe(true);
+            expect(result[1].readonly).toBe(true);
+        });
+
+        it('should only make project field readonly if scope is own and item belongs to user project', () => {
+            const user = { permissions: { posts: { update: 'own' } }, project: 'proj1' };
+            const result = applyPermissionsToFields(fields, user, 'posts', 'update', { project: 'proj1' });
+            expect(result[0].readonly).toBeUndefined(); // or not true
+            expect(result[1].readonly).toBe(true);
+        });
+
+        it('should only make project field readonly if scope is own on create action', () => {
+            const user = { permissions: { posts: { create: 'own' } }, project: 'proj1' };
+            const result = applyPermissionsToFields(fields, user, 'posts', 'create', {});
+            expect(result[0].readonly).toBeUndefined();
+            expect(result[1].readonly).toBe(true);
+        });
+
+        it('should not make project field readonly if user has all update permission', () => {
+            const user = { permissions: { posts: { update: 'all' } }, project: 'proj1' };
+            const result = applyPermissionsToFields(fields, user, 'posts', 'update', { project: 'proj1' });
+            expect(result[0].readonly).toBeUndefined();
+            expect(result[1].readonly).toBeUndefined();
+        });
+
+        it('should handle resource projects where item is the project itself', () => {
+            const user = { permissions: { projects: { update: 'own' } }, project: 'proj1' };
+            const resultOwn = applyPermissionsToFields(fields, user, 'projects', 'update', { _id: 'proj1' });
+            expect(resultOwn[0].readonly).toBeUndefined(); // user can edit their own project
+            
+            const resultOther = applyPermissionsToFields(fields, user, 'projects', 'update', { _id: 'proj2' });
+            expect(resultOther[0].readonly).toBe(true); // user cannot edit other project
         });
     });
 });

@@ -27,6 +27,7 @@ describe('Subscribers API', () => {
     beforeEach(async () => {
         process.env.JWT_SECRET = JWT_SECRET;
         process.env.SITE_URL = 'https://test.example.com';
+        await Subscriber.init();
         testProject = await Project.create({ name: 'Test', slug: 'test-project', active: true });
         sendMail.mockClear();
     });

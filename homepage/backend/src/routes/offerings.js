@@ -10,7 +10,7 @@ export default createCrudRouter(Offering, 'offerings', {
             populate: { path: 'image', select: 'url format' }
         },
         { path: 'project', select: 'name slug' },
-        'image'
+        { path: 'image', select: '-data' }
     ],
     sort: { sortOrder: 1, name: 1 },
     resolveParams: { project: { model: 'Project', lookupField: 'slug' } },

@@ -39,6 +39,11 @@
     },
     "fields": [
         {
+            "name": "image",
+            "label": "Titelbild",
+            "type": "Media"
+        },
+        {
             "name": "name",
             "label": "Bezeichnung (deutsch)",
             "type": "Text",
@@ -143,6 +148,7 @@
         }
     ],
     "grid": [
+        "image image image image",
         "name name bezeichnungBotanisch bezeichnungBotanisch",
         "project project tree tree",
         "category category available stock",

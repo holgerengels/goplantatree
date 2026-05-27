@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true },
     passwordHash: { type: String, required: true },
     profile: { type: mongoose.Schema.Types.ObjectId, ref: 'PermissionProfile', default: null },
+    profiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PermissionProfile' }],
     displayName: { type: String }
 }, {
     timestamps: true

@@ -4,7 +4,7 @@ import Post from '../models/Post.js';
 export default createCrudRouter(Post, 'posts', {
     publicRead: true,
     lookupField: 'slug',
-    populate: [{ path: 'project', select: 'name slug' }, 'image'],
+    populate: [{ path: 'project', select: 'name slug' }, { path: 'image', select: '-data' }],
     resolveParams: { project: { model: 'Project', lookupField: 'slug' } },
     publishedField: 'published',
     buildFilter: (req) => {

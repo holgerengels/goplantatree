@@ -4,10 +4,11 @@
     :required="field.required === true"
     :disabled="field.readonly === true || loading ? true : undefined"
     :value="normalizedValue"
+    :multiple="field.multiple === true"
     :help-text="field.hint"
     @change="updateValue($event.target.value)"
   >
-    <wa-option value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
+    <wa-option v-if="!field.multiple" value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
     <wa-option v-for="opt in options" :key="opt._id" :value="opt._id">
       {{ getLabel(opt) }}
     </wa-option>
@@ -33,6 +34,21 @@ const updateValue = (val) => {
 };
 
 const normalizedValue = computed(() => {
+    if (props.field.multiple === true) {
+        if (!props.modelValue) return [];
+        if (Array.isArray(props.modelValue)) {
+            return props.modelValue.map(item => {
+                if (item && typeof item === 'object' && item._id) {
+                    return item._id;
+                }
+                return item;
+            });
+        }
+        if (typeof props.modelValue === 'object' && props.modelValue._id) {
+            return [props.modelValue._id];
+        }
+        return [props.modelValue];
+    }
     if (props.modelValue && typeof props.modelValue === 'object' && props.modelValue._id) {
         return props.modelValue._id;
     }

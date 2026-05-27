@@ -25,9 +25,42 @@ export const useAuthStore = defineStore('auth', () => {
         return perms[resource][action] && perms[resource][action] !== 'none';
     };
 
+    const hasItemPermission = (resource, action, item) => {
+        const perms = permissions.value;
+        if (!perms || !perms[resource]) return false;
+        
+        const scope = perms[resource][action];
+        if (!scope || scope === 'none') return false;
+        if (scope === 'all') return true;
+        
+        if (scope === 'own') {
+            if (!user.value || !user.value.project) return false;
+            
+            const userProjId = typeof user.value.project === 'object'
+                ? (user.value.project._id || user.value.project.id)
+                : user.value.project;
+                
+            if (!userProjId) return false;
+            
+            if (resource === 'projects') {
+                const itemId = item?._id || item?.id;
+                return itemId && String(itemId) === String(userProjId);
+            }
+            
+            if (item && item.project) {
+                const itemProjId = typeof item.project === 'object'
+                    ? (item.project._id || item.project.id)
+                    : item.project;
+                return itemProjId && String(itemProjId) === String(userProjId);
+            }
+            return false;
+        }
+        return false;
+    };
+
     const setAuth = (t, u) => {
         token.value = t;
-        user.value = u;
+        user.value = u ? { ...u, permissions: permissions.value } : null;
         if (t) localStorage.setItem('token', t);
         else localStorage.removeItem('token');
     };
@@ -54,7 +87,8 @@ export const useAuthStore = defineStore('auth', () => {
                 headers: { Authorization: `Bearer ${token.value}` }
             });
             if (res.ok) {
-                user.value = await res.json();
+                const userData = await res.json();
+                user.value = { ...userData, permissions: permissions.value };
             } else {
                 setAuth(null, null);
             }
@@ -75,5 +109,5 @@ export const useAuthStore = defineStore('auth', () => {
     // Restore user on init
     if (token.value) fetchMe();
 
-    return { token, user, isAuthenticated, permissions, hasPermission, login, logout, fetchMe, authHeaders };
+    return { token, user, isAuthenticated, permissions, hasPermission, hasItemPermission, login, logout, fetchMe, authHeaders };
 });
