@@ -3,6 +3,7 @@ import Offering from '../models/Offering.js';
 
 export default createCrudRouter(Offering, 'offerings', {
     publicRead: true,
+    lookupField: 'slug',
     populate: [
         { 
             path: 'tree', 

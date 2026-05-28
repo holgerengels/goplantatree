@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { slugify } from '../utils/slugify.js';
 
 /**
  * Tree (Baumsteckbrief) — Educational tree profiles.
@@ -7,7 +8,7 @@ import mongoose from 'mongoose';
  */
 const treeSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    slug: { type: String, index: true },
+    slug: { type: String, required: true, unique: true, index: true },
     category: { type: String },
     height: { type: String },
     width: { type: String },
@@ -23,6 +24,14 @@ const treeSchema = new mongoose.Schema({
 }, {
     timestamps: true,
     strict: false
+});
+
+// Auto-derive slug from name if not set
+treeSchema.pre('validate', function(next) {
+    if (!this.slug && this.name) {
+        this.slug = slugify(this.name);
+    }
+    next();
 });
 
 export default mongoose.model('Tree', treeSchema);

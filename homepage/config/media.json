@@ -28,6 +28,13 @@
             "hint": "Kopiere diese ID und nutze [[media id=\"HIER_EINFÜGEN\"]] im Text-Editor."
         },
         {
+            "name": "slug",
+            "label": "Slug",
+            "type": "Text",
+            "readonly": true,
+            "hint": "Automatisch generiert aus dem Dateinamen"
+        },
+        {
             "name": "url",
             "label": "Oder externe URL (für verlinkte Bilder)",
             "type": "Text"
@@ -71,7 +78,7 @@
     ],
     "grid": [
         "_preview _preview _preview _preview",
-        "_id _id _id _id",
+        "_id _id slug slug",
         "file file file file",
         "url url url url",
         "title title format format",

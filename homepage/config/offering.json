@@ -19,6 +19,10 @@
                 "label": "Name"
             },
             {
+                "key": "slug",
+                "label": "Slug"
+            },
+            {
                 "key": "bezeichnungBotanisch",
                 "label": "Bot. Name"
             },
@@ -48,6 +52,12 @@
             "label": "Bezeichnung (deutsch)",
             "type": "Text",
             "required": true
+        },
+        {
+            "name": "slug",
+            "label": "URL-Slug",
+            "type": "Slug",
+            "deriveFrom": "name"
         },
         {
             "name": "bezeichnungBotanisch",
@@ -149,7 +159,8 @@
     ],
     "grid": [
         "image image image image",
-        "name name bezeichnungBotanisch bezeichnungBotanisch",
+        "name name slug slug",
+        "bezeichnungBotanisch bezeichnungBotanisch bezeichnungBotanisch bezeichnungBotanisch",
         "project project tree tree",
         "category category available stock",
         "pflanzgroesseHoehe pflanzgroesseStammumfang endgroesseHoehe endgroesseBreite",

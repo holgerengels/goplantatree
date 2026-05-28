@@ -6,6 +6,7 @@ import fs from 'fs';
 import { auth, requirePermission } from '../middleware/auth.js';
 import Media from '../models/Media.js';
 import sizeOf from 'image-size';
+import { slugify } from '../utils/slugify.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
@@ -56,6 +57,31 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
         if (req.permissionScope === 'own') query.project = req.user.project;
         
         const media = await Media.findOne(query).select('-data');
+        if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
+        res.json(media);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/v1/media/by-slug/:slug/file — Public: Serve media file by slug
+router.get('/by-slug/:slug/file', async (req, res) => {
+    try {
+        const media = await Media.findOne({ slug: req.params.slug });
+        if (!media || !media.data) return res.status(404).send('Not found');
+        
+        res.set('Content-Type', media.mimeType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+        res.send(media.data);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// GET /api/v1/media/by-slug/:slug/info — Public: Get media metadata by slug
+router.get('/by-slug/:slug/info', async (req, res) => {
+    try {
+        const media = await Media.findOne({ slug: req.params.slug }).select('filename slug title author authorLink license licenseLink url mimeType format width height');
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
         res.json(media);
     } catch (err) {
@@ -135,9 +161,24 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
 
         const filename = req.file ? (Date.now() + '-' + Math.round(Math.random() * 1E9) + extname(req.file.originalname)) : 'external';
 
+        // Generate unique slug from original filename
+        let slug = '';
+        if (req.file) {
+            const baseName = req.file.originalname.replace(/\.[^.]+$/, '');
+            slug = slugify(baseName);
+            // Handle duplicates: append -2, -3, etc.
+            let candidate = slug;
+            let counter = 2;
+            while (await Media.findOne({ slug: candidate })) {
+                candidate = `${slug}-${counter++}`;
+            }
+            slug = candidate;
+        }
+
         const media = new Media({
             filename: req.file ? filename : 'external',
             originalName: req.file ? req.file.originalname : (req.body.title || 'external'),
+            slug: slug || undefined,
             mimeType: req.file ? req.file.mimetype : 'external/url',
             size: req.file ? req.file.size : 0,
             url: req.body.url || '', // Will be updated if req.file exists
@@ -175,6 +216,7 @@ router.put('/:id', auth, requirePermission('media', 'update'), async (req, res) 
     try {
         // Prevent changing core file characteristics via PUT
         delete req.body.filename;
+        delete req.body.slug;
         delete req.body.mimeType;
         delete req.body.size;
         delete req.body.originalName;

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { slugify } from '../utils/slugify.js';
 
 /**
  * Offering (Angebot) — An orderable tree item within a specific project.
@@ -9,6 +10,7 @@ const offeringSchema = new mongoose.Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     tree: { type: mongoose.Schema.Types.ObjectId, ref: 'Tree', default: null },
     name: { type: String, required: true },
+    slug: { type: String, index: true },
     bezeichnungBotanisch: { type: String },
     image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
     category: { type: String },
@@ -30,6 +32,15 @@ const offeringSchema = new mongoose.Schema({
     strict: false
 });
 
+// Auto-derive slug from name if not set
+offeringSchema.pre('validate', function(next) {
+    if (!this.slug && this.name) {
+        this.slug = slugify(this.name);
+    }
+    next();
+});
+
 offeringSchema.index({ project: 1, sortOrder: 1 });
+offeringSchema.index({ project: 1, slug: 1 }, { unique: true });
 
 export default mongoose.model('Offering', offeringSchema);

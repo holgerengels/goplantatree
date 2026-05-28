@@ -189,6 +189,15 @@
       @update:modelValue="updateValue"
     />
 
+    <!-- Slug -->
+    <SlugField
+      v-else-if="field.type === 'Slug'"
+      :field="field"
+      :context="context"
+      :modelValue="modelValue"
+      @update:modelValue="updateValue"
+    />
+
     <!-- Default: Text -->
     <wa-input
       v-else
@@ -212,6 +221,7 @@ import MediaSelector from './MediaSelector.vue';
 import RelationSelector from './RelationSelector.vue';
 import OfferingSelector from './OfferingSelector.vue';
 import TagsInput from './TagsInput.vue';
+import SlugField from './SlugField.vue';
 
 const props = defineProps({
     field: { type: Object, required: true },

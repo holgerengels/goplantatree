@@ -113,7 +113,8 @@
         {
             "name": "slug",
             "label": "URL-Slug",
-            "type": "Text"
+            "type": "Slug",
+            "deriveFrom": "title"
         },
         {
             "name": "type",
