@@ -114,7 +114,6 @@ watch(slug, loadPage);
 .content-wrapper :deep(h2) {
     margin-top: var(--space-2xl);
     margin-bottom: var(--space-md);
-    color: var(--color-primary-dark);
 }
 .content-wrapper :deep(h2:first-child) {
     margin-top: 0;
