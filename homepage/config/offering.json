@@ -23,10 +23,6 @@
                 "label": "Slug"
             },
             {
-                "key": "bezeichnungBotanisch",
-                "label": "Bot. Name"
-            },
-            {
                 "key": "category",
                 "label": "Kategorie"
             },
