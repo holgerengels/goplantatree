@@ -8,6 +8,19 @@ const mediaSchema = new mongoose.Schema({
     url: { type: String, required: true },
     data: { type: Buffer },
     
+    // Pre-generated image variants (thumb, small, medium)
+    variants: {
+        type: Map,
+        of: new mongoose.Schema({
+            data: { type: Buffer, required: true },
+            width: Number,
+            height: Number,
+            size: Number,
+            mimeType: { type: String, default: 'image/webp' }
+        }, { _id: false }),
+        default: {}
+    },
+    
     // Image dimension properties
     width: { type: Number },
     height: { type: Number },

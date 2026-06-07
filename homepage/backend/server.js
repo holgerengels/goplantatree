@@ -55,15 +55,27 @@ const orderLimiter = rateLimit({
 app.post('/api/v1/subscribers', subscribeLimiter);
 app.post('/api/v1/orders', orderLimiter);
 
-// Serve uploaded files from MongoDB
+// Serve uploaded files from MongoDB (with optional variant via ?v=thumb|small|medium)
 app.get('/uploads/:filename', async (req, res, next) => {
     try {
-        const media = await Media.findOne({ filename: req.params.filename }).select('data mimeType');
-        if (!media || !media.data) {
-            return res.status(404).send('File not found');
+        const variant = req.query.v;
+        let fields = 'data mimeType';
+        if (variant) fields += ` variants.${variant}`;
+
+        const media = await Media.findOne({ filename: req.params.filename }).select(fields);
+        if (!media) return res.status(404).send('File not found');
+
+        // Serve variant if requested and available
+        if (variant && media.variants?.get(variant)) {
+            const v = media.variants.get(variant);
+            res.set('Content-Type', v.mimeType);
+            res.set('Cache-Control', 'public, max-age=31536000');
+            return res.send(v.data);
         }
+
+        if (!media.data) return res.status(404).send('File not found');
         res.set('Content-Type', media.mimeType);
-        res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+        res.set('Cache-Control', 'public, max-age=31536000');
         res.send(media.data);
     } catch (err) {
         next(err);

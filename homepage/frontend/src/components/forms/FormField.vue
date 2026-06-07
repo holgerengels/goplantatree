@@ -170,7 +170,7 @@
       <label class="form-label">{{ field.label }}</label>
       <div v-if="context && context.url" class="image-preview-wrapper">
         <video v-if="context.mimeType?.startsWith('video/')" :src="context.url" controls class="form-preview-media"></video>
-        <img v-else :src="context.url" class="form-preview-media" />
+        <img v-else :src="context.url + '?v=small'" class="form-preview-media" />
       </div>
       <p v-else class="form-hint">Keine Vorschau verfügbar.</p>
     </div>
@@ -232,13 +232,13 @@ const handleTextInput = (val) => {
         let link = '';
         let norm = val;
 
-        if (l === 'ccby40') { norm = 'CC BY 4.0'; link = 'https://creativecommons.org/licenses/by/4.0/deed.de'; }
-        else if (l === 'ccbysa40') { norm = 'CC BY-SA 4.0'; link = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'; }
+        if (l === 'ccby' || l === 'ccby40') { norm = 'CC BY 4.0'; link = 'https://creativecommons.org/licenses/by/4.0/deed.de'; }
+        else if (l === 'ccbysa' || l === 'ccbysa40') { norm = 'CC BY-SA 4.0'; link = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'; }
         else if (l === 'cc0' || l === 'cc010') { norm = 'CC0 1.0 Universal'; link = 'https://creativecommons.org/publicdomain/zero/1.0/deed.de'; }
-        else if (l === 'ccbync40') { norm = 'CC BY-NC 4.0'; link = 'https://creativecommons.org/licenses/by-nc/4.0/deed.de'; }
-        else if (l === 'ccbyncsa40') { norm = 'CC BY-NC-SA 4.0'; link = 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de'; }
-        else if (l === 'ccbynd40') { norm = 'CC BY-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nd/4.0/deed.de'; }
-        else if (l === 'ccbyncnd40') { norm = 'CC BY-NC-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de'; }
+        else if (l === 'ccbync' || l === 'ccbync40') { norm = 'CC BY-NC 4.0'; link = 'https://creativecommons.org/licenses/by-nc/4.0/deed.de'; }
+        else if (l === 'ccbyncsa' || l === 'ccbyncsa40') { norm = 'CC BY-NC-SA 4.0'; link = 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de'; }
+        else if (l === 'ccbynd' || l === 'ccbynd40') { norm = 'CC BY-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nd/4.0/deed.de'; }
+        else if (l === 'ccbyncnd' || l === 'ccbyncnd40') { norm = 'CC BY-NC-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de'; }
 
         if (link && props.context) {
             if (!props.context.licenseLink || props.context.licenseLink.includes('creativecommons.org')) {

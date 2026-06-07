@@ -6,6 +6,7 @@ import fs from 'fs';
 import { auth, requirePermission } from '../middleware/auth.js';
 import Media from '../models/Media.js';
 import sizeOf from 'image-size';
+import { generateVariants } from '../utils/imageVariants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
@@ -16,12 +17,24 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 const storage = multer.memoryStorage();
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
 const upload = multer({ 
     storage,
-    limits: { fileSize: 15 * 1024 * 1024 } // 15 MB limit for MongoDB documents
+    limits: { fileSize: MAX_FILE_SIZE }
 });
 
 const router = Router();
+
+// Multer error handler — returns readable error for file size limit
+router.use((err, req, res, next) => {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+            error: `Die Datei ist zu groß. Maximale Dateigröße: ${MAX_FILE_SIZE / (1024 * 1024)} MB`
+        });
+    }
+    next(err);
+});
 
 // GET /api/v1/media — Admin: List all media
 router.get('/', auth, requirePermission('media', 'read'), async (req, res) => {
@@ -41,7 +54,7 @@ router.get('/', auth, requirePermission('media', 'read'), async (req, res) => {
             ];
         }
 
-        const media = await Media.find(filter).select('-data').sort({ createdAt: -1 }).skip(skip).limit(limit);
+        const media = await Media.find(filter).select('-data -variants').sort({ createdAt: -1 }).skip(skip).limit(limit);
         const total = await Media.countDocuments(filter);
         res.json({ items: media, total });
     } catch (err) {
@@ -55,7 +68,7 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
         const query = { _id: req.params.id };
         if (req.permissionScope === 'own') query.project = req.user.project;
         
-        const media = await Media.findOne(query).select('-data');
+        const media = await Media.findOne(query).select('-data -variants');
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
         res.json(media);
     } catch (err) {
@@ -63,12 +76,25 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
     }
 });
 
-// GET /api/v1/media/:id/file — Public: Serve media file from MongoDB
+// GET /api/v1/media/:id/file — Public: Serve media file (with optional variant)
 router.get('/:id/file', async (req, res) => {
     try {
-        const media = await Media.findById(req.params.id);
-        if (!media || !media.data) return res.status(404).send('Not found');
-        
+        const variant = req.query.v;
+        let fields = 'data mimeType';
+        if (variant) fields += ` variants.${variant}`;
+
+        const media = await Media.findById(req.params.id).select(fields);
+        if (!media) return res.status(404).send('Not found');
+
+        // Serve variant if requested and available
+        if (variant && media.variants?.get(variant)) {
+            const v = media.variants.get(variant);
+            res.set('Content-Type', v.mimeType);
+            res.set('Cache-Control', 'public, max-age=31536000');
+            return res.send(v.data);
+        }
+
+        if (!media.data) return res.status(404).send('Not found');
         res.set('Content-Type', media.mimeType);
         res.set('Cache-Control', 'public, max-age=31536000');
         res.send(media.data);
@@ -156,6 +182,15 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
 
         if (req.file) {
             media.url = `/api/v1/media/${media._id}/file`;
+
+            // Generate image variants (thumb, small, medium)
+            if (req.file.mimetype.startsWith('image/')) {
+                try {
+                    media.variants = await generateVariants(req.file.buffer);
+                } catch (e) {
+                    console.error('Failed to generate image variants:', e.message);
+                }
+            }
         }
 
         await media.save();
@@ -170,27 +205,56 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
     }
 });
 
-// PUT /api/v1/media/:id — Admin: Update media metadata
-router.put('/:id', auth, requirePermission('media', 'update'), async (req, res) => {
+// PUT /api/v1/media/:id — Admin: Update media metadata (and optionally replace file)
+router.put('/:id', auth, requirePermission('media', 'update'), upload.single('file'), async (req, res) => {
     try {
-        // Prevent changing core file characteristics via PUT
-        delete req.body.filename;
-        delete req.body.mimeType;
-        delete req.body.size;
-        delete req.body.originalName;
-        delete req.body.width;
-        delete req.body.height;
-        delete req.body.format;
-        
         const query = { _id: req.params.id };
         if (req.permissionScope === 'own') {
             query.project = req.user.project;
             req.body.project = req.user.project;
         }
 
-        const media = await Media.findOneAndUpdate(query, req.body, { new: true, runValidators: true }).select('-data');
+        const media = await Media.findOne(query);
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
-        res.json(media);
+
+        // Update metadata fields
+        const metaFields = ['title', 'author', 'authorLink', 'license', 'licenseLink', 'sourceLink', 'project'];
+        for (const field of metaFields) {
+            if (req.body[field] !== undefined) media[field] = req.body[field];
+        }
+
+        // Replace file if a new one was uploaded
+        if (req.file) {
+            media.data = req.file.buffer;
+            media.mimeType = req.file.mimetype;
+            media.size = req.file.size;
+            media.originalName = req.file.originalname;
+
+            // Re-extract dimensions
+            if (req.file.mimetype.startsWith('image/')) {
+                try {
+                    const dimensions = sizeOf(req.file.buffer);
+                    media.width = dimensions.width;
+                    media.height = dimensions.height;
+                } catch (e) {
+                    console.error('Failed to get image dimensions:', e);
+                }
+
+                // Regenerate variants
+                try {
+                    media.variants = await generateVariants(req.file.buffer);
+                } catch (e) {
+                    console.error('Failed to generate image variants:', e.message);
+                }
+            }
+        }
+
+        await media.save();
+
+        const responseData = media.toObject();
+        delete responseData.data;
+        delete responseData.variants;
+        res.json(responseData);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }

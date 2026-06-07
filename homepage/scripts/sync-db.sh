@@ -39,6 +39,8 @@ if [[ -z "$REMOTE_HOST" ]]; then
     exit 1
 fi
 
+exit 0
+
 echo "🔄 MongoDB Sync: local ($LOCAL_CONTAINER/$LOCAL_DB) → remote ($REMOTE_HOST/$REMOTE_CONTAINER/$REMOTE_DB)"
 
 # --- Step 1: Dump local database ---

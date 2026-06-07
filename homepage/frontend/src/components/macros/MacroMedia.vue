@@ -1,7 +1,11 @@
 <template>
   <figure class="macro-media" :class="[`align-${align}`]" v-if="media">
     <video v-if="media.mimeType?.startsWith('video/')" :src="media.url || `/api/v1/media/${media._id}/file`" controls :autoplay="autoplay" :loop="loop" :muted="muted" playsinline></video>
-    <img v-else :src="media.url || `/api/v1/media/${media._id}/file`" :alt="media.title || media.filename" />
+    <img v-else
+         :src="mediaUrl"
+         :srcset="`${mediaUrl}?v=small 480w, ${mediaUrl}?v=medium 960w, ${mediaUrl} 1600w`"
+         sizes="(max-width: 600px) 480px, (max-width: 1200px) 960px, 1600px"
+         :alt="media.title || media.filename" />
     <figcaption v-if="showCaption && (media.title || media.author)" class="media-caption" v-html="captionHtml"></figcaption>
   </figure>
   <div v-else-if="error" class="macro-media-error">
@@ -40,6 +44,11 @@ const error = ref(false);
 
 const captionHtml = computed(() => {
     return media.value ? buildCaption(media.value) : '';
+});
+
+const mediaUrl = computed(() => {
+    if (!media.value) return '';
+    return media.value.url || `/api/v1/media/${media.value._id}/file`;
 });
 
 onMounted(async () => {

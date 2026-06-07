@@ -129,7 +129,7 @@ const countByCategory = (cat) => trees.value.filter(t => t.category === cat).len
 
 const cardImageStyle = (tree) => {
     if (tree.image && typeof tree.image === 'object' && tree.image.url) {
-        return { backgroundImage: `url(${tree.image.url})` };
+        return { backgroundImage: `url(${tree.image.url}?v=small)` };
     }
     return { background: getCategoryGradient(tree.category) };
 };

@@ -12,7 +12,7 @@
         rel="noopener"
         class="sponsor-card card"
       >
-        <img v-if="sponsor.logo && sponsor.logo.url" :src="sponsor.logo.url" :alt="sponsor.name" class="sponsor-logo" />
+        <img v-if="sponsor.logo && sponsor.logo.url" :src="sponsor.logo.url + '?v=thumb'" :alt="sponsor.name" class="sponsor-logo" />
         <span v-else class="sponsor-name">{{ sponsor.name }}</span>
       </a>
     </div>

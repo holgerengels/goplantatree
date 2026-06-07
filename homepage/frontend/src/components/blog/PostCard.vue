@@ -32,7 +32,7 @@ const isVideo = computed(() => props.post.image && props.post.image.mimeType?.st
 
 const imageStyle = computed(() => {
     if (props.post.image && props.post.image.url) {
-        return { backgroundImage: `url(${props.post.image.url})` };
+        return { backgroundImage: `url(${props.post.image.url}?v=small)` };
     }
     return {
         background: props.post.type === 'pflanzung'

@@ -3,9 +3,12 @@
     <div class="media-preview" v-if="previewUrl">
       <img :src="previewUrl" alt="Preview" class="preview-img" />
       <div class="media-actions">
+        <wa-button appearance="filled-outlined" size="small" @click.prevent="triggerReplaceFile"><wa-icon slot="prefix" name="arrow-repeat"></wa-icon> Datei ersetzen</wa-button>
         <wa-button appearance="filled-outlined" size="small" @click.prevent="openGallery">Auswählen / Ändern</wa-button>
         <wa-button appearance="filled-outlined" variant="danger" size="small" @click.prevent="clearSelection">Entfernen</wa-button>
+        <input ref="replaceInput" type="file" @change="onReplaceFile" accept="image/*,video/*" hidden />
       </div>
+      <div v-if="replaceError" class="replace-error">{{ replaceError }}</div>
       
       <!-- Metadata Editor for Selected Media -->
       <div class="media-metadata-editor" v-if="mediaDetails">
@@ -75,7 +78,7 @@
             class="gallery-item"
             @click="selectMedia(item)"
           >
-            <img :src="item.url" :alt="item.title || item.originalName" />
+            <img :src="item.url + '?v=thumb'" :alt="item.title || item.originalName" />
             <div class="gallery-item-title">{{ item.title || item.originalName }}</div>
           </div>
         </div>
@@ -126,13 +129,13 @@ const handleLicenseInput = (targetObj, value) => {
   let link = '';
   let norm = value;
   
-  if (l === 'ccby40') { norm = 'CC BY 4.0'; link = 'https://creativecommons.org/licenses/by/4.0/deed.de'; }
-  else if (l === 'ccbysa40') { norm = 'CC BY-SA 4.0'; link = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'; }
+  if (l === 'ccby' || l === 'ccby40') { norm = 'CC BY 4.0'; link = 'https://creativecommons.org/licenses/by/4.0/deed.de'; }
+  else if (l === 'ccbysa' || l === 'ccbysa40') { norm = 'CC BY-SA 4.0'; link = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'; }
   else if (l === 'cc0' || l === 'cc010') { norm = 'CC0 1.0 Universal'; link = 'https://creativecommons.org/publicdomain/zero/1.0/deed.de'; }
-  else if (l === 'ccbync40') { norm = 'CC BY-NC 4.0'; link = 'https://creativecommons.org/licenses/by-nc/4.0/deed.de'; }
-  else if (l === 'ccbyncsa40') { norm = 'CC BY-NC-SA 4.0'; link = 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de'; }
-  else if (l === 'ccbynd40') { norm = 'CC BY-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nd/4.0/deed.de'; }
-  else if (l === 'ccbyncnd40') { norm = 'CC BY-NC-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de'; }
+  else if (l === 'ccbync' || l === 'ccbync40') { norm = 'CC BY-NC 4.0'; link = 'https://creativecommons.org/licenses/by-nc/4.0/deed.de'; }
+  else if (l === 'ccbyncsa' || l === 'ccbyncsa40') { norm = 'CC BY-NC-SA 4.0'; link = 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de'; }
+  else if (l === 'ccbynd' || l === 'ccbynd40') { norm = 'CC BY-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nd/4.0/deed.de'; }
+  else if (l === 'ccbyncnd' || l === 'ccbyncnd40') { norm = 'CC BY-NC-ND 4.0'; link = 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de'; }
   
   if (link && (!targetObj.licenseLink || targetObj.licenseLink.includes('creativecommons.org'))) {
      targetObj.licenseLink = link;
@@ -143,9 +146,9 @@ const handleLicenseInput = (targetObj, value) => {
 // Resolve preview URL
 const previewUrl = computed(() => {
   if (!props.modelValue) return null;
-  if (typeof props.modelValue === 'object' && props.modelValue.url) return props.modelValue.url;
-  if (mediaDetails.value && mediaDetails.value.url) return mediaDetails.value.url;
-  return null;
+  const url = (typeof props.modelValue === 'object' && props.modelValue.url) ? props.modelValue.url
+    : (mediaDetails.value && mediaDetails.value.url) ? mediaDetails.value.url : null;
+  return url ? url + '?v=small' : null;
 });
 
 // Fetch details if we only have an ID
@@ -184,6 +187,33 @@ const updateMediaDetails = async () => {
   } finally {
     savingDetails.value = false;
   }
+};
+
+// Replace file on existing media
+const replaceInput = ref(null);
+const replaceError = ref('');
+
+const triggerReplaceFile = () => {
+  replaceError.value = '';
+  replaceInput.value?.click();
+};
+
+const onReplaceFile = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file || !mediaDetails.value?._id) return;
+  replaceError.value = '';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const result = await api.upload(`/media/${mediaDetails.value._id}`, formData, 'PUT');
+    mediaDetails.value = result;
+  } catch (e) {
+    replaceError.value = e.message || 'Ersetzen fehlgeschlagen';
+  }
+  // Reset input so same file can be re-selected
+  if (replaceInput.value) replaceInput.value.value = '';
 };
 
 // Upload Logic
@@ -383,5 +413,15 @@ wa-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.replace-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: var(--radius-sm);
+  color: #dc3545;
+  font-size: var(--text-sm);
 }
 </style>

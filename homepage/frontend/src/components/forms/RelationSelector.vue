@@ -7,7 +7,9 @@
     :help-text="field.hint"
     @change="updateValue($event.target.value)"
   >
-    <wa-option value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
+    <wa-option value="" :disabled="field.required === true ? true : undefined">
+      {{ loading ? 'Wird geladen…' : field.required ? 'Bitte wählen …' : '— Keine Zuordnung —' }}
+    </wa-option>
     <wa-option v-for="opt in options" :key="opt._id" :value="opt._id">
       {{ getLabel(opt) }}
     </wa-option>
@@ -29,7 +31,7 @@ const options = ref([]);
 const loading = ref(false);
 
 const updateValue = (val) => {
-    emit('update:modelValue', val);
+    emit('update:modelValue', val || null);
 };
 
 const normalizedValue = computed(() => {

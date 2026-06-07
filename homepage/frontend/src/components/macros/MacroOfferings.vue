@@ -55,8 +55,8 @@ const offerings = ref([]);
 const projectSlug = ref('');
 
 const imageStyle = (offering) => {
-    if (offering.image?.url) return { backgroundImage: `url(${offering.image.url})` };
-    if (offering.tree?.image?.url) return { backgroundImage: `url(${offering.tree.image.url})` };
+    if (offering.image?.url) return { backgroundImage: `url(${offering.image.url}?v=small)` };
+    if (offering.tree?.image?.url) return { backgroundImage: `url(${offering.tree.image.url}?v=small)` };
     return { background: getCategoryGradient(offering.category) };
 };
 

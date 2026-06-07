@@ -108,8 +108,8 @@ const selectedOffering = computed(() => {
 const cardImageStyle = computed(() => {
     const o = selectedOffering.value;
     if (!o) return {};
-    if (o.image?.url) return { backgroundImage: `url(${o.image.url})` };
-    if (o.tree?.image?.url) return { backgroundImage: `url(${o.tree.image.url})` };
+    if (o.image?.url) return { backgroundImage: `url(${o.image.url}?v=small)` };
+    if (o.tree?.image?.url) return { backgroundImage: `url(${o.tree.image.url}?v=small)` };
     return { background: getCategoryGradient(o.category) };
 });
 
