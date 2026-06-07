@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, provide } from 'vue';
+import { ref, reactive, computed, onMounted, provide, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicForm from '../components/forms/DynamicForm.vue';
@@ -129,7 +129,26 @@ const submitOrder = async () => {
         orderNumber.value = result.orderNumber;
         submitted.value = true;
     } catch (err) {
-        alert(err.message);
+        if (err.suggestion) {
+            if (err.suggestion.street) orderData.street = err.suggestion.street;
+            if (err.suggestion.zip) orderData.zip = err.suggestion.zip;
+            if (err.suggestion.city) orderData.city = err.suggestion.city;
+            
+            // Wait for watch on orderData to trigger validate() before we set the warning error message
+            nextTick(() => {
+                formRef.value.errors = [
+                    'Die eingegebene Adresse konnte nicht genau zugeordnet werden. Wir haben Korrekturvorschläge in das Formular eingetragen. Bitte überprüfe die Angaben und klicke erneut auf Bestellen.'
+                ];
+                nextTick(() => {
+                    formRef.value?.$el?.querySelector('.error-messages')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                });
+            });
+        } else {
+            formRef.value.errors = [err.message];
+            nextTick(() => {
+                formRef.value?.$el?.querySelector('.error-messages')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            });
+        }
     } finally {
         submitting.value = false;
     }

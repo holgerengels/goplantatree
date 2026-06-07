@@ -170,6 +170,7 @@ import { useAuthStore } from '../stores/auth.js';
 import { useProjectsStore } from '../stores/projects.js';
 import { formatDate } from '../utils/format.js';
 import { api } from '../services/api.js';
+import { toast, confirm } from '../composables/useToast.js';
 
 const route = useRoute();
 const configStore = useConfigStore();
@@ -342,14 +343,14 @@ const save = async () => {
         cancelEdit();
         await loadData();
     } catch (err) {
-        alert('Fehler: ' + err.message);
+        toast.error('Fehler: ' + err.message);
     } finally {
         saving.value = false;
     }
 };
 
 const remove = async () => {
-    if (!confirm(`${config.value.label.singular} wirklich löschen?`)) return;
+    if (!await confirm(`${config.value.label.singular} wirklich löschen?`)) return;
     try {
         const endpoint = config.value.api.replace('/api/v1', '');
         await api.delete(`${endpoint}/${editingId.value}`);
@@ -358,7 +359,7 @@ const remove = async () => {
     } catch (err) {
         // Handle 409 Conflict — object is still referenced
         if (err.message?.includes('referenziert')) {
-            const forceDelete = confirm(
+            const forceDelete = await confirm(
                 `${err.message}\n\nTrotzdem löschen? Referenzierende Einträge werden dadurch ungültige Verweise enthalten.`
             );
             if (forceDelete) {
@@ -368,11 +369,11 @@ const remove = async () => {
                     cancelEdit();
                     await loadData();
                 } catch (err2) {
-                    alert('Fehler: ' + err2.message);
+                    toast.error('Fehler: ' + err2.message);
                 }
             }
         } else {
-            alert('Fehler: ' + err.message);
+            toast.error('Fehler: ' + err.message);
         }
     }
 };
@@ -453,7 +454,7 @@ const triggerExport = async (format) => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Export-Fehler: ' + err.message);
+        toast.error('Export-Fehler: ' + err.message);
     } finally {
         exporting.value = false;
     }

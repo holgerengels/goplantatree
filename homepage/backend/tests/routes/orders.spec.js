@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../../server.js';
@@ -13,6 +13,7 @@ const generateToken = (permissions = {}) => {
 };
 
 describe('Orders API (Soft Refs + Denormalization)', () => {
+    let originalFetch;
     beforeEach(async () => {
         process.env.JWT_SECRET = JWT_SECRET;
         await Project.create({ name: 'Test Project', slug: 'test-project', active: true });
@@ -21,6 +22,64 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             project: 'test-project', category: 'Laubbaum',
             bezeichnungBotanisch: 'Tilia cordata', available: true
         });
+
+        originalFetch = global.fetch;
+        global.fetch = vi.fn().mockImplementation(async (url) => {
+            const parsedUrl = new URL(url, 'http://localhost');
+            const q = parsedUrl.searchParams.get('q') || '';
+            
+            // Format can be: "Street HouseNumber, ZIP City" or "ZIP City"
+            const parts = q.split(',');
+            let streetPart = '';
+            let zipCityPart = q;
+            if (parts.length > 1) {
+                streetPart = parts[0].trim();
+                zipCityPart = parts[1].trim();
+            }
+
+            // Match 5 digit zip
+            const zipMatch = zipCityPart.match(/\b\d{5}\b/);
+            const zip = zipMatch ? zipMatch[0] : '89073';
+            
+            // Match city (everything after the zip)
+            let city = 'Ulm';
+            if (zipMatch) {
+                const index = zipCityPart.indexOf(zip);
+                city = zipCityPart.substring(index + zip.length).trim();
+            }
+            
+            // Reconstruct road and house number from streetPart
+            let road = '';
+            let houseNumber = '';
+            if (streetPart) {
+                const spaceIndex = streetPart.lastIndexOf(' ');
+                if (spaceIndex !== -1) {
+                    road = streetPart.substring(0, spaceIndex).trim();
+                    houseNumber = streetPart.substring(spaceIndex + 1).trim();
+                } else {
+                    road = streetPart;
+                }
+            }
+
+            return {
+                ok: true,
+                json: async () => [{
+                    place_id: 12345,
+                    lat: '48.401',
+                    lon: '9.987',
+                    address: {
+                        road: road || undefined,
+                        house_number: houseNumber || undefined,
+                        postcode: zip,
+                        city: city || 'Ulm'
+                    }
+                }]
+            };
+        });
+    });
+
+    afterEach(() => {
+        global.fetch = originalFetch;
     });
 
     describe('POST /api/v1/orders (public, with offering denormalization)', () => {
@@ -117,6 +176,270 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
 
             expect(res.statusCode).toBe(400);
             expect(res.body.error).toContain('Name ist ein Pflichtfeld');
+        });
+    });
+
+    describe('Address Validation with Nominatim', () => {
+
+        it('should allow order when Nominatim geocoding succeeds for normal address', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{
+                    place_id: 12345,
+                    lat: '48.401',
+                    lon: '9.987',
+                    address: {
+                        road: 'Musterstraße',
+                        house_number: '1',
+                        postcode: '89073',
+                        city: 'Ulm'
+                    }
+                }]
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Max Validated',
+                    email: 'maxval@example.com',
+                    street: 'Musterstraße 1',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(201);
+            expect(global.fetch).toHaveBeenCalled();
+            
+            const fetchUrl = global.fetch.mock.calls[0][0];
+            expect(fetchUrl).toContain(encodeURIComponent('Musterstraße 1, 89073 Ulm'));
+        });
+
+        it('should block order and return 400 when geocoding fails for normal address', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => []
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Fake Address Guy',
+                    email: 'fake@example.com',
+                    street: 'Fantasystraße 999',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Die Adresse konnte nicht gefunden werden');
+        });
+
+        it('should block order and return 400 when postcode is structurally invalid', async () => {
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Bad PLZ Guy',
+                    email: 'badplz@example.com',
+                    street: 'Ochsengasse 13',
+                    zip: '890666',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Die Postleitzahl muss genau 5 Ziffern enthalten');
+        });
+
+        it('should block order and return 400 when email format is invalid', async () => {
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Bad Email Guy',
+                    email: 'invalid-email',
+                    street: 'Ochsengasse 13',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Bitte gib eine gültige E-Mail-Adresse ein');
+        });
+
+        it('should return 400 and correction suggestion when postcode does not match location postcode', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{
+                    place_id: 12345,
+                    address: {
+                        road: 'Ochsengasse',
+                        house_number: '13',
+                        postcode: '89073',
+                        city: 'Ulm'
+                    }
+                }]
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Mismatch PLZ Guy',
+                    email: 'mismatch@example.com',
+                    street: 'Ochsengasse 13',
+                    zip: '89077',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Die eingegebene Adresse konnte nicht genau zugeordnet werden');
+            expect(res.body.suggestion).toBeDefined();
+            expect(res.body.suggestion.zip).toBe('89073');
+            expect(res.body.suggestion.street).toBe('Ochsengasse 13');
+            expect(res.body.suggestion.city).toBe('Ulm');
+        });
+
+        it('should return 400 and error message (no suggestion) when street cannot be found in the location', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{
+                    place_id: 12345,
+                    address: {
+                        postcode: '89073',
+                        city: 'Ulm'
+                    }
+                }]
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Fake Street Guy',
+                    email: 'fake@example.com',
+                    street: 'Fantasystraße 999',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Die angegebene Straße konnte in diesem PLZ-Bereich nicht gefunden werden');
+            expect(res.body.suggestion).toBeUndefined();
+        });
+
+        it('should return 400 and correction suggestion when street and city do not match postcode', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{
+                    place_id: 12345,
+                    address: {
+                        road: 'Ochsengasse',
+                        house_number: '13',
+                        postcode: '89073',
+                        city: 'Ulm'
+                    }
+                }]
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Mismatch Zip City Guy',
+                    email: 'mismatchzipcity@example.com',
+                    street: 'Ochsengasse 13',
+                    zip: '12345',
+                    city: 'Berlin',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.error).toContain('Die eingegebene Adresse konnte nicht genau zugeordnet werden');
+            expect(res.body.suggestion).toBeDefined();
+            expect(res.body.suggestion.zip).toBe('89073');
+            expect(res.body.suggestion.city).toBe('Ulm');
+            expect(res.body.suggestion.street).toBe('Ochsengasse 13');
+        });
+
+        it('should allow special address if Nominatim geocoding succeeds for just zip and city', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => [{ place_id: 6789, lat: '48.401', lon: '9.987', address: { postcode: '89073' } }]
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'Schrebergärtner',
+                    email: 'schreber@example.com',
+                    street: 'Schrebergartenanlage Rißhalde, Parzelle 12',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: true
+                });
+
+            expect(res.statusCode).toBe(201);
+            
+            const fetchUrl = global.fetch.mock.calls[0][0];
+            expect(fetchUrl).toContain(encodeURIComponent('89073 Ulm'));
+            expect(fetchUrl).not.toContain(encodeURIComponent('Schrebergartenanlage'));
+        });
+
+        it('should fail-open (allow order) if Nominatim API is down or returns error', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                status: 503
+            });
+
+            const res = await request(app)
+                .post('/api/v1/orders')
+                .send({
+                    project: 'test-project',
+                    offering: 'winterlinde',
+                    name: 'OSM Down Guy',
+                    email: 'osmdown@example.com',
+                    street: 'Musterstraße 2',
+                    zip: '89073',
+                    city: 'Ulm',
+                    quantity: 1,
+                    agb: true,
+                    specialAddress: false
+                });
+
+            expect(res.statusCode).toBe(201);
         });
     });
 

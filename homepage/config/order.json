@@ -121,7 +121,11 @@
             "name": "email",
             "label": "E-Mail-Adresse",
             "type": "Text",
-            "required": true
+            "required": true,
+            "validation": {
+                "expression": "/^\\S+@\\S+\\.\\S+$/.test(email)",
+                "message": "Bitte gib eine gültige E-Mail-Adresse ein."
+            }
         },
         {
             "name": "phone",
@@ -146,6 +150,12 @@
             "type": "Text",
             "required": true,
             "default": "Ulm"
+        },
+        {
+            "name": "specialAddress",
+            "label": "Dies ist eine Sonderadresse (z.B. Schrebergarten ohne reguläre Hausnummer)",
+            "type": "Boolean",
+            "default": false
         },
         {
             "name": "offering",
@@ -205,7 +215,8 @@
     "grid": [
         "project project name name",
         "email email phone phone",
-        "street street zip city",
+        "street street specialAddress specialAddress",
+        "zip zip city city",
         "offering offering quantity status",
         "selectedAddons selectedAddons gardenType gardenType",
         "notes notes agb agb"

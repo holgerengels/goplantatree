@@ -1,6 +1,19 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Offering from '../models/Offering.js';
+
+function normalizeString(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+}
 
 export default createCrudRouter(Order, 'orders', {
     publicCreate: true,
@@ -13,6 +26,97 @@ export default createCrudRouter(Order, 'orders', {
         return filter;
     },
     preCreate: async (data) => {
+        // 1. Structural PLZ check (German postal code must be exactly 5 digits)
+        if (data.zip && !/^\d{5}$/.test(data.zip)) {
+            const err = new mongoose.Error.ValidationError(null);
+            err.addError('zip', new mongoose.Error.ValidatorError({
+                message: 'Die Postleitzahl muss genau 5 Ziffern enthalten.'
+            }));
+            throw err;
+        }
+
+        // Only run address validation if required fields are present (let Mongoose validate missing fields first)
+        const hasRequiredAddressFields = data.specialAddress
+            ? (data.zip && data.city)
+            : (data.street && data.zip && data.city);
+
+        if (hasRequiredAddressFields) {
+            // Address validation using OpenStreetMap Nominatim API
+            const query = data.specialAddress
+                ? `${data.zip} ${data.city}`
+                : `${data.street}, ${data.zip} ${data.city}`;
+
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'GoPlantATree-AddressValidator/1.0 (contact@goplantatree.org)'
+                    }
+                });
+                
+                if (response.ok) {
+                    const results = await response.json();
+                    if (!Array.isArray(results) || results.length === 0) {
+                        const errorMsg = data.specialAddress
+                            ? 'Die angegebene PLZ/Stadt konnte nicht gefunden werden. Bitte überprüfe deine Angaben.'
+                            : 'Die Adresse konnte nicht gefunden werden. Bitte überprüfe die Schreibweise oder aktiviere das Kontrollkästchen für Sonderadressen.';
+                        
+                        const err = new mongoose.Error.ValidationError(null);
+                        err.addError('street', new mongoose.Error.ValidatorError({ message: errorMsg }));
+                        throw err;
+                    }
+
+                    const result = results[0];
+                    const address = result.address || {};
+                    const matchedRoad = address.road || address.street || address.pedestrian || address.highway || address.place;
+                    const matchedPostcode = address.postcode;
+                    const matchedCity = address.city || address.town || address.village || address.suburb || address.municipality || address.county;
+
+                    // If not a specialAddress (e.g. regular address), we MUST have a resolved road/street component.
+                    if (!data.specialAddress && !matchedRoad) {
+                        const err = new mongoose.Error.ValidationError(null);
+                        err.addError('street', new mongoose.Error.ValidatorError({
+                            message: 'Die angegebene Straße konnte in diesem PLZ-Bereich nicht gefunden werden. Bitte überprüfe die Schreibweise oder aktiviere das Kontrollkästchen für Sonderadressen.'
+                        }));
+                        throw err;
+                    }
+
+                    // Reconstruct suggested values
+                    const suggestedStreet = data.specialAddress
+                        ? data.street
+                        : `${matchedRoad}${address.house_number ? ' ' + address.house_number : ''}`;
+                    const suggestedZip = matchedPostcode || data.zip;
+                    const suggestedCity = matchedCity || data.city;
+
+                    // Compare normalized user inputs against normalized suggestions
+                    const isStreetMismatch = !data.specialAddress && (normalizeString(data.street) !== normalizeString(suggestedStreet));
+                    const isZipMismatch = normalizeString(data.zip) !== normalizeString(suggestedZip);
+                    const isCityMismatch = normalizeString(data.city) !== normalizeString(suggestedCity);
+
+                    if (isStreetMismatch || isZipMismatch || isCityMismatch) {
+                        const err = new Error('Die eingegebene Adresse konnte nicht genau zugeordnet werden. Bitte überprüfe den Vorschlag.');
+                        err.status = 400;
+                        err.suggestion = {
+                            street: suggestedStreet,
+                            zip: suggestedZip,
+                            city: suggestedCity
+                        };
+                        throw err;
+                    }
+                } else {
+                    console.error(`Nominatim API returned status ${response.status} for query: ${query}`);
+                }
+            } catch (err) {
+                // Rethrow validation errors and custom correction errors
+                if (err.name === 'ValidationError' || err.status === 400) {
+                    throw err;
+                }
+                // For other errors (network issues, rate limits, etc.), fail open and log
+                console.error('Nominatim address validation error (fail-open):', err);
+            }
+        }
+
         // Denormalize offering data into the order as a snapshot
         if (data.offering && typeof data.offering === 'string') {
             const offeringSlug = data.offering;

@@ -15,6 +15,7 @@ export const errorHandler = (err, req, res, next) => {
     
     res.status(err.status || 500).json({
         error: err.message || 'Interner Serverfehler',
+        ...(err.suggestion && { suggestion: err.suggestion }),
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 };

@@ -100,6 +100,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { api } from '../../services/api.js';
+import { toast } from '../../composables/useToast.js';
 
 const props = defineProps({
   modelValue: { type: [String, Object], default: null }
@@ -183,7 +184,7 @@ const updateMediaDetails = async () => {
       sourceLink: mediaDetails.value.sourceLink
     });
   } catch (e) {
-    alert('Speichern fehlgeschlagen: ' + e.message);
+    toast.error('Speichern fehlgeschlagen: ' + e.message);
   } finally {
     savingDetails.value = false;
   }
@@ -231,7 +232,7 @@ const onFileChange = (e) => {
 
 const submitUpload = async () => {
   if (!uploadFile.value) {
-    alert('Bitte wähle eine Datei aus.');
+    toast.warning('Bitte wähle eine Datei aus.');
     return;
   }
 
@@ -248,7 +249,7 @@ const submitUpload = async () => {
     emit('update:modelValue', result.slug);
     showUploadModal.value = false;
   } catch (e) {
-    alert('Upload fehlgeschlagen: ' + e.message);
+    toast.error('Upload fehlgeschlagen: ' + e.message);
   } finally {
     uploading.value = false;
   }

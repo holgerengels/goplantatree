@@ -12,7 +12,11 @@
             "name": "email",
             "label": "E-Mail-Adresse",
             "type": "Text",
-            "required": true
+            "required": true,
+            "validation": {
+                "expression": "/^\\S+@\\S+\\.\\S+$/.test(email)",
+                "message": "Bitte gib eine gültige E-Mail-Adresse ein."
+            }
         },
         {
             "name": "phone",
@@ -37,6 +41,12 @@
             "type": "Text",
             "required": true,
             "default": "Biberach"
+        },
+        {
+            "name": "specialAddress",
+            "label": "Sonderadresse (z.B. Schrebergarten ohne Hausnummer)",
+            "type": "Boolean",
+            "default": false
         },
         {
             "name": "offering",
@@ -79,7 +89,8 @@
     "grid": [
         "name name email email",
         "phone phone . .",
-        "street street zip city",
+        "street street specialAddress specialAddress",
+        "zip zip city city",
         "offering offering offering offering",
         "gardenType gardenType gardenType gardenType",
         "notes notes notes notes",

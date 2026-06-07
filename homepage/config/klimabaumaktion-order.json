@@ -39,6 +39,12 @@
             "default": "Ulm"
         },
         {
+            "name": "specialAddress",
+            "label": "Sonderadresse (z.B. Schrebergarten ohne Hausnummer)",
+            "type": "Boolean",
+            "default": false
+        },
+        {
             "name": "offering",
             "label": "Gewünschter Baum",
             "type": "OfferingSelector",
@@ -79,7 +85,8 @@
     "grid": [
         "name name email email",
         "phone phone . .",
-        "street street zip city",
+        "street street specialAddress specialAddress",
+        "zip zip city city",
         "offering offering offering offering",
         "gardenType gardenType gardenType gardenType",
         "notes notes notes notes",

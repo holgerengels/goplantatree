@@ -10,7 +10,11 @@ export const useOrdersStore = defineStore('orders', () => {
         try {
             return await api.post('/orders', orderData);
         } catch (err) {
-            throw new Error(err.message || 'Bestellung fehlgeschlagen');
+            const error = new Error(err.message || 'Bestellung fehlgeschlagen');
+            if (err.suggestion) {
+                error.suggestion = err.suggestion;
+            }
+            throw error;
         }
     };
 

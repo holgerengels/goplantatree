@@ -22,7 +22,7 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
-const { mockRouter, mockRoute, mockUser, mockPermissions, mockHasPermission, mockHasItemPermission } = vi.hoisted(() => {
+const { mockRouter, mockRoute, mockUser, mockPermissions, mockHasPermission, mockHasItemPermission, mockConfirm } = vi.hoisted(() => {
     return {
         mockRouter: { push: vi.fn(), replace: vi.fn() },
         mockRoute: { params: { entity: 'bestellungen' }, query: {} },
@@ -32,7 +32,8 @@ const { mockRouter, mockRoute, mockUser, mockPermissions, mockHasPermission, moc
         },
         mockPermissions: { orders: { create: 'all', read: 'all', delete: 'all', update: 'all' } },
         mockHasPermission: vi.fn(() => true),
-        mockHasItemPermission: vi.fn(() => true)
+        mockHasItemPermission: vi.fn(() => true),
+        mockConfirm: vi.fn(() => Promise.resolve(true))
     };
 });
 
@@ -52,6 +53,16 @@ vi.mock('vue-router', () => ({
     useRoute: () => mockRoute
 }));
 
+vi.mock('../../composables/useToast.js', () => ({
+    toast: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn()
+    },
+    confirm: mockConfirm
+}));
+
 describe('EditorPage.vue', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -63,6 +74,7 @@ describe('EditorPage.vue', () => {
         mockPermissions.orders = { create: 'all', read: 'all', delete: 'all', update: 'all' };
         mockHasPermission.mockImplementation(() => true);
         mockHasItemPermission.mockImplementation(() => true);
+        mockConfirm.mockResolvedValue(true);
 
         // Mock localStorage
         const store = { token: 'fake-token' };
@@ -277,5 +289,85 @@ describe('EditorPage.vue', () => {
         const projectField2 = formFields2.find(f => f.name === 'project');
         expect(nameField2.readonly).toBe(true);
         expect(projectField2.readonly).toBe(true);
+    });
+
+    it('deletes successfully if user confirms', async () => {
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        // Start editing an item so editingId is set
+        const item = { _id: 'item123', name: 'Order to delete' };
+        wrapper.vm.startEdit(item);
+        await wrapper.vm.$nextTick();
+
+        // Set confirm mock to true
+        mockConfirm.mockResolvedValue(true);
+
+        // Mock fetch delete request
+        global.fetch = vi.fn((url, options) => {
+            if (options?.method === 'DELETE') {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true })
+                });
+            }
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve([])
+            });
+        });
+
+        // Trigger remove
+        await wrapper.vm.remove();
+        await flushPromises();
+
+        // Verify confirm was called
+        expect(mockConfirm).toHaveBeenCalled();
+
+        // Verify fetch DELETE request was made
+        const deleteCalls = fetch.mock.calls.filter(c => c[1]?.method === 'DELETE');
+        expect(deleteCalls.length).toBe(1);
+        expect(deleteCalls[0][0]).toBe('/api/v1/orders/item123');
+    });
+
+    it('does not delete if user cancels confirmation', async () => {
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        // Start editing
+        const item = { _id: 'item123', name: 'Order to delete' };
+        wrapper.vm.startEdit(item);
+        await wrapper.vm.$nextTick();
+
+        // Set confirm mock to false
+        mockConfirm.mockResolvedValue(false);
+
+        // Reset fetch mock calls
+        global.fetch = vi.fn();
+
+        // Trigger remove
+        await wrapper.vm.remove();
+        await flushPromises();
+
+        expect(mockConfirm).toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
     });
 });

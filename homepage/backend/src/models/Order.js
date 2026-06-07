@@ -19,11 +19,16 @@ const orderSchema = new mongoose.Schema({
     },
     orderedAt: { type: Date, default: Date.now },
     name: { type: String, required: [true, 'Name ist ein Pflichtfeld'] },
-    email: { type: String, required: [true, 'E-Mail ist ein Pflichtfeld'] },
+    email: { 
+        type: String, 
+        required: [true, 'E-Mail ist ein Pflichtfeld'],
+        match: [/^\S+@\S+\.\S+$/, 'Bitte gib eine gültige E-Mail-Adresse ein.']
+    },
     phone: { type: String },
     street: { type: String, required: [true, 'Straße ist ein Pflichtfeld'] },
     zip: { type: String, required: [true, 'PLZ ist ein Pflichtfeld'] },
     city: { type: String, required: [true, 'Stadt ist ein Pflichtfeld'] },
+    specialAddress: { type: Boolean, default: false },
     quantity: { type: Number, required: [true, 'Anzahl ist ein Pflichtfeld'], default: 1 },
     agb: { type: Boolean, required: [true, 'AGB müssen akzeptiert werden'] },
     selectedAddons: [{ type: String }],

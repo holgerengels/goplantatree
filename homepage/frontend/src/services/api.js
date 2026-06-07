@@ -22,7 +22,11 @@ const stripBase = (url) => url.startsWith(BASE_URL) ? url.slice(BASE_URL.length)
 const handleResponse = async (res, errorMsg) => {
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || errorMsg);
+        const err = new Error(data.error || errorMsg);
+        if (data.suggestion) {
+            err.suggestion = data.suggestion;
+        }
+        throw err;
     }
     return res.json();
 };

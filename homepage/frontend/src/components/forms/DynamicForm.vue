@@ -88,7 +88,7 @@ const validate = () => {
     return result.isValid;
 };
 
-defineExpose({ validate });
+defineExpose({ validate, errors });
 
 // Grid logic
 const evaluatedFields = computed(() => {
