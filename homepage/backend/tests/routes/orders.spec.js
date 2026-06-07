@@ -167,5 +167,59 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             expect(res.body.items).toHaveLength(1);
             expect(res.body.items[0].project).toBe('test-project');
         });
+
+        it('should deny export without token', async () => {
+            const res = await request(app).get('/api/v1/orders/export');
+            expect(res.statusCode).toBe(401);
+        });
+
+        it('should export orders as CSV with correct columns and data', async () => {
+            const token = generateToken({ orders: { read: 'all' } });
+            const res = await request(app)
+                .get('/api/v1/orders/export?format=csv')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.header['content-type']).toContain('text/csv');
+            expect(res.header['content-disposition']).toContain('attachment; filename=orders_export.csv');
+            
+            // Should start with UTF-8 BOM \uFEFF
+            expect(res.text.startsWith('\uFEFF')).toBe(true);
+            
+            // Header should contain fields configured in order.json's exportColumns
+            expect(res.text).toContain('Nr.;Projekt;Name;E-Mail;Telefon;Straße;PLZ;Stadt;Baum;Anzahl;Zusatzoptionen;Pflanzort;Anmerkungen;Status;Datum');
+            expect(res.text).toContain('List Test;list@test.de');
+        });
+
+        it('should export orders as ODS', async () => {
+            const token = generateToken({ orders: { read: 'all' } });
+            const res = await request(app)
+                .get('/api/v1/orders/export?format=ods')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.header['content-type']).toContain('application/vnd.oasis.opendocument.spreadsheet');
+            expect(res.header['content-disposition']).toContain('attachment; filename=orders_export.ods');
+            expect(res.body).toBeDefined();
+        });
+
+        it('should filter export by search query', async () => {
+            await Order.create({
+                project: 'test-project',
+                orderNumber: 'GPT-2026-9999',
+                name: 'Other Name', email: 'other@test.de',
+                street: 'Str 2', zip: '54321', city: 'Anderswo',
+                quantity: 1, agb: true
+            });
+
+            const token = generateToken({ orders: { read: 'all' } });
+            const res = await request(app)
+                .get('/api/v1/orders/export?format=csv&search=Other')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.text).toContain('Other Name');
+            expect(res.text).not.toContain('List Test');
+        });
     });
 });

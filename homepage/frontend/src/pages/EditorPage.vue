@@ -13,6 +13,12 @@
       </div>
 
       <div class="editor-actions">
+        <wa-button v-if="!editing" variant="default" @click="triggerExport('csv')" :disabled="!items.length || exporting ? true : undefined">
+          <wa-icon name="download" slot="prefix"></wa-icon> CSV Export
+        </wa-button>
+        <wa-button v-if="!editing" variant="default" @click="triggerExport('ods')" :disabled="!items.length || exporting ? true : undefined">
+          <wa-icon name="download" slot="prefix"></wa-icon> ODS Export
+        </wa-button>
         <wa-button v-if="!editing && auth.hasPermission(resourceName, 'create')" variant="primary" @click="startCreate">
           <wa-icon name="plus" slot="prefix"></wa-icon> Neu
         </wa-button>
@@ -409,6 +415,47 @@ const loadData = async () => {
         items.value = Array.isArray(data) ? data : (data.items || data.orders || Object.values(data).find(v => Array.isArray(v)) || []);
     } catch (err) {
         console.error('Load error:', err);
+    }
+};
+
+const exporting = ref(false);
+
+const triggerExport = async (format) => {
+    if (exporting.value) return;
+    exporting.value = true;
+    try {
+        let endpoint = config.value.api.replace('/api/v1', '') + '/export';
+        const queryParams = new URLSearchParams();
+        queryParams.append('format', format);
+        
+        if (config.value.admin?.filters) {
+            for (const f of config.value.admin.filters) {
+                if (activeFilters[f] !== undefined && activeFilters[f] !== '') {
+                    queryParams.append(f, activeFilters[f]);
+                }
+            }
+        }
+        
+        if (searchQuery.value) {
+            queryParams.append('search', searchQuery.value);
+        }
+        
+        const qs = queryParams.toString();
+        if (qs) endpoint += `?${qs}`;
+        
+        const blob = await api.download(endpoint);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${config.value.entity}_export.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Export-Fehler: ' + err.message);
+    } finally {
+        exporting.value = false;
     }
 };
 

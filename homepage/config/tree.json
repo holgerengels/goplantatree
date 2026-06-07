@@ -92,6 +92,52 @@
                 "key": "category",
                 "label": "Kategorie"
             }
+        ],
+        "exportColumns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "slug",
+                "label": "Slug"
+            },
+            {
+                "key": "category",
+                "label": "Kategorie"
+            },
+            {
+                "key": "sizeCategory",
+                "label": "Größenklasse"
+            },
+            {
+                "key": "height",
+                "label": "Höhe"
+            },
+            {
+                "key": "width",
+                "label": "Breite"
+            },
+            {
+                "key": "flowering",
+                "label": "Blütezeit"
+            },
+            {
+                "key": "fruit",
+                "label": "Fruchtzeit"
+            },
+            {
+                "key": "location",
+                "label": "Standort"
+            },
+            {
+                "key": "growthForm",
+                "label": "Wuchsform"
+            },
+            {
+                "key": "properties",
+                "label": "Eigenschaften"
+            }
         ]
     },
     "fields": [

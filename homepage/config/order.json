@@ -36,6 +36,69 @@
                 "label": "Datum",
                 "type": "date"
             }
+        ],
+        "exportColumns": [
+            {
+                "key": "orderNumber",
+                "label": "Nr."
+            },
+            {
+                "key": "project",
+                "label": "Projekt"
+            },
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "email",
+                "label": "E-Mail"
+            },
+            {
+                "key": "phone",
+                "label": "Telefon"
+            },
+            {
+                "key": "street",
+                "label": "Straße"
+            },
+            {
+                "key": "zip",
+                "label": "PLZ"
+            },
+            {
+                "key": "city",
+                "label": "Stadt"
+            },
+            {
+                "key": "offering.name",
+                "label": "Baum"
+            },
+            {
+                "key": "quantity",
+                "label": "Anzahl"
+            },
+            {
+                "key": "selectedAddons",
+                "label": "Zusatzoptionen"
+            },
+            {
+                "key": "gardenType",
+                "label": "Pflanzort"
+            },
+            {
+                "key": "notes",
+                "label": "Anmerkungen"
+            },
+            {
+                "key": "status",
+                "label": "Status"
+            },
+            {
+                "key": "orderedAt",
+                "label": "Datum",
+                "type": "date"
+            }
         ]
     },
     "fields": [

@@ -35,6 +35,17 @@ export const api = {
         return handleResponse(res, 'Fehler beim Laden');
     },
     
+    async download(endpoint) {
+        const res = await fetch(`${BASE_URL}${stripBase(endpoint)}`, {
+            headers: getHeaders()
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Fehler beim Herunterladen');
+        }
+        return res.blob();
+    },
+    
     async post(endpoint, data) {
         const res = await fetch(`${BASE_URL}${stripBase(endpoint)}`, {
             method: 'POST',

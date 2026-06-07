@@ -1,7 +1,72 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
+import { readFileSync, readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import XLSX from 'xlsx';
 import { auth, requirePermission, optionalAuth } from '../middleware/auth.js';
 import { findReferences, cascadeSlugUpdate } from './refIntegrity.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CONFIG_DIR = process.env.CONFIG_DIR || join(__dirname, '..', '..', '..', 'config');
+
+const getConfigForResource = (resName) => {
+    try {
+        const files = readdirSync(CONFIG_DIR).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+            const content = JSON.parse(readFileSync(join(CONFIG_DIR, file), 'utf-8'));
+            if (content.resource === resName) {
+                return content;
+            }
+        }
+    } catch (err) {
+        console.error('Error reading config for export:', err);
+    }
+    return null;
+};
+
+const getVal = (item, key) => {
+    if (!key.includes('.')) return item[key];
+    return key.split('.').reduce((obj, k) => obj?.[k], item);
+};
+
+const formatDate = (dateVal) => {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+};
+
+const formatExportValue = (val, type) => {
+    if (val === undefined || val === null) return '';
+    if (type === 'boolean' || typeof val === 'boolean') {
+        return val ? 'Ja' : 'Nein';
+    }
+    if (type === 'date' || val instanceof Date) {
+        return formatDate(val);
+    }
+    if (Array.isArray(val)) {
+        return val.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(', ');
+    }
+    if (typeof val === 'object') {
+        return val.name || val.title || val.slug || JSON.stringify(val);
+    }
+    return String(val);
+};
+
+const escapeCSV = (val) => {
+    if (val === undefined || val === null) return '';
+    const str = String(val);
+    if (str.includes(';') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+};
 
 /**
  * Creates a generic CRUD router for a Mongoose Model.
@@ -126,6 +191,88 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
             }
         });
     }
+    // GET /export — Export list to CSV or ODS
+    router.get('/export', ...readMiddleware, async (req, res, next) => {
+        try {
+            let filter = await buildFilter(req);
+            
+            // Apply query params directly as slug-based filters
+            for (const [key, val] of Object.entries(req.query)) {
+                if (['limit', 'skip', 'all', 'type', 'status', 'available', 'search', 'format'].includes(key)) continue;
+                if (Model.schema.paths[key] && Model.schema.paths[key].instance === 'String') {
+                    filter[key] = val;
+                }
+            }
+
+            // Apply published/active filter for non-admin users
+            if (publishedField && !isFullReadUser(req)) {
+                filter[publishedField] = true;
+            }
+
+            if (req.query.all === 'true' && isFullReadUser(req)) {
+                delete filter[publishedField];
+            }
+
+            filter = scopeQuery(req, filter);
+
+            let query = Model.find(filter).sort(sort);
+            let items = await query;
+
+            // Load configuration to get columns
+            const cfg = getConfigForResource(resourceName);
+            const columns = cfg?.admin?.exportColumns || cfg?.admin?.columns || [];
+
+            // If search filter is active, filter items using column keys
+            if (req.query.search && columns.length) {
+                const q = req.query.search.toLowerCase();
+                items = items.filter(item =>
+                    columns.some(col => {
+                        const val = getVal(item, col.key);
+                        return val && String(val).toLowerCase().includes(q);
+                    })
+                );
+            }
+
+            const format = req.query.format || 'csv';
+
+            if (format === 'ods') {
+                const data = items.map(item => {
+                    const row = {};
+                    for (const col of columns) {
+                        const val = getVal(item, col.key);
+                        row[col.label] = formatExportValue(val, col.type);
+                    }
+                    return row;
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Export');
+                
+                const buffer = XLSX.write(workbook, { bookType: 'ods', type: 'buffer' });
+                
+                res.setHeader('Content-Type', 'application/vnd.oasis.opendocument.spreadsheet');
+                res.setHeader('Content-Disposition', `attachment; filename=${resourceName}_export.ods`);
+                return res.send(buffer);
+            } else {
+                // CSV export (default)
+                const header = columns.map(c => escapeCSV(c.label)).join(';');
+                const rows = items.map(item => {
+                    return columns.map(col => {
+                        const val = getVal(item, col.key);
+                        return escapeCSV(formatExportValue(val, col.type));
+                    }).join(';');
+                });
+                const csvContent = '\uFEFF' + [header, ...rows].join('\r\n');
+
+                res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+                res.setHeader('Content-Disposition', `attachment; filename=${resourceName}_export.csv`);
+                return res.send(csvContent);
+            }
+        } catch (err) {
+            next(err);
+        }
+    });
 
     // GET /:idOrSlug — Detail
     if (!disableRoutes.includes('detail')) {

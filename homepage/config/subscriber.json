@@ -40,6 +40,34 @@
                 "label": "Datum",
                 "type": "date"
             }
+        ],
+        "exportColumns": [
+            {
+                "key": "project",
+                "label": "Projekt"
+            },
+            {
+                "key": "email",
+                "label": "E-Mail"
+            },
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "topic",
+                "label": "Thema"
+            },
+            {
+                "key": "confirmed",
+                "label": "Bestätigt",
+                "type": "boolean"
+            },
+            {
+                "key": "subscribedAt",
+                "label": "Datum",
+                "type": "date"
+            }
         ]
     },
     "fields": [
