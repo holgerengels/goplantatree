@@ -139,10 +139,10 @@ describe('Evaluation Utils', () => {
 
         it('should handle resource projects where item is the project itself', () => {
             const user = { permissions: { projects: { update: 'own' } }, project: 'proj1' };
-            const resultOwn = applyPermissionsToFields(fields, user, 'projects', 'update', { _id: 'proj1' });
+            const resultOwn = applyPermissionsToFields(fields, user, 'projects', 'update', { slug: 'proj1' });
             expect(resultOwn[0].readonly).toBeUndefined(); // user can edit their own project
             
-            const resultOther = applyPermissionsToFields(fields, user, 'projects', 'update', { _id: 'proj2' });
+            const resultOther = applyPermissionsToFields(fields, user, 'projects', 'update', { slug: 'proj2' });
             expect(resultOther[0].readonly).toBe(true); // user cannot edit other project
         });
     });

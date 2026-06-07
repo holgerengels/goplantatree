@@ -22,7 +22,11 @@ describe('MacroOfferings.vue', () => {
             { _id: '2', name: 'Tree 2', category: 'Obstbaum', tree: {} }
         ];
 
-        api.get.mockResolvedValueOnce(mockOfferings);
+        api.get.mockImplementation((url) => {
+            if (url.startsWith('/offerings')) return Promise.resolve(mockOfferings);
+            if (url.startsWith('/trees')) return Promise.resolve([]);
+            return Promise.resolve([]);
+        });
 
         const wrapper = mount(MacroOfferings, {
             props: { project: 'test-project' },
@@ -36,7 +40,8 @@ describe('MacroOfferings.vue', () => {
         await new Promise(r => setTimeout(r, 10));
 
         expect(api.get).toHaveBeenCalledWith('/offerings?project=test-project&available=true');
-        expect(api.get).toHaveBeenCalledTimes(1);
+        expect(api.get).toHaveBeenCalledWith('/trees');
+        expect(api.get).toHaveBeenCalledTimes(2);
 
         const cards = wrapper.findAll('.offering-card');
         expect(cards.length).toBe(2);
@@ -62,6 +67,7 @@ describe('MacroOfferings.vue', () => {
         await new Promise(r => setTimeout(r, 10));
 
         expect(api.get).toHaveBeenCalledWith('/offerings?project=project-b&available=true');
-        expect(api.get).toHaveBeenCalledTimes(2);
+        expect(api.get).toHaveBeenCalledWith('/trees');
+        expect(api.get).toHaveBeenCalledTimes(4);
     });
 });

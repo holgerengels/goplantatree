@@ -73,6 +73,36 @@ describe('Media API (Soft Refs)', () => {
             const media = await createMedia({ slug: 'compat' });
             const res = await request(app).get(`/api/v1/media/${media._id}/file`);
             expect(res.statusCode).toBe(200);
+            expect(res.headers['content-type']).toContain('image/jpeg');
+        });
+
+        it('should serve variant if requested and available', async () => {
+            const media = await createMedia({
+                slug: 'variant-test',
+                variants: {
+                    thumb: {
+                        data: Buffer.from('thumb-data'),
+                        mimeType: 'image/webp',
+                        width: 200,
+                        height: 200,
+                        size: 100
+                    }
+                }
+            });
+
+            const res = await request(app).get(`/api/v1/media/${media._id}/file?v=thumb`);
+            expect(res.statusCode).toBe(200);
+            expect(res.headers['content-type']).toContain('image/webp');
+            expect(res.body.toString()).toBe('thumb-data');
+        });
+
+        it('should fallback to original if requested variant is missing', async () => {
+            const media = await createMedia({ slug: 'no-variant' });
+            
+            const res = await request(app).get(`/api/v1/media/${media._id}/file?v=small`);
+            expect(res.statusCode).toBe(200);
+            expect(res.headers['content-type']).toContain('image/jpeg');
+            expect(res.body.toString()).toBe('fake-data');
         });
     });
 
