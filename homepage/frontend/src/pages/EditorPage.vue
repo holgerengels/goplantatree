@@ -518,7 +518,10 @@ watch(() => route.params.entity, async () => {
     font-size: var(--text-2xl);
     margin: 0;
 }
-
+.editor-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
 .editor-count {
     font-size: var(--text-sm);
     color: var(--color-text-muted);

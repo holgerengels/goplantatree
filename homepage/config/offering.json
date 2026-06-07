@@ -35,6 +35,24 @@
                 "key": "sortOrder",
                 "label": "#"
             }
+        ],
+        "exportColumns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "slug",
+                "label": "Slug"
+            },
+            {
+                "key": "category",
+                "label": "Kategorie"
+            },
+            {
+                "key": "priceNet",
+                "label": "Preis netto"
+            }
         ]
     },
     "fields": [
