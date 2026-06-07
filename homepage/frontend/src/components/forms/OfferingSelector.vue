@@ -88,6 +88,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const options = ref([]);
+const treeMap = ref({});
 const loading = ref(false);
 
 const updateValue = (val) => {
@@ -109,7 +110,7 @@ const selectedOffering = computed(() => {
 const cardImageStyle = computed(() => {
     const o = selectedOffering.value;
     if (!o) return {};
-    const url = mediaUrl(o.image) || mediaUrl(o.tree?.image);
+    const url = mediaUrl(o.image) || mediaUrl(treeMap.value[o.tree]?.image);
     if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(o.category) };
 });
@@ -142,8 +143,18 @@ const loadData = async () => {
     const endpoint = props.field.reference || '/api/v1/offerings';
     loading.value = true;
     try {
-        const data = await api.get(endpoint);
+        const [data, treeData] = await Promise.all([
+            api.get(endpoint),
+            api.get('/api/v1/trees')
+        ]);
         options.value = Array.isArray(data) ? data : (data.items || Object.values(data).find(v => Array.isArray(v)) || []);
+        // Build slug → tree map for image resolution
+        const trees = Array.isArray(treeData) ? treeData : (treeData.items || []);
+        const map = {};
+        for (const t of trees) {
+            if (t.slug) map[t.slug] = t;
+        }
+        treeMap.value = map;
     } catch (err) {
         console.error('Failed to load offerings:', err);
     } finally {

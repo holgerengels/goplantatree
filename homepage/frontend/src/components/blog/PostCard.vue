@@ -41,6 +41,7 @@ const imageStyle = computed(() => {
 });
 </script>
 
+
 <style scoped>
 .post-card {
     display: flex;

@@ -57,3 +57,4 @@ export function mediaUrl(slugOrId) {
     }
     return `/api/v1/media/by-slug/${slugOrId}/file`;
 }
+
