@@ -1,19 +1,33 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
 import Order from '../models/Order.js';
+import Offering from '../models/Offering.js';
 
 export default createCrudRouter(Order, 'orders', {
     publicCreate: true,
     pagination: true,
-    populate: [
-        { path: 'offering', select: 'name category' },
-        { path: 'project', select: 'name slug' }
-    ],
     sort: { orderedAt: -1 },
-    resolveParams: { project: { model: 'Project', lookupField: 'slug' } },
-    buildFilter: (req, resolved) => {
+    buildFilter: (req) => {
         const filter = {};
         if (req.query.status) filter.status = req.query.status;
+        if (req.query.project) filter.project = req.query.project;
         return filter;
+    },
+    preCreate: async (data) => {
+        // Denormalize offering data into the order as a snapshot
+        if (data.offering && typeof data.offering === 'string') {
+            const offeringSlug = data.offering;
+            const offering = await Offering.findOne({ slug: offeringSlug, project: data.project });
+            if (offering) {
+                data.offering = {
+                    slug: offering.slug,
+                    name: offering.name,
+                    category: offering.category || '',
+                    bezeichnungBotanisch: offering.bezeichnungBotanisch || ''
+                };
+            } else {
+                data.offering = { slug: offeringSlug, name: offeringSlug };
+            }
+        }
     },
     postCreate: (item) => ({
         orderNumber: item.orderNumber,

@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  *   queued → failed (if SMTP error)
  */
 const mailLogSchema = new mongoose.Schema({
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', index: true },
+    project: { type: String, default: null, index: true },        // Project slug
     to: { type: String, required: true, index: true },
     from: { type: String },
     subject: { type: String },

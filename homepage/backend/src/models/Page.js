@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
  */
 const pageSchema = new mongoose.Schema({
     title: { type: String, required: true },
-    image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+    image: { type: String, default: null },                       // Media slug
     slug: { type: String, required: true, unique: true, index: true },
     heroSubtitle: { type: String },
     content: { type: String },

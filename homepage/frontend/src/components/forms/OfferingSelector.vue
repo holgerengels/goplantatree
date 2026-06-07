@@ -9,7 +9,7 @@
       @change="updateValue($event.target.value)"
     >
       <wa-option value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
-      <wa-option v-for="opt in options" :key="opt._id" :value="opt._id">
+      <wa-option v-for="opt in options" :key="opt.slug || opt._id" :value="opt.slug || opt._id">
         {{ opt.name }}{{ opt.category ? ` (${opt.category})` : '' }}
       </wa-option>
     </wa-select>
@@ -20,8 +20,8 @@
         <div class="badge-group">
           <span class="badge badge-accent">{{ selectedOffering.category }}</span>
           <a
-            v-if="selectedOffering.tree?.slug"
-            :href="`/baeume/${selectedOffering.tree.slug}`"
+            v-if="selectedOffering.tree"
+            :href="`/baeume/${selectedOffering.tree}`"
             class="badge badge-primary tree-link"
             target="_blank"
             title="Steckbrief öffnen"
@@ -77,6 +77,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { api } from '../../services/api.js';
 import { getCategoryGradient } from '../../utils/gradients.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -87,6 +88,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const options = ref([]);
+const treeMap = ref({});
 const loading = ref(false);
 
 const updateValue = (val) => {
@@ -102,14 +104,14 @@ const normalizedValue = computed(() => {
 
 const selectedOffering = computed(() => {
     if (!props.modelValue) return null;
-    return options.value.find(item => item._id === normalizedValue.value) || null;
+    return options.value.find(item => item.slug === normalizedValue.value || item._id === normalizedValue.value) || null;
 });
 
 const cardImageStyle = computed(() => {
     const o = selectedOffering.value;
     if (!o) return {};
-    if (o.image?.url) return { backgroundImage: `url(${o.image.url}?v=small)` };
-    if (o.tree?.image?.url) return { backgroundImage: `url(${o.tree.image.url}?v=small)` };
+    const url = mediaUrl(o.image) || mediaUrl(treeMap.value[o.tree]?.image);
+    if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(o.category) };
 });
 
@@ -141,8 +143,18 @@ const loadData = async () => {
     const endpoint = props.field.reference || '/api/v1/offerings';
     loading.value = true;
     try {
-        const data = await api.get(endpoint);
+        const [data, treeData] = await Promise.all([
+            api.get(endpoint),
+            api.get('/api/v1/trees')
+        ]);
         options.value = Array.isArray(data) ? data : (data.items || Object.values(data).find(v => Array.isArray(v)) || []);
+        // Build slug → tree map for image resolution
+        const trees = Array.isArray(treeData) ? treeData : (treeData.items || []);
+        const map = {};
+        for (const t of trees) {
+            if (t.slug) map[t.slug] = t;
+        }
+        treeMap.value = map;
     } catch (err) {
         console.error('Failed to load offerings:', err);
     } finally {

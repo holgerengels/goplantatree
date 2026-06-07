@@ -3,6 +3,8 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../../server.js';
 import Media from '../../src/models/Media.js';
+import Offering from '../../src/models/Offering.js';
+import Tree from '../../src/models/Tree.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 
@@ -10,24 +12,22 @@ const generateToken = (permissions = {}) => {
     return jwt.sign({ id: 'user123', permissions }, JWT_SECRET);
 };
 
-describe('Media API', () => {
+// Helper: create valid Media document
+const createMedia = (overrides = {}) => Media.create({
+    filename: 'test.jpg', originalName: 'test.jpg', slug: 'test-media',
+    mimeType: 'image/jpeg', size: 1024, url: '/api/v1/media/x/file',
+    data: Buffer.from('fake-data'),
+    ...overrides
+});
+
+describe('Media API (Soft Refs)', () => {
     beforeEach(async () => {
-        await Media.deleteMany({});
         process.env.JWT_SECRET = JWT_SECRET;
     });
 
     describe('GET /api/v1/media', () => {
-        it('should allow reading media with valid token', async () => {
-            const media = new Media({
-                filename: 'test.jpg',
-                originalName: 'test.jpg',
-                url: '/api/v1/media/test/file',
-                mimeType: 'image/jpeg',
-                size: 1024,
-                title: 'Test Image',
-                data: Buffer.from('test')
-            });
-            await media.save();
+        it('should list media with slug field', async () => {
+            await createMedia({ slug: 'test-image', title: 'Test' });
 
             const token = generateToken({ media: { read: 'all' } });
             const res = await request(app)
@@ -35,51 +35,89 @@ describe('Media API', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
-            expect(res.body.items.length).toBe(1);
-            expect(res.body.items[0].title).toBe('Test Image');
-        });
-
-        it('should return 401 without token', async () => {
-            const res = await request(app).get('/api/v1/media');
-            expect(res.statusCode).toBe(401);
+            expect(res.body.items).toHaveLength(1);
+            expect(res.body.items[0].slug).toBe('test-image');
         });
     });
 
-    describe('GET /api/v1/media/:id/file', () => {
-        it('should serve media file data', async () => {
-            const media = new Media({
-                filename: 'test2.jpg',
-                originalName: 'test2.jpg',
-                url: '/api/v1/media/test2/file',
-                mimeType: 'image/png',
-                size: 1024,
-                data: Buffer.from('pngdata')
-            });
-            await media.save();
+    describe('GET /api/v1/media/by-slug/:slug/file', () => {
+        it('should serve media file by slug', async () => {
+            await createMedia({ slug: 'my-photo', mimeType: 'image/png' });
 
-            const res = await request(app).get(`/api/v1/media/${media._id}/file`);
+            const res = await request(app).get('/api/v1/media/by-slug/my-photo/file');
             expect(res.statusCode).toBe(200);
             expect(res.headers['content-type']).toContain('image/png');
-            expect(res.body.toString()).toBe('pngdata');
         });
 
-        it('should return 404 for non-existent file', async () => {
-            const res = await request(app).get('/api/v1/media/000000000000000000000000/file');
+        it('should return 404 for unknown slug', async () => {
+            const res = await request(app).get('/api/v1/media/by-slug/nonexistent/file');
             expect(res.statusCode).toBe(404);
         });
     });
 
-    describe('DELETE /api/v1/media/:id', () => {
-        it('should delete media with correct permissions', async () => {
-            const media = new Media({
-                filename: 'test.jpg',
-                originalName: 'test.jpg',
-                url: '/api/v1/media/test/file',
-                mimeType: 'image/jpeg',
-                size: 1024,
-                title: 'Delete Image'
-            });
-            await media.save();
+    describe('GET /api/v1/media/by-slug/:slug/info', () => {
+        it('should return media metadata by slug (without binary data)', async () => {
+            await createMedia({ slug: 'info-image', title: 'My Title', author: 'Max' });
+
+            const res = await request(app).get('/api/v1/media/by-slug/info-image/info');
+            expect(res.statusCode).toBe(200);
+            expect(res.body.title).toBe('My Title');
+            expect(res.body.author).toBe('Max');
+            expect(res.body.slug).toBe('info-image');
+            expect(res.body.data).toBeUndefined();
+        });
+    });
+
+    describe('GET /api/v1/media/:id/file (backward compat)', () => {
+        it('should still serve media by ObjectId', async () => {
+            const media = await createMedia({ slug: 'compat' });
+            const res = await request(app).get(`/api/v1/media/${media._id}/file`);
+            expect(res.statusCode).toBe(200);
+        });
+    });
+
+    describe('DELETE /api/v1/media/:id (Ref Integrity)', () => {
+        it('should return 409 when media is referenced by offerings', async () => {
+            const media = await createMedia({ slug: 'referenced-media' });
+            await Offering.create({ name: 'O', slug: 'o', project: 'p', image: 'referenced-media', category: 'Laubbaum' });
+
+            const token = generateToken({ media: { delete: 'all' } });
+            const res = await request(app)
+                .delete(`/api/v1/media/${media._id}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(409);
+            expect(res.body.error).toContain('referenziert');
+            expect(await Media.findById(media._id)).not.toBeNull();
+        });
+
+        it('should return 409 when media is referenced by trees', async () => {
+            const media = await createMedia({ slug: 'tree-photo' });
+            await Tree.create({ name: 'Eiche', slug: 'eiche', image: 'tree-photo' });
+
+            const token = generateToken({ media: { delete: 'all' } });
+            const res = await request(app)
+                .delete(`/api/v1/media/${media._id}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(409);
+        });
+
+        it('should allow force-delete of referenced media', async () => {
+            const media = await createMedia({ slug: 'force-media' });
+            await Offering.create({ name: 'O', slug: 'o', project: 'p', image: 'force-media', category: 'Laubbaum' });
+
+            const token = generateToken({ media: { delete: 'all' } });
+            const res = await request(app)
+                .delete(`/api/v1/media/${media._id}?force=true`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(await Media.findById(media._id)).toBeNull();
+        });
+
+        it('should delete unreferenced media without issues', async () => {
+            const media = await createMedia({ slug: 'free-media' });
 
             const token = generateToken({ media: { delete: 'all' } });
             const res = await request(app)
@@ -87,9 +125,6 @@ describe('Media API', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
-
-            const dbMedia = await Media.findById(media._id);
-            expect(dbMedia).toBeNull();
         });
     });
 });

@@ -1,5 +1,10 @@
 <template>
-  <div class="macro-posts">
+  <div :class="['macro-posts', theme ? `section-${theme}` : '']">
+    <div class="section-title" v-if="title || subtitle">
+      <h2 v-if="title">{{ title }}</h2>
+      <p v-if="subtitle">{{ subtitle }}</p>
+    </div>
+
     <div class="posts-grid" v-if="loadedPosts.length">
       <PostCard v-for="post in loadedPosts" :key="post._id" :post="post" />
     </div>
@@ -8,6 +13,12 @@
     </div>
     <div v-else class="no-posts">
       Keine Beiträge gefunden.
+    </div>
+
+    <div class="section-more" v-if="loadedPosts.length && actionLabel && actionLink">
+      <router-link :to="actionLink" class="btn btn-secondary">
+        {{ actionLabel }} →
+      </router-link>
     </div>
   </div>
 </template>
@@ -25,6 +36,26 @@ const props = defineProps({
     type: {
         type: String,
         default: '' // 'news' or 'pflanzung' or empty for all
+    },
+    title: {
+        type: String,
+        default: ''
+    },
+    subtitle: {
+        type: String,
+        default: ''
+    },
+    theme: {
+        type: String,
+        default: '' // e.g. 'alt', 'surface', 'primary'
+    },
+    actionLabel: {
+        type: String,
+        default: ''
+    },
+    actionLink: {
+        type: String,
+        default: ''
     }
 });
 

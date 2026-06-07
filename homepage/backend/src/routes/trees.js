@@ -4,7 +4,7 @@ import Tree from '../models/Tree.js';
 export default createCrudRouter(Tree, 'trees', {
     publicRead: true,
     lookupField: 'slug',
-    populate: { path: 'image', select: '-data -variants' },
+    refIntegrityModel: 'Tree',
     buildFilter: (req) => {
         const filter = {};
         if (req.query.category) filter.category = req.query.category;

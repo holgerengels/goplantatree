@@ -1,15 +1,11 @@
 <template>
   <figure class="macro-media" :class="[`align-${align}`]" v-if="media">
-    <video v-if="media.mimeType?.startsWith('video/')" :src="media.url || `/api/v1/media/${media._id}/file`" controls :autoplay="autoplay" :loop="loop" :muted="muted" playsinline></video>
-    <img v-else
-         :src="mediaUrl"
-         :srcset="`${mediaUrl}?v=small 480w, ${mediaUrl}?v=medium 960w, ${mediaUrl} 1600w`"
-         sizes="(max-width: 600px) 480px, (max-width: 1200px) 960px, 1600px"
-         :alt="media.title || media.filename" />
+    <video v-if="media.mimeType?.startsWith('video/')" :src="fileUrl" controls :autoplay="autoplay" :loop="loop" :muted="muted" playsinline></video>
+    <img v-else :src="fileUrl" :alt="media.title || media.filename" />
     <figcaption v-if="showCaption && (media.title || media.author)" class="media-caption" v-html="captionHtml"></figcaption>
   </figure>
   <div v-else-if="error" class="macro-media-error">
-    Media not found (ID: {{ id }})
+    Media nicht gefunden ({{ id }})
   </div>
   <div v-else class="macro-media-loading">
     Lade Bild...
@@ -42,6 +38,15 @@ const props = defineProps({
 const media = ref(null);
 const error = ref(false);
 
+const fileUrl = computed(() => {
+    if (!props.id) return '';
+    // Support both slug and ObjectId for backward compatibility
+    if (props.id.match(/^[0-9a-fA-F]{24}$/)) {
+        return `/api/v1/media/${props.id}/file`;
+    }
+    return `/api/v1/media/by-slug/${props.id}/file`;
+});
+
 const captionHtml = computed(() => {
     return media.value ? buildCaption(media.value) : '';
 });
@@ -54,7 +59,12 @@ const mediaUrl = computed(() => {
 onMounted(async () => {
     if (!props.id) return;
     try {
-        media.value = await api.get(`/media/${props.id}/info`);
+        // Support both slug and ObjectId for backward compatibility
+        if (props.id.match(/^[0-9a-fA-F]{24}$/)) {
+            media.value = await api.get(`/media/${props.id}/info`);
+        } else {
+            media.value = await api.get(`/media/by-slug/${props.id}/info`);
+        }
     } catch (err) {
         console.error('Failed to load macro media:', err);
         error.value = true;

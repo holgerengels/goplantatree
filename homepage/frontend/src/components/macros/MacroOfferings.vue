@@ -9,7 +9,7 @@
         <div class="offering-image" :style="imageStyle(offering)">
           <div class="badge-group">
             <span class="badge badge-accent">{{ offering.category }}</span>
-            <router-link v-if="offering.tree" :to="`/baeume/${offering.tree.slug || offering.tree._id}`" class="badge badge-primary tree-badge-link" target="_blank" title="Steckbrief in neuem Tab öffnen">
+            <router-link v-if="offering.tree" :to="`/baeume/${offering.tree}`" class="badge badge-primary tree-badge-link" target="_blank" title="Steckbrief in neuem Tab öffnen">
               → mehr Infos
             </router-link>
           </div>
@@ -45,6 +45,7 @@
 import { ref, watch } from 'vue';
 import { api } from '../../services/api.js';
 import { getCategoryGradient } from '../../utils/gradients.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     project: { type: String, required: true },
@@ -52,11 +53,13 @@ const props = defineProps({
 });
 
 const offerings = ref([]);
+const treeMap = ref({});
 const projectSlug = ref('');
 
 const imageStyle = (offering) => {
-    if (offering.image?.url) return { backgroundImage: `url(${offering.image.url}?v=small)` };
-    if (offering.tree?.image?.url) return { backgroundImage: `url(${offering.tree.image.url}?v=small)` };
+    const url = mediaUrl(offering.image)
+        || mediaUrl(treeMap.value[offering.tree]?.image);
+    if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(offering.category) };
 };
 
@@ -64,7 +67,17 @@ watch(() => props.project, async (newVal) => {
     if (!newVal) return;
     projectSlug.value = newVal;
     try {
-        offerings.value = await api.get(`/offerings?project=${newVal}&available=true`);
+        const [offerData, treeData] = await Promise.all([
+            api.get(`/offerings?project=${newVal}&available=true`),
+            api.get('/trees')
+        ]);
+        offerings.value = offerData;
+        // Build slug → tree map for image resolution
+        const map = {};
+        for (const t of (Array.isArray(treeData) ? treeData : treeData.items || [])) {
+            if (t.slug) map[t.slug] = t;
+        }
+        treeMap.value = map;
     } catch { /* empty */ }
 }, { immediate: true });
 </script>

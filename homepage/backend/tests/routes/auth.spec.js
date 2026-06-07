@@ -65,7 +65,7 @@ describe('Auth API', () => {
                 username: 'profiled',
                 email: 'p@test.com',
                 passwordHash: 'mypass',
-                profile: profile._id
+                profiles: [profile._id]
             });
             await user.save();
 
@@ -77,6 +77,53 @@ describe('Auth API', () => {
             expect(res.body.permissions).toBeDefined();
             expect(res.body.permissions.orders).toBeDefined();
             expect(res.body.permissions.orders.read).toBe('all');
+        });
+
+        it('should merge permissions from multiple profiles correctly (highest wins: all > own > none)', async () => {
+            const profile1 = await PermissionProfile.create({
+                name: 'Reader',
+                permissions: [
+                    { resource: 'orders', read: 'own', create: 'none', update: 'none', delete: 'none' },
+                    { resource: 'users', read: 'all', create: 'none', update: 'none', delete: 'none' }
+                ]
+            });
+
+            const profile2 = await PermissionProfile.create({
+                name: 'Editor',
+                permissions: [
+                    { resource: 'orders', read: 'all', create: 'own', update: 'own', delete: 'none' }
+                ]
+            });
+
+            const user = new User({
+                username: 'multiprofiled',
+                email: 'mp@test.com',
+                passwordHash: 'mypass',
+                profiles: [profile1._id, profile2._id]
+            });
+            await user.save();
+
+            const res = await request(app)
+                .post('/api/v1/auth/login')
+                .send({ username: 'multiprofiled', password: 'mypass' });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.permissions).toBeDefined();
+            
+            // For orders: read should merge to 'all' (profile2 'all' > profile1 'own')
+            // create should merge to 'own' (profile2 'own' > profile1 'none')
+            // update should merge to 'own' (profile2 'own' > profile1 'none')
+            // delete should remain 'none'
+            expect(res.body.permissions.orders).toBeDefined();
+            expect(res.body.permissions.orders.read).toBe('all');
+            expect(res.body.permissions.orders.create).toBe('own');
+            expect(res.body.permissions.orders.update).toBe('own');
+            expect(res.body.permissions.orders.delete).toBe('none');
+
+            // For users: read should be 'all' (profile1 'all')
+            expect(res.body.permissions.users).toBeDefined();
+            expect(res.body.permissions.users.read).toBe('all');
+            expect(res.body.permissions.users.create).toBe('none');
         });
     });
 

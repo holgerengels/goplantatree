@@ -2,8 +2,14 @@ import mongoose from 'mongoose';
 import Counter from './Counter.js';
 
 const orderSchema = new mongoose.Schema({
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
-    offering: { type: mongoose.Schema.Types.ObjectId, ref: 'Offering' },
+    project: { type: String, required: true, index: true },       // Project slug
+    // Denormalisierte Offering-Daten (Snapshot zum Bestellzeitpunkt)
+    offering: {
+        slug: { type: String },
+        name: { type: String },
+        category: { type: String },
+        bezeichnungBotanisch: { type: String }
+    },
     orderNumber: { type: String, unique: true },
     status: {
         type: String,

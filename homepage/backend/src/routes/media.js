@@ -5,8 +5,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { auth, requirePermission } from '../middleware/auth.js';
 import Media from '../models/Media.js';
+import { findReferences } from '../utils/refIntegrity.js';
 import sizeOf from 'image-size';
-import { generateVariants } from '../utils/imageVariants.js';
+import { slugify } from '../utils/slugify.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = join(__dirname, '..', '..', 'uploads');
@@ -76,7 +77,32 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
     }
 });
 
-// GET /api/v1/media/:id/file — Public: Serve media file (with optional variant)
+// GET /api/v1/media/by-slug/:slug/file — Public: Serve media file by slug
+router.get('/by-slug/:slug/file', async (req, res) => {
+    try {
+        const media = await Media.findOne({ slug: req.params.slug });
+        if (!media || !media.data) return res.status(404).send('Not found');
+        
+        res.set('Content-Type', media.mimeType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+        res.send(media.data);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// GET /api/v1/media/by-slug/:slug/info — Public: Get media metadata by slug
+router.get('/by-slug/:slug/info', async (req, res) => {
+    try {
+        const media = await Media.findOne({ slug: req.params.slug }).select('filename slug title author authorLink license licenseLink url mimeType format width height');
+        if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
+        res.json(media);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/v1/media/:id/file — Public: Serve media file from MongoDB
 router.get('/:id/file', async (req, res) => {
     try {
         const variant = req.query.v;
@@ -161,9 +187,24 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
 
         const filename = req.file ? (Date.now() + '-' + Math.round(Math.random() * 1E9) + extname(req.file.originalname)) : 'external';
 
+        // Generate unique slug from original filename
+        let slug = '';
+        if (req.file) {
+            const baseName = req.file.originalname.replace(/\.[^.]+$/, '');
+            slug = slugify(baseName);
+            // Handle duplicates: append -2, -3, etc.
+            let candidate = slug;
+            let counter = 2;
+            while (await Media.findOne({ slug: candidate })) {
+                candidate = `${slug}-${counter++}`;
+            }
+            slug = candidate;
+        }
+
         const media = new Media({
             filename: req.file ? filename : 'external',
             originalName: req.file ? req.file.originalname : (req.body.title || 'external'),
+            slug: slug || undefined,
             mimeType: req.file ? req.file.mimetype : 'external/url',
             size: req.file ? req.file.size : 0,
             url: req.body.url || '', // Will be updated if req.file exists
@@ -208,6 +249,16 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
 // PUT /api/v1/media/:id — Admin: Update media metadata (and optionally replace file)
 router.put('/:id', auth, requirePermission('media', 'update'), upload.single('file'), async (req, res) => {
     try {
+        // Prevent changing core file characteristics via PUT
+        delete req.body.filename;
+        delete req.body.slug;
+        delete req.body.mimeType;
+        delete req.body.size;
+        delete req.body.originalName;
+        delete req.body.width;
+        delete req.body.height;
+        delete req.body.format;
+        
         const query = { _id: req.params.id };
         if (req.permissionScope === 'own') {
             query.project = req.user.project;
@@ -268,8 +319,18 @@ router.delete('/:id', auth, requirePermission('media', 'delete'), async (req, re
         
         const media = await Media.findOne(query);
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
-        
-        // We don't remove files from disk anymore since they are in DB
+
+        // Check for existing references before deleting
+        if (media.slug && req.query.force !== 'true') {
+            const refs = await findReferences('Media', media.slug);
+            if (refs.count > 0) {
+                return res.status(409).json({
+                    error: `Wird noch von ${refs.count} Einträgen referenziert`,
+                    references: refs.details,
+                    message: 'Zum Löschen ?force=true anhängen'
+                });
+            }
+        }
 
         await Media.findByIdAndDelete(req.params.id);
         res.json({ message: 'Medium gelöscht' });

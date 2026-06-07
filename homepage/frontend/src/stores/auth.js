@@ -25,9 +25,33 @@ export const useAuthStore = defineStore('auth', () => {
         return perms[resource][action] && perms[resource][action] !== 'none';
     };
 
+    const hasItemPermission = (resource, action, item) => {
+        const perms = permissions.value;
+        if (!perms || !perms[resource]) return false;
+        
+        const scope = perms[resource][action];
+        if (!scope || scope === 'none') return false;
+        if (scope === 'all') return true;
+        
+        if (scope === 'own') {
+            // user.project is now a slug string
+            const userProject = user.value?.project;
+            if (!userProject) return false;
+            
+            if (resource === 'projects') {
+                // For project items, compare slug directly
+                return item?.slug === userProject;
+            }
+            
+            // For other resources, compare the project field (also a slug string)
+            return item?.project === userProject;
+        }
+        return false;
+    };
+
     const setAuth = (t, u) => {
         token.value = t;
-        user.value = u;
+        user.value = u ? { ...u, permissions: permissions.value } : null;
         if (t) localStorage.setItem('token', t);
         else localStorage.removeItem('token');
     };
@@ -54,7 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
                 headers: { Authorization: `Bearer ${token.value}` }
             });
             if (res.ok) {
-                user.value = await res.json();
+                const userData = await res.json();
+                user.value = { ...userData, permissions: permissions.value };
             } else {
                 setAuth(null, null);
             }
@@ -75,5 +100,5 @@ export const useAuthStore = defineStore('auth', () => {
     // Restore user on init
     if (token.value) fetchMe();
 
-    return { token, user, isAuthenticated, permissions, hasPermission, login, logout, fetchMe, authHeaders };
+    return { token, user, isAuthenticated, permissions, hasPermission, hasItemPermission, login, logout, fetchMe, authHeaders };
 });

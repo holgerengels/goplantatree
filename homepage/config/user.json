@@ -32,11 +32,12 @@
             "type": "Text"
         },
         {
-            "name": "profile",
-            "label": "Rechte-Profil",
+            "name": "profiles",
+            "label": "Rechte-Profile",
             "type": "Relation",
             "reference": "/api/v1/profiles",
             "labelField": "name",
+            "multiple": true,
             "required": true
         },
         {
@@ -44,13 +45,14 @@
             "label": "Zuständiges Projekt",
             "type": "Relation",
             "reference": "/api/v1/projects?all=true",
-            "labelField": "name"
+            "labelField": "name",
+            "valueField": "slug"
         }
     ],
     "grid": [
         "username displayName",
         "email passwordHash",
-        "profile project"
+        "profiles project"
     ],
     "admin": {
         "columns": [

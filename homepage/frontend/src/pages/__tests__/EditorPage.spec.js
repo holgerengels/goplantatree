@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import EditorPage from '../EditorPage.vue';
 import { createPinia, setActivePinia } from 'pinia';
 import * as vueRouter from 'vue-router';
@@ -22,20 +22,30 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
-vi.mock('../../store/authStore.js', () => ({
-    useAuthStore: () => ({
-        token: 'fake-token',
-        user: { permissions: { orders: { create: 'all', read: 'all', delete: 'all' } } },
-        hasPermission: () => true
-    })
-}));
-
-const { mockRouter, mockRoute } = vi.hoisted(() => {
+const { mockRouter, mockRoute, mockUser, mockPermissions, mockHasPermission, mockHasItemPermission } = vi.hoisted(() => {
     return {
         mockRouter: { push: vi.fn(), replace: vi.fn() },
-        mockRoute: { params: { entity: 'bestellungen' }, query: {} }
+        mockRoute: { params: { entity: 'bestellungen' }, query: {} },
+        mockUser: {
+            permissions: { orders: { create: 'all', read: 'all', delete: 'all', update: 'all' } },
+            project: 'user-proj-123'
+        },
+        mockPermissions: { orders: { create: 'all', read: 'all', delete: 'all', update: 'all' } },
+        mockHasPermission: vi.fn(() => true),
+        mockHasItemPermission: vi.fn(() => true)
     };
 });
+
+vi.mock('../../stores/auth.js', () => ({
+    useAuthStore: () => ({
+        token: 'fake-token',
+        isAuthenticated: true,
+        user: mockUser,
+        permissions: mockPermissions,
+        hasPermission: mockHasPermission,
+        hasItemPermission: mockHasItemPermission
+    })
+}));
 
 vi.mock('vue-router', () => ({
     useRouter: () => mockRouter,
@@ -46,6 +56,24 @@ describe('EditorPage.vue', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockRoute.params.entity = 'bestellungen';
+        
+        // Reset mocks to defaults
+        mockUser.permissions = { orders: { create: 'all', read: 'all', delete: 'all', update: 'all' } };
+        mockUser.project = 'user-proj-123';
+        mockPermissions.orders = { create: 'all', read: 'all', delete: 'all', update: 'all' };
+        mockHasPermission.mockImplementation(() => true);
+        mockHasItemPermission.mockImplementation(() => true);
+
+        // Mock localStorage
+        const store = { token: 'fake-token' };
+        global.localStorage = {
+            getItem: vi.fn(key => store[key] || null),
+            setItem: vi.fn((key, val) => { store[key] = String(val); }),
+            removeItem: vi.fn(key => { delete store[key]; }),
+            clear: vi.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
+            length: 0,
+            key: vi.fn()
+        };
 
         global.fetch = vi.fn((url) => {
             if (url.includes('/api/v1/config/entities')) {
@@ -65,7 +93,8 @@ describe('EditorPage.vue', () => {
                         resource: 'orders',
                         label: { singular: 'Bestellung', plural: 'Bestellungen' },
                         fields: [
-                            { name: 'name', label: 'Name', type: 'Text', required: true }
+                            { name: 'name', label: 'Name', type: 'Text', required: true },
+                            { name: 'project', label: 'Projekt', type: 'Relation' }
                         ]
                     })
                 });
@@ -97,7 +126,7 @@ describe('EditorPage.vue', () => {
         });
 
         // Let async setup loadConfig complete
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await flushPromises();
 
         // Start creation
         wrapper.vm.startCreate();
@@ -118,7 +147,7 @@ describe('EditorPage.vue', () => {
             }
         });
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await flushPromises();
         
         // Start creation
         wrapper.vm.startCreate();
@@ -147,7 +176,7 @@ describe('EditorPage.vue', () => {
             }
         });
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await flushPromises();
         
         // Start creation
         wrapper.vm.startCreate();
@@ -168,5 +197,85 @@ describe('EditorPage.vue', () => {
         
         const body = JSON.parse(postCalls[0][1].body);
         expect(body.name).toBe('Valid Name');
+    });
+
+    it('pre-fills project on create when permission is scoped to own', async () => {
+        mockUser.permissions = { orders: { create: 'own', read: 'own', delete: 'own', update: 'own' } };
+        mockUser.project = 'user-proj-123';
+        mockPermissions.orders = { create: 'own', read: 'own', delete: 'own', update: 'own' };
+        mockHasPermission.mockImplementation((res, act) => act === 'create');
+
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        // Start creation
+        wrapper.vm.startCreate();
+        await wrapper.vm.$nextTick();
+
+        // Project should be prefilled with user project
+        expect(wrapper.vm.formData.project).toBe('user-proj-123');
+    });
+
+    it('enforces item-level permissions and makes fields readonly accordingly', async () => {
+        mockUser.permissions = { orders: { create: 'own', read: 'own', delete: 'own', update: 'own' } };
+        mockUser.project = 'user-proj-123';
+        mockPermissions.orders = { create: 'own', read: 'own', delete: 'own', update: 'own' };
+        
+        mockHasItemPermission.mockImplementation((res, act, item) => {
+            if (act === 'update' || act === 'delete') {
+                return item.project === 'user-proj-123';
+            }
+            return true;
+        });
+
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        // Item 1 (belongs to user project)
+        const item1 = { _id: 'item1', name: 'Order 1', project: 'user-proj-123' };
+        // Item 2 (belongs to other project)
+        const item2 = { _id: 'item2', name: 'Order 2', project: 'other-proj' };
+
+        // Test editing item 1 (allowed)
+        wrapper.vm.startEdit(item1);
+        await wrapper.vm.$nextTick();
+        
+        // project field should be readonly because update permission is 'own' (not 'all')
+        const formFields1 = wrapper.findComponent({ name: 'DynamicForm' }).vm.evaluatedFields;
+        const projectField1 = formFields1.find(f => f.name === 'project');
+        expect(projectField1.readonly).toBe(true);
+
+        // name field should NOT be readonly
+        const nameField1 = formFields1.find(f => f.name === 'name');
+        expect(nameField1.readonly).toBeUndefined();
+
+        // Test editing item 2 (disallowed)
+        wrapper.vm.startEdit(item2);
+        await wrapper.vm.$nextTick();
+
+        // all fields should be readonly because the item belongs to another project
+        const formFields2 = wrapper.findComponent({ name: 'DynamicForm' }).vm.evaluatedFields;
+        const nameField2 = formFields2.find(f => f.name === 'name');
+        const projectField2 = formFields2.find(f => f.name === 'project');
+        expect(nameField2.readonly).toBe(true);
+        expect(projectField2.readonly).toBe(true);
     });
 });

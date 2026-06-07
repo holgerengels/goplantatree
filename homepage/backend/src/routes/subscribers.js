@@ -1,15 +1,13 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
 import Subscriber from '../models/Subscriber.js';
-import Project from '../models/Project.js';
 import { sendMail, getAccountKeys } from '../utils/mailService.js';
 
 const router = createCrudRouter(Subscriber, 'subscribers', {
     disableRoutes: ['create', 'update', 'detail'],
-    populate: { path: 'project', select: 'name slug' },
     sort: { subscribedAt: -1 },
-    resolveParams: { project: { model: 'Project', lookupField: 'slug' } },
-    buildFilter: (req, resolved) => {
+    buildFilter: (req) => {
         const filter = {};
+        if (req.query.project) filter.project = req.query.project;
         if (req.query.topic) filter.topic = req.query.topic;
         if (req.query.confirmed !== undefined) filter.confirmed = req.query.confirmed === 'true';
         return filter;
@@ -30,17 +28,9 @@ function resolveMailAccount(projectSlug) {
 router.post('/', async (req, res, next) => {
     try {
         const payload = { ...req.body };
-        let projectSlug = null;
 
-        if (payload.project && !payload.project.match(/^[0-9a-fA-F]{24}$/)) {
-            projectSlug = payload.project;
-            const project = await Project.findOne({ slug: payload.project });
-            if (project) {
-                payload.project = project._id;
-            } else {
-                delete payload.project;
-            }
-        }
+        // project is now a slug string — store directly
+        const projectSlug = payload.project || null;
 
         const subscriber = new Subscriber(payload);
         await subscriber.save();
@@ -107,15 +97,14 @@ router.get('/confirm/:token', async (req, res, next) => {
 // GET /api/v1/subscribers/unsubscribe/:token — Public: unsubscribe from mailing list
 router.get('/unsubscribe/:token', async (req, res, next) => {
     try {
-        const subscriber = await Subscriber.findOne({ confirmToken: req.params.token })
-            .populate('project', 'name slug');
+        const subscriber = await Subscriber.findOne({ confirmToken: req.params.token });
         if (!subscriber) return res.status(404).json({ error: 'Ungültiger Abmelde-Link' });
 
         const info = {
             message: 'Erfolgreich abgemeldet.',
             email: subscriber.email,
             name: subscriber.name,
-            project: subscriber.project?.slug || null,
+            project: subscriber.project || null,
             topic: subscriber.topic
         };
 

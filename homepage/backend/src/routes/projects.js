@@ -5,8 +5,5 @@ export default createCrudRouter(Project, 'projects', {
     publicRead: true,
     lookupField: 'slug',
     sort: { sortOrder: 1, name: 1 },
-    populate: [
-        { path: 'content.sponsors.logo', model: 'Media', select: '-data -variants' },
-        { path: 'content.team.avatar', model: 'Media', select: '-data -variants' }
-    ]
+    refIntegrityModel: 'Project'
 });

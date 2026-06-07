@@ -62,6 +62,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../../services/api.js';
 import { getCategoryGradient } from '../../utils/gradients.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     category: { type: String, default: '' },
@@ -128,8 +129,9 @@ const filteredTrees = computed(() => {
 const countByCategory = (cat) => trees.value.filter(t => t.category === cat).length;
 
 const cardImageStyle = (tree) => {
-    if (tree.image && typeof tree.image === 'object' && tree.image.url) {
-        return { backgroundImage: `url(${tree.image.url}?v=small)` };
+    const url = mediaUrl(tree.image);
+    if (url) {
+        return { backgroundImage: `url(${url})` };
     }
     return { background: getCategoryGradient(tree.category) };
 };

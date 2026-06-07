@@ -45,7 +45,8 @@
         {
             "name": "slug",
             "label": "URL-Slug",
-            "type": "Text",
+            "type": "Slug",
+            "deriveFrom": "title",
             "required": true,
             "hint": "z.B. ueber-uns, impressum, datenschutz"
         },

@@ -6,6 +6,7 @@ const router = createCrudRouter(User, 'users', {
     disableRoutes: ['update'],
     populate: [
         { path: 'profile', select: 'name' },
+        { path: 'profiles', select: 'name' },
         { path: 'project', select: 'name slug' }
     ],
     sort: { username: 1 }

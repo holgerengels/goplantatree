@@ -21,12 +21,10 @@ describe('Format Utilities', () => {
     });
 
     describe('formatDateLong', () => {
-        it('should format a valid date with words', () => {
+        it('should format a valid date in 2-digit format', () => {
             const date = new Date('2024-05-15T12:00:00Z');
             const result = formatDateLong(date);
-            expect(result).toContain('15.');
-            expect(result.toLowerCase()).toContain('mai');
-            expect(result).toContain('2024');
+            expect(result).toContain('15.05.2024');
         });
 
         it('should handle falsy values by returning an empty string', () => {

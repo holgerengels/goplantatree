@@ -124,7 +124,7 @@ const submitOrder = async () => {
     try {
         const result = await ordersStore.submitOrder({
             ...orderData,
-            project: project.value._id
+            project: project.value.slug
         });
         orderNumber.value = result.orderNumber;
         submitted.value = true;
