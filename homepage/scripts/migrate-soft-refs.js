@@ -12,9 +12,36 @@
  *   docker exec gpt-mongo mongodump --db goplantatree --out /backup/pre-softref
  */
 
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import { createRequire } from 'module';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Find the backend directory to resolve node_modules and .env
+let backendPath = path.resolve(__dirname, '../backend');
+if (!fs.existsSync(backendPath) || !fs.existsSync(path.join(backendPath, 'package.json'))) {
+    // Search upwards from the script directory for a package.json
+    let currentDir = __dirname;
+    backendPath = __dirname; // fallback
+    while (true) {
+        if (fs.existsSync(path.join(currentDir, 'package.json'))) {
+            backendPath = currentDir;
+            break;
+        }
+        const parent = path.dirname(currentDir);
+        if (parent === currentDir) break;
+        currentDir = parent;
+    }
+}
+
+const backendRequire = createRequire(path.resolve(backendPath, 'server.js'));
+const mongoose = backendRequire('mongoose');
+const dotenv = backendRequire('dotenv');
+
+// Load environment variables
+dotenv.config({ path: path.resolve(backendPath, '.env') });
 dotenv.config();
 
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://mongo:27017/goplantatree';

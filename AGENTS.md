@@ -1,0 +1,1 @@
+* nur der inhalt von homepage ist relevant

@@ -3,14 +3,14 @@
 # Sync remote MongoDB → local server
 #
 # Usage:
-#   ./scripts/sync-db.sh                     # Full sync (all collections)
-#   ./scripts/sync-db.sh posts pages media   # Only sync specific collections
+#   Option A: REMOTE_HOST=user@server ./scripts/sync-db.sh [collection...]
+#   Option B: ./scripts/sync-db.sh user@server [collection...]
 #
 # Environment variables (or edit defaults below):
 #   LOCAL_CONTAINER   - local mongo docker container name  (default: mongodb)
 #   LOCAL_DB          - local database name                (default: goplantatree)
 #   LOCAL_AUTH        - local mongo authentication args    (default auth provided)
-#   REMOTE_HOST       - SSH host of the server             (required)
+#   REMOTE_HOST       - SSH host of the server             (optional if passed as param)
 #   REMOTE_CONTAINER  - remote mongo docker container name (default: goplantatree-mongo)
 #   REMOTE_DB         - remote database name               (default: goplantatree)
 #   REMOTE_AUTH       - remote mongo authentication args    (default: empty)
@@ -28,11 +28,20 @@ REMOTE_AUTH="${REMOTE_AUTH:-}"
 DUMP_DIR="/tmp/mongodump-goplantatree"
 
 # --- Argument handling ---
-COLLECTIONS=("$@")
+COLLECTIONS=()
+if [[ $# -gt 0 ]]; then
+    # If the first argument contains '@' or looks like an IP/domain, treat it as REMOTE_HOST
+    if [[ "$1" == *"@"* || "$1" == *"."* ]]; then
+        REMOTE_HOST="$1"
+        shift
+    fi
+    COLLECTIONS=("$@")
+fi
 
 if [[ -z "$REMOTE_HOST" ]]; then
     echo "❌ REMOTE_HOST is not set. Usage:"
-    echo "   REMOTE_HOST=user@server ./scripts/sync-db.sh [collection...]"
+    echo "   Option A: REMOTE_HOST=user@server ./scripts/sync-db.sh [collection...]"
+    echo "   Option B: ./scripts/sync-db.sh user@server [collection...]"
     exit 1
 fi
 
