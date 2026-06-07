@@ -22,10 +22,9 @@
         },
         {
             "name": "_id",
-            "label": "Media ID (für Makros)",
-            "type": "Text",
-            "readonly": true,
-            "hint": "Kopiere diese ID und nutze [[media id=\"HIER_EINFÜGEN\"]] im Text-Editor."
+            "label": "Makro kopieren",
+            "type": "MacroCopy",
+            "hint": "Kopiere diesen Code-Schnipsel und füge ihn im Text-Editor ein."
         },
         {
             "name": "slug",

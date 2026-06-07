@@ -40,10 +40,6 @@ const error = ref(false);
 
 const fileUrl = computed(() => {
     if (!props.id) return '';
-    // Support both slug and ObjectId for backward compatibility
-    if (props.id.match(/^[0-9a-fA-F]{24}$/)) {
-        return `/api/v1/media/${props.id}/file`;
-    }
     return `/api/v1/media/by-slug/${props.id}/file`;
 });
 
@@ -59,12 +55,7 @@ const mediaUrl = computed(() => {
 onMounted(async () => {
     if (!props.id) return;
     try {
-        // Support both slug and ObjectId for backward compatibility
-        if (props.id.match(/^[0-9a-fA-F]{24}$/)) {
-            media.value = await api.get(`/media/${props.id}/info`);
-        } else {
-            media.value = await api.get(`/media/by-slug/${props.id}/info`);
-        }
+        media.value = await api.get(`/media/by-slug/${props.id}/info`);
     } catch (err) {
         console.error('Failed to load macro media:', err);
         error.value = true;

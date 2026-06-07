@@ -89,7 +89,7 @@
           <div class="grid-card-content">
             <div class="grid-card-info">
               <h4>{{ item.title || item.name || 'Ohne Titel' }}</h4>
-              <span v-if="config.entity === 'media'" class="macro-copy" @click.stop="copyMacro(item._id, $event)" title="Makro in die Zwischenablage kopieren">
+              <span v-if="config.entity === 'media'" class="macro-copy" @click.stop="copyMacro(item.slug || item._id, $event)" title="Makro in die Zwischenablage kopieren">
                 <component :is="icons.Clipboard" :size="14" /> Makro kopieren
               </span>
             </div>

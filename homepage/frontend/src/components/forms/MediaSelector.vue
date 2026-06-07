@@ -151,11 +151,11 @@ const previewUrl = computed(() => {
   return url ? url + '?v=small' : null;
 });
 
-// Fetch details if we only have an ID
+// Fetch details from slug
 const loadMediaDetails = async () => {
   if (props.modelValue && typeof props.modelValue === 'string') {
     try {
-      mediaDetails.value = await api.get(`/media/${props.modelValue}`);
+      mediaDetails.value = await api.get(`/media/by-slug/${props.modelValue}/info`);
     } catch (e) {
       console.error('Failed to load media details', e);
     }
@@ -245,7 +245,7 @@ const submitUpload = async () => {
   try {
     const result = await api.upload('/media', formData);
     mediaDetails.value = result;
-    emit('update:modelValue', result._id);
+    emit('update:modelValue', result.slug);
     showUploadModal.value = false;
   } catch (e) {
     alert('Upload fehlgeschlagen: ' + e.message);
@@ -294,7 +294,7 @@ const onGalleryScroll = (e) => {
 
 const selectMedia = (item) => {
   mediaDetails.value = item;
-  emit('update:modelValue', item._id);
+  emit('update:modelValue', item.slug);
   showGalleryModal.value = false;
 };
 </script>

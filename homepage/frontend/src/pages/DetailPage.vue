@@ -112,7 +112,6 @@ const imageData = ref(null);
 // Resolve image slug to media info
 watch(() => item.value?.image, async (imageSlug) => {
     if (!imageSlug) { imageData.value = null; return; }
-    // If it's a slug string, resolve it
     if (typeof imageSlug === 'string') {
         try {
             const info = await api.get(`/media/by-slug/${imageSlug}/info`);

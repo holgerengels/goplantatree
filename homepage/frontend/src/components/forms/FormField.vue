@@ -198,6 +198,20 @@
       @update:modelValue="updateValue"
     />
 
+    <!-- MacroCopy -->
+    <div v-else-if="field.type === 'MacroCopy'" class="form-group">
+      <label class="form-label">{{ field.label }}</label>
+      <div class="macro-copy-wrapper" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+        <span class="macro-display-code" style="font-family: monospace; background: var(--color-bg-alt); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); font-size: var(--text-sm); user-select: all;">
+          [[media id="{{ context.slug || context._id }}"]]
+        </span>
+        <wa-button size="small" @click="copyFormMacro(context.slug || context._id, $event)">
+          <wa-icon name="copy" slot="prefix"></wa-icon> Kopieren
+        </wa-button>
+      </div>
+      <span v-if="field.hint" class="form-hint" style="display:block; margin-top:var(--space-xs);">{{ field.hint }}</span>
+    </div>
+
     <!-- Default: Text -->
     <wa-input
       v-else
@@ -231,6 +245,22 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const copyFormMacro = async (id, event) => {
+    try {
+        await navigator.clipboard.writeText(`[[media id="${id}"]]`);
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.innerText = '✓ Kopiert!';
+        btn.style.color = 'var(--color-success)';
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.color = '';
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy macro', err);
+    }
+};
 
 const updateValue = (val) => {
     emit('update:modelValue', val);
