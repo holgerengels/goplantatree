@@ -15,7 +15,7 @@
         ],
         "columns": [
             {
-                "key": "project.slug",
+                "key": "project",
                 "label": "Projekt"
             },
             {
@@ -46,9 +46,10 @@
         {
             "name": "project",
             "label": "Projekt",
-            "type": "Reference",
-            "reference": "projects",
-            "displayKey": "name"
+            "type": "Relation",
+            "reference": "/api/v1/projects?all=true",
+            "labelField": "name",
+            "valueField": "slug"
         },
         {
             "name": "email",

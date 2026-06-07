@@ -28,11 +28,11 @@
       <div class="container">
         <div class="detail-layout" :class="{ 'has-image': item.image }">
           <!-- Image area (if exists) -->
-          <div v-if="item.image" class="detail-image">
+          <div v-if="imageData" class="detail-image">
             <figure>
-              <video v-if="item.image.mimeType?.startsWith('video/')" :src="item.image.url" controls autoplay loop muted playsinline></video>
-              <img v-else :src="item.image.url || `/uploads/${item.image}`" :alt="item[config.detail.titleField]" />
-              <figcaption v-if="item.image.title || item.image.author" class="media-caption" v-html="buildCaption(item.image)"></figcaption>
+              <video v-if="imageData.mimeType?.startsWith('video/')" :src="imageData.fileUrl" controls autoplay loop muted playsinline></video>
+              <img v-else :src="imageData.fileUrl" :alt="item[config.detail.titleField]" />
+              <figcaption v-if="imageData.title || imageData.author" class="media-caption" v-html="buildCaption(imageData)"></figcaption>
             </figure>
           </div>
           <div v-else class="detail-image-placeholder" :style="placeholderStyle">
@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import * as icons from 'lucide-vue-next';
 import { useConfigStore } from '../stores/config.js';
@@ -107,6 +107,25 @@ const configStore = useConfigStore();
 
 const config = ref(null);
 const item = ref(null);
+const imageData = ref(null);
+
+// Resolve image slug to media info
+watch(() => item.value?.image, async (imageSlug) => {
+    if (!imageSlug) { imageData.value = null; return; }
+    // If it's a slug string, resolve it
+    if (typeof imageSlug === 'string') {
+        try {
+            const info = await api.get(`/media/by-slug/${imageSlug}/info`);
+            imageData.value = {
+                ...info,
+                fileUrl: `/api/v1/media/by-slug/${imageSlug}/file`
+            };
+        } catch {
+            // Media not found — graceful fallback
+            imageData.value = null;
+        }
+    }
+}, { immediate: false });
 
 const listUrl = computed(() => {
     if (config.value?.listPage) return config.value.listPage;

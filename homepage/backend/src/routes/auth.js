@@ -12,7 +12,7 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Username und Passwort erforderlich' });
         }
 
-        const user = await User.findOne({ username }).populate('profile').populate('profiles');
+        const user = await User.findOne({ username }).populate('profiles');
         if (!user) {
             return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
         }
@@ -30,39 +30,30 @@ router.post('/login', async (req, res) => {
             return permissionLevelNames[Math.max(level1, level2)];
         };
 
-        const profilesList = [];
-        if (user.profile) {
-            profilesList.push(user.profile);
-        }
+        let permissions = {};
         if (user.profiles && Array.isArray(user.profiles)) {
-            user.profiles.forEach(p => {
-                if (p && p._id && !profilesList.some(item => item._id.toString() === p._id.toString())) {
-                    profilesList.push(p);
+            user.profiles.forEach(profile => {
+                if (profile && profile.permissions) {
+                    profile.permissions.forEach(p => {
+                        if (!permissions[p.resource]) {
+                            permissions[p.resource] = {
+                                read: p.read || 'none',
+                                create: p.create || 'none',
+                                update: p.update || 'none',
+                                delete: p.delete || 'none'
+                            };
+                        } else {
+                            permissions[p.resource].read = mergePermission(permissions[p.resource].read, p.read);
+                            permissions[p.resource].create = mergePermission(permissions[p.resource].create, p.create);
+                            permissions[p.resource].update = mergePermission(permissions[p.resource].update, p.update);
+                            permissions[p.resource].delete = mergePermission(permissions[p.resource].delete, p.delete);
+                        }
+                    });
                 }
             });
         }
 
-        let permissions = {};
-        profilesList.forEach(profile => {
-            if (profile && profile.permissions) {
-                profile.permissions.forEach(p => {
-                    if (!permissions[p.resource]) {
-                        permissions[p.resource] = {
-                            read: p.read || 'none',
-                            create: p.create || 'none',
-                            update: p.update || 'none',
-                            delete: p.delete || 'none'
-                        };
-                    } else {
-                        permissions[p.resource].read = mergePermission(permissions[p.resource].read, p.read);
-                        permissions[p.resource].create = mergePermission(permissions[p.resource].create, p.create);
-                        permissions[p.resource].update = mergePermission(permissions[p.resource].update, p.update);
-                        permissions[p.resource].delete = mergePermission(permissions[p.resource].delete, p.delete);
-                    }
-                });
-            }
-        });
-
+        // user.project is now a slug string — embedded directly into JWT
         const token = jwt.sign(
             { id: user._id, username: user.username, project: user.project, permissions },
             process.env.JWT_SECRET,

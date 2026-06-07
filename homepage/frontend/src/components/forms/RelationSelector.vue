@@ -9,7 +9,7 @@
     @change="updateValue($event.target.value)"
   >
     <wa-option v-if="!field.multiple" value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
-    <wa-option v-for="opt in options" :key="opt._id" :value="opt._id">
+    <wa-option v-for="opt in options" :key="getOptValue(opt)" :value="getOptValue(opt)">
       {{ getLabel(opt) }}
     </wa-option>
   </wa-select>
@@ -29,8 +29,15 @@ const emit = defineEmits(['update:modelValue']);
 const options = ref([]);
 const loading = ref(false);
 
+// Which field to use as value: 'slug' for soft refs, '_id' for ObjectId refs
+const valueField = computed(() => props.field.valueField || '_id');
+
 const updateValue = (val) => {
     emit('update:modelValue', val);
+};
+
+const getOptValue = (opt) => {
+    return opt[valueField.value] || opt._id;
 };
 
 const normalizedValue = computed(() => {
@@ -38,19 +45,19 @@ const normalizedValue = computed(() => {
         if (!props.modelValue) return [];
         if (Array.isArray(props.modelValue)) {
             return props.modelValue.map(item => {
-                if (item && typeof item === 'object' && item._id) {
-                    return item._id;
+                if (item && typeof item === 'object') {
+                    return item[valueField.value] || item._id;
                 }
                 return item;
             });
         }
-        if (typeof props.modelValue === 'object' && props.modelValue._id) {
-            return [props.modelValue._id];
+        if (typeof props.modelValue === 'object' && props.modelValue !== null) {
+            return [props.modelValue[valueField.value] || props.modelValue._id];
         }
         return [props.modelValue];
     }
-    if (props.modelValue && typeof props.modelValue === 'object' && props.modelValue._id) {
-        return props.modelValue._id;
+    if (props.modelValue && typeof props.modelValue === 'object' && props.modelValue !== null) {
+        return props.modelValue[valueField.value] || props.modelValue._id;
     }
     return props.modelValue || '';
 });

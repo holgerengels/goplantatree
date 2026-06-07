@@ -2,11 +2,10 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
+    project: { type: String, default: null },                     // Project slug
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true },
     passwordHash: { type: String, required: true },
-    profile: { type: mongoose.Schema.Types.ObjectId, ref: 'PermissionProfile', default: null },
     profiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PermissionProfile' }],
     displayName: { type: String }
 }, {

@@ -45,7 +45,8 @@
             "label": "Zuständiges Projekt",
             "type": "Relation",
             "reference": "/api/v1/projects?all=true",
-            "labelField": "name"
+            "labelField": "name",
+            "valueField": "slug"
         }
     ],
     "grid": [

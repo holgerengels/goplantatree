@@ -45,6 +45,7 @@
 import { ref, watch } from 'vue';
 import { api } from '../../services/api.js';
 import { getCategoryGradient } from '../../utils/gradients.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     project: { type: String, required: true },
@@ -55,8 +56,8 @@ const offerings = ref([]);
 const projectSlug = ref('');
 
 const imageStyle = (offering) => {
-    if (offering.image?.url) return { backgroundImage: `url(${offering.image.url})` };
-    if (offering.tree?.image?.url) return { backgroundImage: `url(${offering.tree.image.url})` };
+    const url = mediaUrl(offering.image) || mediaUrl(offering.tree?.image);
+    if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(offering.category) };
 };
 

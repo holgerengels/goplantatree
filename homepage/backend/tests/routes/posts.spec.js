@@ -21,8 +21,8 @@ describe('Posts API', () => {
 
     describe('GET /api/v1/posts', () => {
         it('should allow public read of published posts', async () => {
-            await Post.create({ title: 'Published', slug: 'pub', type: 'news', published: true, project: testProject._id });
-            await Post.create({ title: 'Draft', slug: 'draft', type: 'news', published: false, project: testProject._id });
+            await Post.create({ title: 'Published', slug: 'pub', type: 'news', published: true, project: 'test-project' });
+            await Post.create({ title: 'Draft', slug: 'draft', type: 'news', published: false, project: 'test-project' });
 
             const res = await request(app).get('/api/v1/posts');
             expect(res.statusCode).toBe(200);
@@ -31,8 +31,8 @@ describe('Posts API', () => {
         });
 
         it('should filter by type', async () => {
-            await Post.create({ title: 'News', slug: 'n1', type: 'news', published: true, project: testProject._id });
-            await Post.create({ title: 'Planting', slug: 'p1', type: 'pflanzung', published: true, project: testProject._id });
+            await Post.create({ title: 'News', slug: 'n1', type: 'news', published: true, project: 'test-project' });
+            await Post.create({ title: 'Planting', slug: 'p1', type: 'pflanzung', published: true, project: 'test-project' });
 
             const res = await request(app).get('/api/v1/posts?type=pflanzung');
             expect(res.statusCode).toBe(200);
@@ -40,10 +40,9 @@ describe('Posts API', () => {
             expect(res.body[0].title).toBe('Planting');
         });
 
-        it('should filter by project slug via resolveParams', async () => {
-            const other = await Project.create({ name: 'Other', slug: 'other', active: true });
-            await Post.create({ title: 'A', slug: 'a', type: 'news', published: true, project: testProject._id });
-            await Post.create({ title: 'B', slug: 'b', type: 'news', published: true, project: other._id });
+        it('should filter by project slug directly', async () => {
+            await Post.create({ title: 'A', slug: 'a', type: 'news', published: true, project: 'test-project' });
+            await Post.create({ title: 'B', slug: 'b', type: 'news', published: true, project: 'other-project' });
 
             const res = await request(app).get('/api/v1/posts?project=test-project');
             expect(res.statusCode).toBe(200);
@@ -54,7 +53,7 @@ describe('Posts API', () => {
 
     describe('GET /api/v1/posts/:slug', () => {
         it('should return post by slug', async () => {
-            await Post.create({ title: 'My Post', slug: 'my-post', type: 'news', published: true, project: testProject._id, content: '<p>Content</p>' });
+            await Post.create({ title: 'My Post', slug: 'my-post', type: 'news', published: true, project: 'test-project', content: '<p>Content</p>' });
 
             const res = await request(app).get('/api/v1/posts/my-post');
             expect(res.statusCode).toBe(200);

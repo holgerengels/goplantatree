@@ -38,7 +38,6 @@ router.get('/log', async (req, res, next) => {
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                .populate('project', 'name slug')
                 .lean(),
             MailLog.countDocuments(filter)
         ]);

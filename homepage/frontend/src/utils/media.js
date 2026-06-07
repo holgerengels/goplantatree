@@ -43,3 +43,17 @@ export function buildCaption(media) {
 
     return '';
 }
+
+/**
+ * Build a media file URL from a slug or ObjectId string.
+ * Returns null if the value is falsy.
+ */
+export function mediaUrl(slugOrId) {
+    if (!slugOrId) return null;
+    if (typeof slugOrId === 'object' && slugOrId.url) return slugOrId.url;
+    if (typeof slugOrId !== 'string') return null;
+    if (slugOrId.match(/^[0-9a-fA-F]{24}$/)) {
+        return `/api/v1/media/${slugOrId}/file`;
+    }
+    return `/api/v1/media/by-slug/${slugOrId}/file`;
+}

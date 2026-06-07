@@ -7,12 +7,12 @@ import { slugify } from '../utils/slugify.js';
  * An offering may optionally reference a Tree (Baumsteckbrief) for detail info.
  */
 const offeringSchema = new mongoose.Schema({
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
-    tree: { type: mongoose.Schema.Types.ObjectId, ref: 'Tree', default: null },
+    project: { type: String, required: true, index: true },       // Project slug
+    tree: { type: String, default: null },                        // Tree slug
     name: { type: String, required: true },
     slug: { type: String, index: true },
     bezeichnungBotanisch: { type: String },
-    image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+    image: { type: String, default: null },                       // Media slug
     category: { type: String },
     pflanzgroesseHoehe: { type: String },
     pflanzgroesseStammumfang: { type: String },

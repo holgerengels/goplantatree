@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { auth, requirePermission } from '../middleware/auth.js';
 import Media from '../models/Media.js';
+import { findReferences } from '../utils/refIntegrity.js';
 import sizeOf from 'image-size';
 import { slugify } from '../utils/slugify.js';
 
@@ -246,8 +247,18 @@ router.delete('/:id', auth, requirePermission('media', 'delete'), async (req, re
         
         const media = await Media.findOne(query);
         if (!media) return res.status(404).json({ error: 'Medium nicht gefunden' });
-        
-        // We don't remove files from disk anymore since they are in DB
+
+        // Check for existing references before deleting
+        if (media.slug && req.query.force !== 'true') {
+            const refs = await findReferences('Media', media.slug);
+            if (refs.count > 0) {
+                return res.status(409).json({
+                    error: `Wird noch von ${refs.count} Einträgen referenziert`,
+                    references: refs.details,
+                    message: 'Zum Löschen ?force=true anhängen'
+                });
+            }
+        }
 
         await Media.findByIdAndDelete(req.params.id);
         res.json({ message: 'Medium gelöscht' });

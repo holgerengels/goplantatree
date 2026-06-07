@@ -1,7 +1,6 @@
 <template>
   <router-link :to="`/post/${post.slug}`" class="post-card card">
-    <div class="post-image" :style="!isVideo ? imageStyle : {}">
-      <video v-if="isVideo" :src="post.image.url" class="post-video" muted loop playsinline autoplay></video>
+    <div class="post-image" :style="imageStyle">
       <span class="post-type badge" :class="post.type === 'pflanzung' ? 'badge-accent' : 'badge-primary'">
         {{ post.type === 'pflanzung' ? '🌱 Pflanzung' : '📰 News' }}
       </span>
@@ -23,16 +22,16 @@
 <script setup>
 import { computed } from 'vue';
 import { formatDateLong as formatDate } from '../../utils/format.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     post: { type: Object, required: true }
 });
 
-const isVideo = computed(() => props.post.image && props.post.image.mimeType?.startsWith('video/'));
-
 const imageStyle = computed(() => {
-    if (props.post.image && props.post.image.url) {
-        return { backgroundImage: `url(${props.post.image.url})` };
+    const url = mediaUrl(props.post.image);
+    if (url) {
+        return { backgroundImage: `url(${url})` };
     }
     return {
         background: props.post.type === 'pflanzung'

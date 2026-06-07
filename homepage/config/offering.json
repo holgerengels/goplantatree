@@ -66,14 +66,16 @@
             "type": "Relation",
             "required": true,
             "reference": "/api/v1/projects?all=true",
-            "labelField": "name"
+            "labelField": "name",
+            "valueField": "slug"
         },
         {
             "name": "tree",
             "label": "Baumsteckbrief (Verweis)",
             "type": "Relation",
             "reference": "/api/v1/trees",
-            "labelField": "name"
+            "labelField": "name",
+            "valueField": "slug"
         },
         {
             "name": "category",

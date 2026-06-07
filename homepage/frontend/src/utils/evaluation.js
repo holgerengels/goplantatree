@@ -69,25 +69,15 @@ export function applyPermissionsToFields(fields, user, resource, action, item) {
     const scope = resPerms[action] || 'none';
     
     const isOwnItem = (resName, itm, usr) => {
-        if (!usr || !usr.project) return false;
-        const userProjId = typeof usr.project === 'object'
-            ? (usr.project._id || usr.project.id)
-            : usr.project;
-            
-        if (!userProjId) return false;
+        // user.project and item.project are now slug strings
+        const userProject = usr?.project;
+        if (!userProject) return false;
         
         if (resName === 'projects') {
-            const itemId = itm?._id || itm?.id;
-            return itemId && String(itemId) === String(userProjId);
+            return itm?.slug === userProject;
         }
         
-        if (itm && itm.project) {
-            const itemProjId = typeof itm.project === 'object'
-                ? (itm.project._id || itm.project.id)
-                : itm.project;
-            return itemProjId && String(itemProjId) === String(userProjId);
-        }
-        return false;
+        return itm?.project === userProject;
     };
     
     const isUpdate = action === 'update';

@@ -19,7 +19,7 @@ const treeSchema = new mongoose.Schema({
     growthForm: { type: String },
     properties: [{ type: String }],
     description: { type: String },
-    image: { type: mongoose.Schema.Types.ObjectId, ref: 'Media' },
+    image: { type: String, default: null },                       // Media slug
     notice: { type: String }
 }, {
     timestamps: true,

@@ -4,20 +4,11 @@ import Offering from '../models/Offering.js';
 export default createCrudRouter(Offering, 'offerings', {
     publicRead: true,
     lookupField: 'slug',
-    populate: [
-        { 
-            path: 'tree', 
-            select: 'name slug category image sizeCategory height width properties',
-            populate: { path: 'image', select: 'url format' }
-        },
-        { path: 'project', select: 'name slug' },
-        { path: 'image', select: '-data' }
-    ],
     sort: { sortOrder: 1, name: 1 },
-    resolveParams: { project: { model: 'Project', lookupField: 'slug' } },
-    buildFilter: (req, resolved) => {
+    buildFilter: (req) => {
         const filter = {};
         if (req.query.available !== undefined) filter.available = req.query.available === 'true';
+        if (req.query.project) filter.project = req.query.project;
         return filter;
     }
 });

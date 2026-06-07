@@ -65,7 +65,7 @@ describe('Auth API', () => {
                 username: 'profiled',
                 email: 'p@test.com',
                 passwordHash: 'mypass',
-                profile: profile._id
+                profiles: [profile._id]
             });
             await user.save();
 

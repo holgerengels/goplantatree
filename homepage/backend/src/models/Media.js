@@ -24,7 +24,7 @@ const mediaSchema = new mongoose.Schema({
     sourceLink: { type: String },
     
     // Ownership
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' }
+    project: { type: String, default: null }                      // Project slug
 }, {
     timestamps: true
 });

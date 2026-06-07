@@ -34,26 +34,17 @@ export const useAuthStore = defineStore('auth', () => {
         if (scope === 'all') return true;
         
         if (scope === 'own') {
-            if (!user.value || !user.value.project) return false;
-            
-            const userProjId = typeof user.value.project === 'object'
-                ? (user.value.project._id || user.value.project.id)
-                : user.value.project;
-                
-            if (!userProjId) return false;
+            // user.project is now a slug string
+            const userProject = user.value?.project;
+            if (!userProject) return false;
             
             if (resource === 'projects') {
-                const itemId = item?._id || item?.id;
-                return itemId && String(itemId) === String(userProjId);
+                // For project items, compare slug directly
+                return item?.slug === userProject;
             }
             
-            if (item && item.project) {
-                const itemProjId = typeof item.project === 'object'
-                    ? (item.project._id || item.project.id)
-                    : item.project;
-                return itemProjId && String(itemProjId) === String(userProjId);
-            }
-            return false;
+            // For other resources, compare the project field (also a slug string)
+            return item?.project === userProject;
         }
         return false;
     };

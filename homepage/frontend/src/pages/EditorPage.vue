@@ -350,7 +350,24 @@ const remove = async () => {
         cancelEdit();
         await loadData();
     } catch (err) {
-        alert('Fehler: ' + err.message);
+        // Handle 409 Conflict — object is still referenced
+        if (err.message?.includes('referenziert')) {
+            const forceDelete = confirm(
+                `${err.message}\n\nTrotzdem löschen? Referenzierende Einträge werden dadurch ungültige Verweise enthalten.`
+            );
+            if (forceDelete) {
+                try {
+                    const endpoint = config.value.api.replace('/api/v1', '');
+                    await api.delete(`${endpoint}/${editingId.value}?force=true`);
+                    cancelEdit();
+                    await loadData();
+                } catch (err2) {
+                    alert('Fehler: ' + err2.message);
+                }
+            }
+        } else {
+            alert('Fehler: ' + err.message);
+        }
     }
 };
 
