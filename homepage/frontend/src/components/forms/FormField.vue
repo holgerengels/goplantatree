@@ -83,6 +83,19 @@
       @change="updateValue(parseInt($event.target.value) || '')"
     ></wa-input>
 
+    <!-- Currency (saved as cents, displayed as decimal Euros) -->
+    <wa-input
+      v-else-if="field.type === 'Currency'"
+      type="number"
+      step="0.01"
+      :label="field.label"
+      :required="field.required === true"
+      :disabled="field.readonly === true ? true : undefined"
+      :value="modelValue ? (modelValue / 100).toFixed(2) : ''"
+      :help-text="field.hint"
+      @change="updateValue($event.target.value ? Math.round(parseFloat($event.target.value) * 100) : '')"
+    ></wa-input>
+
     <!-- RichText -->
     <div v-else-if="field.type === 'RichText'" class="form-group">
       <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>

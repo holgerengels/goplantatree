@@ -8,7 +8,8 @@ const orderSchema = new mongoose.Schema({
         slug: { type: String },
         name: { type: String },
         category: { type: String },
-        bezeichnungBotanisch: { type: String }
+        bezeichnungBotanisch: { type: String },
+        priceNet: { type: Number }
     },
     orderNumber: { type: String, unique: true },
     status: {

@@ -21,6 +21,7 @@ const offeringSchema = new mongoose.Schema({
     bemerkung: { type: String },
     available: { type: Boolean, default: true },
     stock: { type: Number, default: -1 },  // -1 = unlimited
+    priceNet: { type: Number },
     notice: { type: String },
     addons: [{
         name: { type: String, required: true },

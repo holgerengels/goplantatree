@@ -126,6 +126,11 @@
             "default": -1
         },
         {
+            "name": "priceNet",
+            "label": "Nettopreis (in €)",
+            "type": "Currency"
+        },
+        {
             "name": "notice",
             "label": "Hinweis (wird bei Auswahl angezeigt)",
             "type": "Text"
@@ -161,11 +166,11 @@
         "bezeichnungBotanisch bezeichnungBotanisch bezeichnungBotanisch bezeichnungBotanisch",
         "project project tree tree",
         "category category available stock",
+        "priceNet priceNet sortOrder sortOrder",
         "pflanzgroesseHoehe pflanzgroesseStammumfang endgroesseHoehe endgroesseBreite",
         "bemerkung bemerkung bemerkung bemerkung",
         "notice notice notice notice",
-        "addons addons addons addons",
-        "sortOrder sortOrder . ."
+        "addons addons addons addons"
     ],
     "resource": "offerings"
 }

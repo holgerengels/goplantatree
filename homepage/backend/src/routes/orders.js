@@ -22,7 +22,8 @@ export default createCrudRouter(Order, 'orders', {
                     slug: offering.slug,
                     name: offering.name,
                     category: offering.category || '',
-                    bezeichnungBotanisch: offering.bezeichnungBotanisch || ''
+                    bezeichnungBotanisch: offering.bezeichnungBotanisch || '',
+                    priceNet: offering.priceNet
                 };
             } else {
                 data.offering = { slug: offeringSlug, name: offeringSlug };
