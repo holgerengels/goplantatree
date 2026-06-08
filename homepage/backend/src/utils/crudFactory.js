@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import XLSX from 'xlsx';
+import multer from 'multer';
 import { auth, requirePermission, optionalAuth } from '../middleware/auth.js';
 import { findReferences, cascadeSlugUpdate } from './refIntegrity.js';
 
@@ -108,9 +109,10 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
     const scopeQuery = (req, query = {}) => {
         if (req.permissionScope === 'own' && req.user?.project) {
-            query.project = req.user.project;
-            if (lookupField === '_id' && query._id) {
-                if (Model.modelName === 'Project') query._id = req.user.project;
+            if (Model.modelName === 'Project') {
+                query.slug = req.user.project;
+            } else {
+                query.project = req.user.project;
             }
         }
         return query;
@@ -274,6 +276,138 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
         }
     });
 
+    // POST /import — Bulk Import
+    const upload = multer({ 
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 20 * 1024 * 1024 } // 20 MB limit
+    });
+
+    router.post('/import', auth, requirePermission(resourceName, 'create'), upload.single('file'), async (req, res, next) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+            }
+
+            // Load configuration to map headers
+            const cfg = getConfigForResource(resourceName);
+            if (!cfg) {
+                return res.status(400).json({ error: 'Ressourcen-Konfiguration nicht gefunden' });
+            }
+
+            const columns = cfg.admin?.columns || [];
+            const fields = cfg.fields || [];
+
+            // Build a header map: lowercase(label) -> key, lowercase(key) -> key
+            const headerMap = {};
+            columns.forEach(col => {
+                if (col.label) headerMap[col.label.toLowerCase().trim()] = col.key;
+                if (col.key) headerMap[col.key.toLowerCase().trim()] = col.key;
+            });
+            fields.forEach(field => {
+                if (field.label) headerMap[field.label.toLowerCase().trim()] = field.name;
+                if (field.name) headerMap[field.name.toLowerCase().trim()] = field.name;
+            });
+
+            // Helper to parse dates including German formats
+            const parseDate = (val) => {
+                if (val instanceof Date) return val;
+                if (typeof val === 'number') {
+                    // Excel serial date to JS Date
+                    return new Date((val - 25569) * 86400 * 1000);
+                }
+                const str = String(val).trim();
+                const match = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+                if (match) {
+                    const day = parseInt(match[1], 10);
+                    const month = parseInt(match[2], 10) - 1;
+                    const year = parseInt(match[3], 10);
+                    const hours = match[4] ? parseInt(match[4], 10) : 0;
+                    const minutes = match[5] ? parseInt(match[5], 10) : 0;
+                    return new Date(year, month, day, hours, minutes);
+                }
+                return new Date(str);
+            };
+
+            // Parse file with xlsx
+            let workbook;
+            try {
+                workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+            } catch (xlsxErr) {
+                return res.status(400).json({ error: 'Fehler beim Lesen der Datei: ' + xlsxErr.message });
+            }
+
+            const sheetName = workbook.SheetNames[0];
+            if (!sheetName) {
+                return res.status(400).json({ error: 'Die Datei enthält keine Arbeitsblätter' });
+            }
+
+            const sheet = workbook.Sheets[sheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+            const stats = { imported: 0, skipped: 0, errors: [] };
+
+            for (const [index, row] of rawData.entries()) {
+                const rowNum = index + 2; // Row 1 is header
+                try {
+                    const data = {};
+
+                    // Map row keys to model fields
+                    for (const [key, val] of Object.entries(row)) {
+                        const cleanKey = key.trim().toLowerCase();
+                        const mappedKey = headerMap[cleanKey];
+                        if (mappedKey) {
+                            let cleanVal = typeof val === 'string' ? val.trim() : val;
+
+                            const fieldDef = fields.find(f => f.name === mappedKey) || columns.find(c => c.key === mappedKey);
+                            const isBool = fieldDef?.type === 'boolean' || Model.schema.paths[mappedKey]?.instance === 'Boolean';
+                            const isDate = fieldDef?.type === 'date' || Model.schema.paths[mappedKey]?.instance === 'Date';
+                            
+                            if (isBool && cleanVal !== '') {
+                                data[mappedKey] = ['ja', 'yes', 'true', '1', 'wahr', 'y', 'j', 'x'].includes(String(cleanVal).toLowerCase());
+                            } else if (isDate && cleanVal !== '') {
+                                const parsedDate = parseDate(cleanVal);
+                                if (!isNaN(parsedDate.getTime())) {
+                                    data[mappedKey] = parsedDate;
+                                } else {
+                                    data[mappedKey] = cleanVal;
+                                }
+                            } else if (cleanVal !== '') {
+                                data[mappedKey] = cleanVal;
+                            }
+                        }
+                    }
+
+                    // Enforce permission scope 'own'
+                    if (req.permissionScope === 'own' && req.user?.project) {
+                        data.project = req.user.project;
+                    }
+
+                    // Run preCreate hook if present
+                    if (preCreate) {
+                        await preCreate(data, req);
+                    }
+
+                    const item = new Model(data);
+                    await item.save();
+                    stats.imported++;
+                } catch (err) {
+                    if (err.code === 11000) {
+                        stats.skipped++;
+                    } else {
+                        stats.errors.push({
+                            row: rowNum,
+                            error: err.message || 'Ungültige Daten'
+                        });
+                    }
+                }
+            }
+
+            res.json(stats);
+        } catch (err) {
+            next(err);
+        }
+    });
+
     // GET /:idOrSlug — Detail
     if (!disableRoutes.includes('detail')) {
         router.get(`/:${lookupField}`, ...readMiddleware, async (req, res, next) => {
@@ -369,6 +503,60 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 res.json(response);
             } catch (err) {
                 err.status = 400;
+                next(err);
+            }
+        });
+    }
+
+    // DELETE / — Bulk Delete
+    if (!disableRoutes.includes('delete')) {
+        router.delete('/', auth, requirePermission(resourceName, 'delete'), async (req, res, next) => {
+            try {
+                const { ids } = req.body;
+                if (!Array.isArray(ids) || !ids.length) {
+                    return res.status(400).json({ error: 'Keine IDs angegeben' });
+                }
+
+                let queryObj = { _id: { $in: ids } };
+                if (req.permissionScope === 'own' && req.user?.project) {
+                    if (Model.modelName === 'Project') {
+                        if (ids.includes(req.user.project)) {
+                            queryObj._id = req.user.project;
+                        } else {
+                            return res.status(403).json({ error: 'Keine Berechtigung' });
+                        }
+                    } else {
+                        queryObj.project = req.user.project;
+                    }
+                }
+
+                // Check for existing references before deleting
+                if (refIntegrityModel && req.query.force !== 'true') {
+                    const items = await Model.find(queryObj);
+                    const referencedItems = [];
+                    for (const item of items) {
+                        const slug = item.slug || item._id.toString();
+                        const refs = await findReferences(refIntegrityModel, slug);
+                        if (refs.count > 0) {
+                            referencedItems.push({
+                                id: item._id,
+                                name: item.name || item.title || slug,
+                                count: refs.count
+                            });
+                        }
+                    }
+                    if (referencedItems.length > 0) {
+                        return res.status(409).json({
+                            error: 'Einige Einträge werden noch referenziert',
+                            referencedItems,
+                            message: 'Zum Löschen ?force=true anhängen'
+                        });
+                    }
+                }
+
+                const result = await Model.deleteMany(queryObj);
+                res.json({ message: `${result.deletedCount} Einträge gelöscht` });
+            } catch (err) {
                 next(err);
             }
         });

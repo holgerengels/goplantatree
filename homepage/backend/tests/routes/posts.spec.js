@@ -65,4 +65,44 @@ describe('Posts API', () => {
             expect(res.statusCode).toBe(404);
         });
     });
+
+    describe('DELETE /api/v1/posts', () => {
+        it('should bulk delete posts', async () => {
+            const p1 = await Post.create({ title: 'Post 1', slug: 'p1', type: 'news', published: true, project: 'test-project' });
+            const p2 = await Post.create({ title: 'Post 2', slug: 'p2', type: 'news', published: true, project: 'test-project' });
+
+            const token = generateToken({ posts: { delete: 'all' } });
+
+            const res = await request(app)
+                .delete('/api/v1/posts')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ ids: [p1._id.toString(), p2._id.toString()] });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toContain('2 Einträge gelöscht');
+
+            // Verify they are deleted
+            const remaining = await Post.find({ _id: { $in: [p1._id, p2._id] } });
+            expect(remaining.length).toBe(0);
+        });
+
+        it('should respect own scope on bulk delete', async () => {
+            const p1 = await Post.create({ title: 'Post 1', slug: 'p1', type: 'news', published: true, project: 'test-project' });
+            const p2 = await Post.create({ title: 'Post 2', slug: 'p2', type: 'news', published: true, project: 'other-project' });
+
+            const token = jwt.sign({ id: 'user123', project: 'test-project', permissions: { posts: { delete: 'own' } } }, JWT_SECRET);
+
+            const res = await request(app)
+                .delete('/api/v1/posts')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ ids: [p1._id.toString(), p2._id.toString()] });
+
+            expect(res.statusCode).toBe(200);
+            
+            // Only 1 should be deleted (p1) because p2 belongs to another project
+            const remaining = await Post.find({ _id: { $in: [p1._id, p2._id] } });
+            expect(remaining.length).toBe(1);
+            expect(remaining[0]._id.toString()).toBe(p2._id.toString());
+        });
+    });
 });

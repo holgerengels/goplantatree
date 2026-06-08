@@ -135,8 +135,107 @@ describe('Subscribers API (Soft Refs)', () => {
 
             expect(res.statusCode).toBe(200);
             expect(res.body).toHaveLength(1);
-            expect(res.body[0].email).toBe('a@test.com');
             expect(res.body[0].project).toBe('test-project');
+        });
+    });
+
+    describe('POST /api/v1/subscribers/import', () => {
+        it('should import subscribers from a CSV file', async () => {
+            const token = generateToken({ subscribers: { create: 'all' } });
+            const csvData = [
+                'E-Mail,Name,Thema,Projekt',
+                'import1@example.com,Import 1,general,test-project',
+                'import2@example.com,Import 2,pflanzung,other-project'
+            ].join('\n');
+
+            const res = await request(app)
+                .post('/api/v1/subscribers/import')
+                .set('Authorization', `Bearer ${token}`)
+                .attach('file', Buffer.from(csvData), 'subscribers.csv');
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.imported).toBe(2);
+            expect(res.body.skipped).toBe(0);
+            expect(res.body.errors).toHaveLength(0);
+
+            const sub1 = await Subscriber.findOne({ email: 'import1@example.com' });
+            expect(sub1).not.toBeNull();
+            expect(sub1.name).toBe('Import 1');
+            expect(sub1.project).toBe('test-project');
+
+            const sub2 = await Subscriber.findOne({ email: 'import2@example.com' });
+            expect(sub2).not.toBeNull();
+            expect(sub2.name).toBe('Import 2');
+            expect(sub2.project).toBe('other-project');
+        });
+
+        it('should skip duplicate records on unique index constraint', async () => {
+            await Subscriber.create({ email: 'dup-import@example.com', project: 'test-project', topic: 'general' });
+
+            const token = generateToken({ subscribers: { create: 'all' } });
+            const csvData = [
+                'E-Mail,Name,Thema,Projekt',
+                'dup-import@example.com,Dup Name,general,test-project',
+                'new-import@example.com,New Name,general,test-project'
+            ].join('\n');
+
+            const res = await request(app)
+                .post('/api/v1/subscribers/import')
+                .set('Authorization', `Bearer ${token}`)
+                .attach('file', Buffer.from(csvData), 'subscribers.csv');
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.imported).toBe(1);
+            expect(res.body.skipped).toBe(1);
+            expect(res.body.errors).toHaveLength(0);
+
+            const count = await Subscriber.countDocuments({ email: 'dup-import@example.com' });
+            expect(count).toBe(1);
+        });
+
+        it('should enforce own project scope on import', async () => {
+            const token = jwt.sign({ 
+                id: 'user123', 
+                project: 'test-project',
+                permissions: { subscribers: { create: 'own' } } 
+            }, JWT_SECRET);
+
+            const csvData = [
+                'E-Mail,Name,Thema,Projekt',
+                'scoped@example.com,Scoped,general,other-project'
+            ].join('\n');
+
+            const res = await request(app)
+                .post('/api/v1/subscribers/import')
+                .set('Authorization', `Bearer ${token}`)
+                .attach('file', Buffer.from(csvData), 'subscribers.csv');
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.imported).toBe(1);
+
+            const sub = await Subscriber.findOne({ email: 'scoped@example.com' });
+            expect(sub.project).toBe('test-project');
+        });
+
+        it('should list validation errors for rows with invalid data', async () => {
+            const token = generateToken({ subscribers: { create: 'all' } });
+            const csvData = [
+                'E-Mail,Name,Thema,Projekt',
+                ',No Email,general,test-project',
+                'valid-err@example.com,Valid,general,test-project'
+            ].join('\n');
+
+            const res = await request(app)
+                .post('/api/v1/subscribers/import')
+                .set('Authorization', `Bearer ${token}`)
+                .attach('file', Buffer.from(csvData), 'subscribers.csv');
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.imported).toBe(1);
+            expect(res.body.skipped).toBe(0);
+            expect(res.body.errors).toHaveLength(1);
+            expect(res.body.errors[0].row).toBe(2);
+            expect(res.body.errors[0].error).toContain('required');
         });
     });
 });

@@ -68,10 +68,11 @@ export const api = {
         return handleResponse(res, 'Fehler beim Speichern');
     },
 
-    async delete(endpoint) {
+    async delete(endpoint, data) {
         const res = await fetch(`${BASE_URL}${stripBase(endpoint)}`, {
             method: 'DELETE',
-            headers: getHeaders()
+            headers: getHeaders(),
+            body: data ? JSON.stringify(data) : undefined
         });
         return handleResponse(res, 'Fehler beim Löschen');
     },

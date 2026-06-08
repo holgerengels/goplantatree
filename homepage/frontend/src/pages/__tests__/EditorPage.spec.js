@@ -370,4 +370,65 @@ describe('EditorPage.vue', () => {
         expect(mockConfirm).toHaveBeenCalled();
         expect(fetch).not.toHaveBeenCalled();
     });
+
+    it('selects multiple items and deletes them successfully', async () => {
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        // Populate items in component
+        wrapper.vm.items = [
+            { _id: 'item1', name: 'Order 1' },
+            { _id: 'item2', name: 'Order 2' }
+        ];
+        await wrapper.vm.$nextTick();
+
+        // Expect items to be loaded and initially selectedIds is empty
+        expect(wrapper.vm.selectedIds.length).toBe(0);
+
+        // Select all selectable items
+        wrapper.vm.toggleSelectAll();
+        await wrapper.vm.$nextTick();
+
+        // Verify selectedIds is populated
+        expect(wrapper.vm.selectedIds).toEqual(['item1', 'item2']);
+
+        // Set confirm mock to true
+        mockConfirm.mockResolvedValue(true);
+
+        // Mock fetch DELETE request for bulk-delete
+        global.fetch = vi.fn((url, options) => {
+            if (options?.method === 'DELETE') {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true })
+                });
+            }
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve([])
+            });
+        });
+
+        // Trigger deleteSelected
+        await wrapper.vm.deleteSelected();
+        await flushPromises();
+
+        // Verify confirmation dialog was prompted
+        expect(mockConfirm).toHaveBeenCalled();
+
+        // Verify fetch DELETE request was made on collection root endpoint with body
+        const deleteCalls = fetch.mock.calls.filter(c => c[1]?.method === 'DELETE');
+        expect(deleteCalls.length).toBe(1);
+        expect(deleteCalls[0][0]).toBe('/api/v1/orders');
+        expect(JSON.parse(deleteCalls[0][1].body)).toEqual({ ids: ['item1', 'item2'] });
+    });
 });

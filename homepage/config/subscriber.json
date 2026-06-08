@@ -10,8 +10,10 @@
     "icon": "Mail",
     "adminOnly": true,
     "admin": {
+        "allowImport": true,
         "filters": [
-            "project"
+            "project",
+            "topic"
         ],
         "columns": [
             {
