@@ -13,7 +13,8 @@
         "allowImport": true,
         "filters": [
             "project",
-            "topic"
+            "topic",
+            "status"
         ],
         "columns": [
             {
@@ -33,9 +34,8 @@
                 "label": "Thema"
             },
             {
-                "key": "confirmed",
-                "label": "Bestätigt",
-                "type": "boolean"
+                "key": "status",
+                "label": "Status"
             },
             {
                 "key": "subscribedAt",
@@ -61,9 +61,8 @@
                 "label": "Thema"
             },
             {
-                "key": "confirmed",
-                "label": "Bestätigt",
-                "type": "boolean"
+                "key": "status",
+                "label": "Status"
             },
             {
                 "key": "subscribedAt",
@@ -95,19 +94,38 @@
         {
             "name": "topic",
             "label": "Thema",
-            "type": "Select",
+            "type": "Autocomplete",
+            "reference": "/subscribers/distinct/topic",
             "options": [
-                "general",
-                "klimabaumaktion",
-                "pflanzung"
+                "general"
             ],
-            "default": "general"
+            "default": "general",
+            "hint": "Frei wählbar, z.B. general, klimabaumaktion, pflanzung"
+        },
+        {
+            "name": "status",
+            "label": "Status",
+            "type": "Tags",
+            "options": [
+                "confirmed",
+                "bounced",
+                "unsubscribed",
+                "imported"
+            ],
+            "hint": "z.B. confirmed, bounced, unsubscribed, imported"
+        },
+        {
+            "name": "data",
+            "label": "Zusatzdaten (JSON)",
+            "type": "Json",
+            "hint": "Frei strukturiertes JSON-Objekt. Felder können als {{data.xxx}} in Newsletter-Mails verwendet werden."
         }
     ],
     "grid": [
         "project project . .",
         "email email name name",
-        "topic topic . ."
+        "topic topic status status",
+        "data data data data"
     ],
     "resource": "subscribers"
 }

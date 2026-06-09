@@ -3,13 +3,19 @@ import Subscriber from '../models/Subscriber.js';
 import { sendMail, getAccountKeys } from '../utils/mailService.js';
 
 const router = createCrudRouter(Subscriber, 'subscribers', {
-    disableRoutes: ['create', 'update', 'detail'],
+    disableRoutes: ['create'],
     sort: { subscribedAt: -1 },
     buildFilter: (req) => {
         const filter = {};
         if (req.query.project) filter.project = req.query.project;
         if (req.query.topic) filter.topic = req.query.topic;
-        if (req.query.confirmed !== undefined) filter.confirmed = req.query.confirmed === 'true';
+        if (req.query.status) {
+            // Match subscribers that have the requested status
+            // and exclude bounced/unsubscribed when filtering for 'confirmed'
+            filter.status = req.query.status === 'confirmed'
+                ? { $all: ['confirmed'], $nin: ['bounced', 'unsubscribed'] }
+                : req.query.status;
+        }
         return filter;
     }
 });
@@ -32,42 +38,51 @@ router.post('/', async (req, res, next) => {
         // project is now a slug string — store directly
         const projectSlug = payload.project || null;
 
+        // New subscribers start with empty status (pending confirmation)
+        payload.status = payload.status || [];
+
         const subscriber = new Subscriber(payload);
         await subscriber.save();
 
-        // Send Double-Opt-In confirmation email
-        const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
-        const confirmUrl = `${siteUrl}/bestaetigen/${subscriber.confirmToken}`;
-        const account = resolveMailAccount(projectSlug);
+        // Only send Double-Opt-In email if subscriber is not already confirmed
+        // (admin-created subscribers with status ['confirmed'] skip this)
+        if (!subscriber.hasStatus('confirmed')) {
+            const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
+            const confirmUrl = `${siteUrl}/bestaetigen/${subscriber.confirmToken}`;
+            const account = resolveMailAccount(projectSlug);
 
-        try {
-            await sendMail(account, {
-                to: subscriber.email,
-                subject: '🌳 Bitte bestätige deine Anmeldung',
-                html: `
-                    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-                        <h2 style="color: #2E5641;">Anmeldung bestätigen</h2>
-                        <p>Hallo${subscriber.name ? ` ${subscriber.name}` : ''},</p>
-                        <p>bitte bestätige deine Newsletter-Anmeldung mit einem Klick auf den folgenden Link:</p>
-                        <p style="margin: 24px 0;">
-                            <a href="${confirmUrl}" style="background: #2E5641; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">
-                                ✅ Anmeldung bestätigen
-                            </a>
-                        </p>
-                        <p style="color: #888; font-size: 12px;">Falls du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.</p>
-                    </div>
-                `,
-                text: `Bitte bestätige deine Newsletter-Anmeldung:\n${confirmUrl}\n\nFalls du dich nicht angemeldet hast, kannst du diese E-Mail ignorieren.`,
-                template: 'subscribe-confirm',
-                referenceId: subscriber._id,
-                referenceType: 'Subscriber',
-                projectId: subscriber.project || null
-            });
-        } catch (mailErr) {
-            console.error('[Subscriber] Confirmation mail failed:', mailErr.message);
+            try {
+                await sendMail(account, {
+                    to: subscriber.email,
+                    subject: '🌳 Bitte bestätige deine Anmeldung',
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+                            <h2 style="color: #2E5641;">Anmeldung bestätigen</h2>
+                            <p>Hallo${subscriber.name ? ` ${subscriber.name}` : ''},</p>
+                            <p>bitte bestätige deine Newsletter-Anmeldung mit einem Klick auf den folgenden Link:</p>
+                            <p style="margin: 24px 0;">
+                                <a href="${confirmUrl}" style="background: #2E5641; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">
+                                    ✅ Anmeldung bestätigen
+                                </a>
+                            </p>
+                            <p style="color: #888; font-size: 12px;">Falls du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.</p>
+                        </div>
+                    `,
+                    text: `Bitte bestätige deine Newsletter-Anmeldung:\n${confirmUrl}\n\nFalls du dich nicht angemeldet hast, kannst du diese E-Mail ignorieren.`,
+                    template: 'subscribe-confirm',
+                    referenceId: subscriber._id,
+                    referenceType: 'Subscriber',
+                    projectId: subscriber.project || null
+                });
+            } catch (mailErr) {
+                console.error('[Subscriber] Confirmation mail failed:', mailErr.message);
+            }
         }
 
-        res.status(201).json({ message: 'Erfolgreich angemeldet. Bitte bestätige deine E-Mail-Adresse.' });
+        const msg = subscriber.hasStatus('confirmed')
+            ? 'Abonnent angelegt (bereits bestätigt).'
+            : 'Erfolgreich angemeldet. Bitte bestätige deine E-Mail-Adresse.';
+        res.status(201).json({ message: msg });
     } catch (err) {
         if (err.code === 11000) {
             err.status = 409;
@@ -82,12 +97,13 @@ router.post('/', async (req, res, next) => {
 // GET /api/v1/subscribers/confirm/:token — Public: confirm subscription
 router.get('/confirm/:token', async (req, res, next) => {
     try {
-        const subscriber = await Subscriber.findOneAndUpdate(
-            { confirmToken: req.params.token },
-            { confirmed: true },
-            { new: true }
-        );
+        const subscriber = await Subscriber.findOne({ confirmToken: req.params.token });
         if (!subscriber) return res.status(404).json({ error: 'Ungültiger Bestätigungslink' });
+
+        subscriber.addStatus('confirmed');
+        subscriber.removeStatus('unsubscribed');
+        await subscriber.save();
+
         res.json({ message: 'E-Mail-Adresse erfolgreich bestätigt!' });
     } catch (err) {
         next(err);
@@ -100,16 +116,32 @@ router.get('/unsubscribe/:token', async (req, res, next) => {
         const subscriber = await Subscriber.findOne({ confirmToken: req.params.token });
         if (!subscriber) return res.status(404).json({ error: 'Ungültiger Abmelde-Link' });
 
-        const info = {
+        subscriber.addStatus('unsubscribed');
+        await subscriber.save();
+
+        res.json({
             message: 'Erfolgreich abgemeldet.',
             email: subscriber.email,
             name: subscriber.name,
             project: subscriber.project || null,
             topic: subscriber.topic
-        };
+        });
+    } catch (err) {
+        next(err);
+    }
+});
 
-        await Subscriber.deleteOne({ _id: subscriber._id });
-        res.json(info);
+// POST /api/v1/subscribers/resubscribe/:token — Public: re-subscribe after unsubscribe
+router.post('/resubscribe/:token', async (req, res, next) => {
+    try {
+        const subscriber = await Subscriber.findOne({ confirmToken: req.params.token });
+        if (!subscriber) return res.status(404).json({ error: 'Ungültiger Link' });
+
+        subscriber.removeStatus('unsubscribed');
+        subscriber.addStatus('confirmed');
+        await subscriber.save();
+
+        res.json({ message: 'Erfolgreich wieder angemeldet!' });
     } catch (err) {
         next(err);
     }

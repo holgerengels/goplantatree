@@ -7,9 +7,14 @@ const subscriberSchema = new mongoose.Schema({
     name: { type: String },
     topic: { type: String, default: 'general' },
     subscribedAt: { type: Date, default: Date.now },
-    confirmed: { type: Boolean, default: false },
+    status: {
+        type: [String],
+        default: [],
+        index: true
+    },
     confirmToken: { type: String },
-    tags: [{ type: String }]
+    tags: [{ type: String }],
+    data: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, {
     timestamps: true,
     strict: false
@@ -25,5 +30,28 @@ subscriberSchema.pre('save', function (next) {
     }
     next();
 });
+
+/**
+ * Helper: check if subscriber has a specific status.
+ */
+subscriberSchema.methods.hasStatus = function (s) {
+    return this.status.includes(s);
+};
+
+/**
+ * Helper: add a status if not already present.
+ */
+subscriberSchema.methods.addStatus = function (s) {
+    if (!this.status.includes(s)) {
+        this.status.push(s);
+    }
+};
+
+/**
+ * Helper: remove a status.
+ */
+subscriberSchema.methods.removeStatus = function (s) {
+    this.status = this.status.filter(v => v !== s);
+};
 
 export default mongoose.model('Subscriber', subscriberSchema);

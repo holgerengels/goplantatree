@@ -76,13 +76,7 @@ onMounted(async () => {
 const resubscribe = async () => {
     resubscribing.value = true;
     try {
-        await api.post('/subscribers', {
-            email: email.value,
-            name: name.value,
-            project: project.value,
-            topic: topic.value,
-            confirmed: true
-        });
+        await api.post(`/subscribers/resubscribe/${route.params.token}`);
         state.value = 'resubscribed';
     } catch {
         state.value = 'error';

@@ -1,7 +1,9 @@
 import express from 'express';
 import MailLog from '../models/MailLog.js';
-import { sendMail, verifyConnection, getAccountKeys } from '../utils/mailService.js';
+import Subscriber from '../models/Subscriber.js';
+import { sendMail, verifyConnection, getAccountKeys, getRateLimitConfig } from '../utils/mailService.js';
 import { checkBounces } from '../utils/bounceChecker.js';
+import { renderTemplate, hasUnsubscribeLink, buildSubscriberVariables } from '../utils/mailTemplateEngine.js';
 import { auth, requirePermission } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -75,7 +77,7 @@ router.get('/stats', async (req, res, next) => {
  * Send a test email to verify SMTP config.
  * Body: { account, to }
  */
-router.post('/test', requirePermission('mail', 'write'), async (req, res, next) => {
+router.post('/test', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
         const { account, to } = req.body;
         if (!account || !to) {
@@ -106,7 +108,7 @@ router.post('/test', requirePermission('mail', 'write'), async (req, res, next) 
  * POST /api/v1/mail/verify/:account
  * Verify SMTP connection for an account.
  */
-router.post('/verify/:account', requirePermission('mail', 'write'), async (req, res, next) => {
+router.post('/verify/:account', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
         await verifyConnection(req.params.account);
         res.json({ success: true, message: `SMTP-Verbindung zu ${req.params.account} OK` });
@@ -119,7 +121,7 @@ router.post('/verify/:account', requirePermission('mail', 'write'), async (req, 
  * POST /api/v1/mail/check-bounces/:account
  * Check IMAP for bounce messages and update MailLog.
  */
-router.post('/check-bounces/:account', requirePermission('mail', 'write'), async (req, res, next) => {
+router.post('/check-bounces/:account', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
         const result = await checkBounces(req.params.account);
         res.json(result);
@@ -128,4 +130,96 @@ router.post('/check-bounces/:account', requirePermission('mail', 'write'), async
     }
 });
 
+/**
+ * POST /api/v1/mail/send-newsletter
+ * Send a newsletter to matching subscribers.
+ *
+ * Body:
+ *   account  — Mail account key (e.g. 'info', 'klimabaumaktion-ulm')
+ *   project  — (optional) Filter by project slug
+ *   topic    — (optional) Filter by topic
+ *   subject  — Subject line (may contain {{...}} placeholders)
+ *   html     — HTML body (must contain {{unsubscribe_url}})
+ *   text     — (optional) Plain text fallback
+ *
+ * Sends one mail per subscriber with rate limiting.
+ * Returns summary: { total, sent, failed, errors }
+ */
+router.post('/send-newsletter', requirePermission('mail', 'create'), async (req, res, next) => {
+    try {
+        const { account, project, topic, subject, html, text } = req.body;
+
+        // Validate required fields
+        if (!account || !subject || !html) {
+            return res.status(400).json({ error: 'account, subject und html sind Pflichtfelder.' });
+        }
+
+        // Check for unsubscribe link placeholder
+        if (!hasUnsubscribeLink(html)) {
+            return res.status(400).json({
+                error: 'Der Mail-Body muss den Platzhalter {{unsubscribe_url}} enthalten, damit Empfänger sich abmelden können.'
+            });
+        }
+
+        // Build subscriber query: confirmed AND NOT bounced/unsubscribed
+        const subscriberFilter = {
+            status: { $all: ['confirmed'], $nin: ['bounced', 'unsubscribed'] }
+        };
+        if (project) subscriberFilter.project = project;
+        if (topic) subscriberFilter.topic = topic;
+
+        const subscribers = await Subscriber.find(subscriberFilter).lean();
+        if (subscribers.length === 0) {
+            return res.json({ total: 0, sent: 0, failed: 0, errors: [], message: 'Keine passenden Empfänger gefunden.' });
+        }
+
+        const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
+        const { rateLimitMs } = getRateLimitConfig();
+
+        const result = { total: subscribers.length, sent: 0, failed: 0, errors: [] };
+
+        for (let i = 0; i < subscribers.length; i++) {
+            const sub = subscribers[i];
+            const vars = buildSubscriberVariables(sub, siteUrl);
+
+            const renderedSubject = renderTemplate(subject, vars);
+            const renderedHtml = renderTemplate(html, vars);
+            const renderedText = text ? renderTemplate(text, vars) : undefined;
+
+            try {
+                const logEntry = await sendMail(account, {
+                    to: sub.email,
+                    subject: renderedSubject,
+                    html: renderedHtml,
+                    text: renderedText,
+                    template: 'newsletter',
+                    referenceId: sub._id,
+                    referenceType: 'Subscriber',
+                    projectId: sub.project || null
+                });
+
+                if (logEntry.status === 'sent') {
+                    result.sent++;
+                } else {
+                    result.failed++;
+                    result.errors.push({ email: sub.email, error: logEntry.error || 'Unbekannter Fehler' });
+                }
+            } catch (err) {
+                result.failed++;
+                result.errors.push({ email: sub.email, error: err.message });
+            }
+
+            // Rate limiting between mails (skip delay after last mail)
+            if (i < subscribers.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, rateLimitMs));
+            }
+        }
+
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
+

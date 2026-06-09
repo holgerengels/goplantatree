@@ -60,6 +60,14 @@ const routes = [
         meta: { requiresAuth: true }
     },
 
+    // Admin — Newsletter
+    {
+        path: '/admin/newsletter',
+        name: 'admin-newsletter',
+        component: () => import('../pages/admin/NewsletterPage.vue'),
+        meta: { requiresAuth: true }
+    },
+
     // Admin — Generic entity editor
     {
         path: '/admin/:entity',

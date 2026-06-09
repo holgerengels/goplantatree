@@ -3,21 +3,23 @@
     <VueMonacoEditor
       v-model:value="content"
       theme="vs-dark"
-      language="html"
-      :options="MONACO_EDITOR_OPTIONS"
+      :language="language"
+      :options="editorOptions"
       @change="handleChange"
-      height="400px"
+      :height="height"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from 'vue'
+import { ref, watch, computed, defineProps, defineEmits } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  language: { type: String, default: 'html' },
+  height: { type: String, default: '400px' }
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -33,7 +35,7 @@ const handleChange = (value) => {
     emit('update:modelValue', value)
 }
 
-const MONACO_EDITOR_OPTIONS = {
+const editorOptions = computed(() => ({
   automaticLayout: true,
   formatOnType: true,
   formatOnPaste: true,
@@ -41,7 +43,7 @@ const MONACO_EDITOR_OPTIONS = {
   minimap: { enabled: false },
   wordWrap: 'on',
   suggestOnTriggerCharacters: true
-}
+}))
 </script>
 
 <style scoped>
@@ -52,3 +54,4 @@ const MONACO_EDITOR_OPTIONS = {
     background-color: #1e1e1e; /* Match monaco dark theme background */
 }
 </style>
+

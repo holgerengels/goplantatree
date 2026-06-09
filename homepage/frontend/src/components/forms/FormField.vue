@@ -118,6 +118,20 @@
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
     </div>
 
+    <!-- JSON Editor (Monaco with language=json) -->
+    <div v-else-if="field.type === 'Json'" class="form-group">
+      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
+      <HtmlEditor
+        :modelValue="jsonStringValue"
+        :disabled="field.readonly === true ? true : undefined"
+        language="json"
+        height="200px"
+        @update:modelValue="handleJsonUpdate($event)"
+      />
+      <span v-if="jsonError" class="form-hint" style="color: var(--color-error);">⚠ Ungültiges JSON: {{ jsonError }}</span>
+      <span v-else-if="field.hint" class="form-hint">{{ field.hint }}</span>
+    </div>
+
     <!-- Object Array (Recursive nested form fields) -->
     <div v-else-if="field.type === 'ObjectArray'" class="form-group object-array-container">
       <label class="form-label object-array-main-label">{{ field.label }}</label>
@@ -225,6 +239,35 @@
       <span v-if="field.hint" class="form-hint" style="display:block; margin-top:var(--space-xs);">{{ field.hint }}</span>
     </div>
 
+    <!-- Autocomplete (single value text with suggestions) -->
+    <div v-else-if="field.type === 'Autocomplete'" class="form-group autocomplete-wrapper">
+      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
+      <div class="autocomplete-container">
+        <input
+          ref="autocompleteInputEl"
+          type="text"
+          class="autocomplete-input"
+          :value="modelValue || ''"
+          :placeholder="field.placeholder || 'Eingabe …'"
+          :disabled="field.readonly === true"
+          @input="updateValue($event.target.value); autocompleteOpen = true"
+          @focus="autocompleteOpen = true"
+          @blur="closeAutocompleteSoon"
+        />
+        <div class="autocomplete-dropdown" v-if="autocompleteOpen && autocompleteSuggestions.length">
+          <div
+            v-for="s in autocompleteSuggestions"
+            :key="s"
+            class="autocomplete-option"
+            @mousedown.prevent="updateValue(s); autocompleteOpen = false"
+          >
+            {{ s }}
+          </div>
+        </div>
+      </div>
+      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
+    </div>
+
     <!-- Default: Text -->
     <wa-input
       v-else
@@ -241,7 +284,8 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed, watch } from 'vue';
+import { defineProps, defineEmits, computed, watch, ref, onMounted } from 'vue';
+import { api } from '../../services/api.js';
 import RichTextEditor from './RichTextEditor.vue';
 import HtmlEditor from './HtmlEditor.vue';
 import MediaSelector from './MediaSelector.vue';
@@ -278,6 +322,57 @@ const copyFormMacro = async (id, event) => {
 const updateValue = (val) => {
     emit('update:modelValue', val);
 };
+
+// --- Json field type helpers ---
+const jsonError = ref('');
+
+const jsonStringValue = computed(() => {
+    const val = props.modelValue;
+    if (val === undefined || val === null) return '{}';
+    if (typeof val === 'string') return val;
+    try {
+        return JSON.stringify(val, null, 2);
+    } catch {
+        return '{}';
+    }
+});
+
+const handleJsonUpdate = (str) => {
+    try {
+        const parsed = JSON.parse(str);
+        jsonError.value = '';
+        updateValue(parsed);
+    } catch (e) {
+        jsonError.value = e.message;
+        // Don't emit invalid JSON — keep the string in the editor
+    }
+};
+
+// --- Autocomplete field type helpers ---
+const autocompleteOpen = ref(false);
+const autocompleteInputEl = ref(null);
+const autocompleteDynamic = ref([]);
+
+const autocompleteSuggestions = computed(() => {
+    const statics = props.field?.options || [];
+    const merged = new Set([...statics, ...autocompleteDynamic.value]);
+    const q = (props.modelValue || '').toLowerCase().trim();
+    return [...merged]
+        .filter(opt => q === '' || opt.toLowerCase().includes(q))
+        .sort((a, b) => a.localeCompare(b));
+});
+
+const closeAutocompleteSoon = () => {
+    setTimeout(() => { autocompleteOpen.value = false; }, 150);
+};
+
+onMounted(async () => {
+    if (props.field?.type === 'Autocomplete' && props.field?.reference) {
+        try {
+            autocompleteDynamic.value = await api.get(props.field.reference);
+        } catch { /* static options only */ }
+    }
+});
 
 const handleTextInput = (val) => {
     let result = val;
@@ -473,5 +568,58 @@ const getObjectArrayFieldStyle = (subField, fieldDef) => {
     max-height: 300px;
     object-fit: contain;
     border-radius: var(--radius-sm);
+}
+
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-container {
+    position: relative;
+}
+
+.autocomplete-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    font-size: var(--text-sm);
+    color: var(--color-text);
+    outline: none;
+    box-sizing: border-box;
+}
+.autocomplete-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(46, 86, 65, 0.15);
+}
+.autocomplete-input:disabled {
+    background: var(--color-bg-alt);
+    opacity: 0.8;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    z-index: 100;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.autocomplete-option {
+    padding: 8px 12px;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.autocomplete-option:hover {
+    background: var(--color-primary-50, rgba(46, 86, 65, 0.08));
+    color: var(--color-primary-dark);
 }
 </style>

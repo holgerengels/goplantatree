@@ -21,6 +21,10 @@
             <component :is="icons.BarChart" class="nav-icon" /> Dashboard
           </router-link>
 
+          <router-link v-if="auth.hasPermission('mail', 'create')" to="/admin/newsletter" class="sidebar-link" active-class="active" @click="isSidebarOpen = false">
+            <component :is="icons.Send" class="nav-icon" /> Newsletter
+          </router-link>
+
           <div class="sidebar-divider"></div>
 
           <!-- Dynamic entity links from config -->

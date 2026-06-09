@@ -92,7 +92,7 @@ describe('Subscribers API (Soft Refs)', () => {
             expect(res.body.message).toContain('bestätigt');
 
             const updated = await Subscriber.findById(sub._id);
-            expect(updated.confirmed).toBe(true);
+            expect(updated.status).toContain('confirmed');
         });
     });
 
@@ -114,7 +114,9 @@ describe('Subscribers API (Soft Refs)', () => {
             // project is now a slug string, not a populated object
             expect(res.body.project).toBe('test-project');
 
-            expect(await Subscriber.findById(sub._id)).toBeNull();
+            const updated = await Subscriber.findById(sub._id);
+            expect(updated).not.toBeNull();
+            expect(updated.status).toContain('unsubscribed');
         });
     });
 

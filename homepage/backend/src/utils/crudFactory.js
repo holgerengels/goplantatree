@@ -359,8 +359,10 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                             let cleanVal = typeof val === 'string' ? val.trim() : val;
 
                             const fieldDef = fields.find(f => f.name === mappedKey) || columns.find(c => c.key === mappedKey);
-                            const isBool = fieldDef?.type === 'boolean' || Model.schema.paths[mappedKey]?.instance === 'Boolean';
-                            const isDate = fieldDef?.type === 'date' || Model.schema.paths[mappedKey]?.instance === 'Date';
+                            const isBool = fieldDef?.type === 'boolean' || fieldDef?.type === 'Boolean' || Model.schema.paths[mappedKey]?.instance === 'Boolean';
+                            const isDate = fieldDef?.type === 'date' || fieldDef?.type === 'Date' || Model.schema.paths[mappedKey]?.instance === 'Date';
+                            const isArray = fieldDef?.type === 'Tags' || Model.schema.paths[mappedKey]?.instance === 'Array';
+                            const isMixed = fieldDef?.type === 'Json' || Model.schema.paths[mappedKey]?.instance === 'Mixed';
                             
                             if (isBool && cleanVal !== '') {
                                 data[mappedKey] = ['ja', 'yes', 'true', '1', 'wahr', 'y', 'j', 'x'].includes(String(cleanVal).toLowerCase());
@@ -370,6 +372,20 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                                     data[mappedKey] = parsedDate;
                                 } else {
                                     data[mappedKey] = cleanVal;
+                                }
+                            } else if (isArray && cleanVal !== '') {
+                                // Split comma-separated values into array
+                                if (Array.isArray(cleanVal)) {
+                                    data[mappedKey] = cleanVal;
+                                } else {
+                                    data[mappedKey] = String(cleanVal).split(',').map(s => s.trim()).filter(Boolean);
+                                }
+                            } else if (isMixed && cleanVal !== '') {
+                                // Parse JSON string into object
+                                try {
+                                    data[mappedKey] = typeof cleanVal === 'object' ? cleanVal : JSON.parse(cleanVal);
+                                } catch {
+                                    data[mappedKey] = cleanVal; // Keep as string if not valid JSON
                                 }
                             } else if (cleanVal !== '') {
                                 data[mappedKey] = cleanVal;
