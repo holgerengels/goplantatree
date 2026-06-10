@@ -10,8 +10,10 @@ export const logger = (req, res, next) => {
 };
 
 export const errorHandler = (err, req, res, next) => {
-    console.error(`\x1b[31m[ERROR]\x1b[0m ${req.method} ${req.originalUrl} - ${err.message}`);
-    if (err.stack) console.error(err.stack);
+    const status = err.status || 500;
+    const level = status >= 500 ? 'ERROR' : 'WARN';
+    console.error(`\x1b[${status >= 500 ? '31' : '33'}m[${level}]\x1b[0m ${req.method} ${req.originalUrl} - ${err.message}`);
+    if (status >= 500 && err.stack) console.error(err.stack);
     
     res.status(err.status || 500).json({
         error: err.message || 'Interner Serverfehler',
