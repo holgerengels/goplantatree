@@ -80,8 +80,8 @@ router.post('/', async (req, res, next) => {
         }
 
         const msg = subscriber.hasStatus('confirmed')
-            ? 'Abonnent angelegt (bereits bestätigt).'
-            : 'Erfolgreich angemeldet. Bitte bestätige deine E-Mail-Adresse.';
+            ? 'Du bist bereits angemeldet.'
+            : 'Bitte bestätige deine E-Mail-Adresse um angemeldet zu werden.';
         res.status(201).json({ message: msg });
     } catch (err) {
         if (err.code === 11000) {

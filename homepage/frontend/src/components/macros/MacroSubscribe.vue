@@ -1,10 +1,6 @@
 <template>
   <div class="macro-subscribe">
     <div class="subscribe-box">
-      <div class="subscribe-content">
-        <h2>🌱 Bleib auf dem Laufenden</h2>
-        <p>Erfahre als Erste*r, wann die nächste Aktion startet.</p>
-      </div>
       <form class="subscribe-form" @submit.prevent="subscribe">
         <input v-model="email" type="email" placeholder="Deine E-Mail-Adresse" class="form-input" required />
         <button type="submit" class="btn btn-accent" :disabled="subscribing">
@@ -70,16 +66,6 @@ const subscribe = async () => {
     max-width: 600px;
     margin: 0 auto;
     text-align: center;
-}
-
-.subscribe-content h2 {
-    margin-bottom: var(--space-sm);
-    color: var(--color-primary-dark);
-}
-
-.subscribe-content p {
-    margin-bottom: var(--space-xl);
-    color: var(--color-text);
 }
 
 .subscribe-form {
