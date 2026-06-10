@@ -97,7 +97,7 @@ watch(() => props.content, async (newContent) => {
     isReadyForTeleport.value = false;
     
     const html = newContent || '';
-    const regex = /\[{1,2}([a-zA-Z0-9_-]+)(.*?)\]{1,2}/g;
+    const regex = /\[\[([a-zA-Z0-9_-]+)(.*?)\]\]/g;
     
     const newMacros = [];
     let counter = 0;

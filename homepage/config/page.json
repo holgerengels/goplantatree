@@ -63,6 +63,13 @@
             "default": true
         },
         {
+            "name": "wideLayout",
+            "label": "Breites Layout",
+            "type": "Boolean",
+            "default": false,
+            "hint": "Aktivieren für Seiten mit Karten-Grids (Bäume, Projekte, Beiträge)"
+        },
+        {
             "name": "content",
             "label": "Seiteninhalt (HTML)",
             "type": "Html"
@@ -71,7 +78,7 @@
     "grid": [
         "image image image image",
         "title title slug slug",
-        "heroSubtitle heroSubtitle published .",
+        "heroSubtitle heroSubtitle published wideLayout",
         "content content content content"
     ],
     "resource": "pages"

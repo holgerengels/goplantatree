@@ -40,11 +40,8 @@ const error = ref(null);
 
 const slug = computed(() => props.pageSlugOverride || route.params.slug || route.meta.pageSlug);
 
-// Detect if content has wide macros (trees, posts, projects) to use full-width layout
-const hasWideMacro = computed(() => {
-    if (!page.value?.content) return false;
-    return /\[(trees|posts|projects|offerings)/i.test(page.value.content);
-});
+// Use the wideLayout flag from the page data for wider container
+const hasWideMacro = computed(() => !!page.value?.wideLayout);
 
 useJsonLd(() => {
     if (!page.value) return null;
