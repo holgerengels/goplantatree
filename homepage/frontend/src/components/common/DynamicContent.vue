@@ -21,6 +21,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { macroRegistry } from '../../utils/macroRegistry.js';
 import MacroPosts from '../macros/MacroPosts.vue';
 import MacroProjects from '../macros/MacroProjects.vue';
 import MacroTrees from '../macros/MacroTrees.vue';
@@ -32,6 +33,21 @@ import MacroProjectAction from '../macros/MacroProjectAction.vue';
 import MacroMedia from '../macros/MacroMedia.vue';
 import MacroSubscribe from '../macros/MacroSubscribe.vue';
 import MacroConfirm from '../macros/MacroConfirm.vue';
+
+// Map registry names to actual Vue components
+const macroComponents = {
+    'posts': MacroPosts,
+    'projects': MacroProjects,
+    'trees': MacroTrees,
+    'timeline': MacroTimeline,
+    'team': MacroTeam,
+    'sponsors': MacroSponsors,
+    'offerings': MacroOfferings,
+    'project-action': MacroProjectAction,
+    'media': MacroMedia,
+    'subscribe': MacroSubscribe,
+    'confirm': MacroConfirm
+};
 
 const props = defineProps({
     content: {
@@ -68,20 +84,9 @@ onUnmounted(() => {
 });
 
 const resolveMacro = (name) => {
-    const macros = {
-        'posts': MacroPosts,
-        'projects': MacroProjects,
-        'trees': MacroTrees,
-        'timeline': MacroTimeline,
-        'team': MacroTeam,
-        'sponsors': MacroSponsors,
-        'offerings': MacroOfferings,
-        'project-action': MacroProjectAction,
-        'media': MacroMedia,
-        'subscribe': MacroSubscribe,
-        'confirm': MacroConfirm
-    };
-    return macros[name] || null;
+    // Only resolve names that exist in the registry
+    if (!macroRegistry[name]) return null;
+    return macroComponents[name] || null;
 };
 
 const processedHtml = ref('');

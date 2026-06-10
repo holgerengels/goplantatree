@@ -21,11 +21,11 @@ import { ref } from 'vue';
 import { api } from '../../services/api.js';
 
 const props = defineProps({
-    thema: {
+    topic: {
         type: String,
         default: 'general'
     },
-    projekt: {
+    project: {
         type: String,
         default: ''
     }
@@ -40,11 +40,11 @@ const subscribe = async () => {
     try {
         const payload = {
             email: email.value,
-            topic: props.thema
+            topic: props.topic
         };
 
-        if (props.projekt) {
-            payload.project = props.projekt;
+        if (props.project) {
+            payload.project = props.project;
         }
 
         const data = await api.post('/subscribers', payload);

@@ -286,6 +286,7 @@
 <script setup>
 import { defineProps, defineEmits, computed, watch, ref, onMounted } from 'vue';
 import { api } from '../../services/api.js';
+
 import RichTextEditor from './RichTextEditor.vue';
 import HtmlEditor from './HtmlEditor.vue';
 import MediaSelector from './MediaSelector.vue';
@@ -622,4 +623,5 @@ const getObjectArrayFieldStyle = (subField, fieldDef) => {
     background: var(--color-primary-50, rgba(46, 86, 65, 0.08));
     color: var(--color-primary-dark);
 }
+
 </style>

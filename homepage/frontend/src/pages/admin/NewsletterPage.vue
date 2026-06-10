@@ -12,7 +12,7 @@
       <div class="card newsletter-section">
         <h2 class="section-title">
           <component :is="icons.Users" :size="20" />
-          Empfänger
+          Empfänger:innen
         </h2>
 
         <div class="recipient-grid">
@@ -33,9 +33,9 @@
 
         <div class="recipient-info">
           <wa-badge v-if="recipientCount !== null" :variant="recipientCount > 0 ? 'success' : 'neutral'">
-            {{ recipientCount }} bestätigte Empfänger
+            {{ recipientCount }} bestätigte Empfänger:innen
           </wa-badge>
-          <span v-if="loadingRecipients" class="loading-text">Lade Empfänger…</span>
+          <span v-if="loadingRecipients" class="loading-text">Lade Empfänger:innen …</span>
         </div>
       </div>
 
@@ -66,7 +66,7 @@
 
         <wa-callout v-if="!hasUnsubscribeLink" variant="warning" appearance="filled-outlined">
           <wa-icon slot="icon" name="exclamation-triangle"></wa-icon>
-          <strong>Kein Abmelde-Link!</strong> Bitte füge <code>{<!-- -->{unsubscribe_url}}</code> in den Body ein, damit Empfänger sich abmelden können.
+          <strong>Kein Abmelde-Link!</strong> Bitte füge <code>{<!-- -->{unsubscribe_url}}</code> in den Body ein, damit Empfänger:innen sich abmelden können.
         </wa-callout>
 
         <wa-callout variant="neutral" appearance="filled-outlined" class="placeholder-help">
@@ -122,7 +122,7 @@
         <span v-else-if="!form.subject" class="send-hint">⚠ Betreff eingeben</span>
         <span v-else-if="!form.html" class="send-hint">⚠ Body eingeben</span>
         <span v-else-if="!hasUnsubscribeLink" class="send-hint">⚠ Abmelde-Link fehlt</span>
-        <span v-else-if="recipientCount === 0" class="send-hint">⚠ Keine Empfänger</span>
+        <span v-else-if="recipientCount === 0" class="send-hint">⚠ Keine Empfänger:innen</span>
       </div>
 
       <!-- Result -->
@@ -234,7 +234,7 @@ watch([() => form.project, () => form.topic], () => {
 const sendNewsletter = async () => {
     if (!canSend.value) return;
 
-    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger senden?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`);
+    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger:innen senden?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`);
     if (!ok) return;
 
     sending.value = true;
@@ -254,7 +254,7 @@ const sendNewsletter = async () => {
         sendResult.value = result;
 
         if (result.failed === 0) {
-            toast.success(`✅ Newsletter an ${result.sent} Empfänger versendet!`);
+            toast.success(`✅ Newsletter an ${result.sent} Empfänger:innen versendet!`);
         } else {
             toast.warning(`Newsletter versendet: ${result.sent} erfolgreich, ${result.failed} fehlgeschlagen.`);
         }
