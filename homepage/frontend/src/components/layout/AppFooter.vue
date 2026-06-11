@@ -44,7 +44,7 @@
         </div>
         
         <div class="footer-bottom">
-          <p>&copy; {{ currentYear }} Go Plant A Tree e.V. — Mit 🌱 gemacht in Ulm</p>
+          <p>&copy; {{ currentYear }} go plant a tree</p>
         </div>
       </div>
     </div>
