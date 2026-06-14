@@ -58,9 +58,9 @@
                 ]
             },
             {
-                "label": "Hinweis",
-                "field": "notice",
-                "layout": "notice"
+                "label": "Kurzbeschreibung",
+                "field": "summary",
+                "layout": "text"
             },
             {
                 "label": "Beschreibung",
@@ -248,10 +248,9 @@
                 "windresistent"
             ]
         },
-
         {
-            "name": "notice",
-            "label": "Hinweis",
+            "name": "summary",
+            "label": "Zusammenfassung",
             "type": "Text"
         },
         {
@@ -267,7 +266,7 @@
         "sizeCategory sizeCategory properties properties",
         "height width flowering fruit",
         "location location growthForm growthForm",
-        "notice notice notice notice",
+        "summary summary summary summary",
         "description description description description"
     ],
     "resource": "trees",

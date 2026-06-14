@@ -51,11 +51,18 @@ router.get('/', auth, requirePermission('media', 'read'), async (req, res) => {
         if (search) {
             filter.$or = [
                 { title: new RegExp(search, 'i') },
-                { originalName: new RegExp(search, 'i') }
+                { originalName: new RegExp(search, 'i') },
+                { slug: new RegExp(search, 'i') }
             ];
         }
 
-        const media = await Media.find(filter).select('-data -variants').sort({ createdAt: -1 }).skip(skip).limit(limit);
+        let sortObj = { createdAt: -1 };
+        if (req.query.sort) {
+            const dir = req.query.sortDir === 'desc' ? -1 : 1;
+            sortObj = { [req.query.sort]: dir };
+        }
+
+        const media = await Media.find(filter).select('-data -variants').sort(sortObj).collation({ locale: 'de', numericOrdering: true }).skip(skip).limit(limit);
         const total = await Media.countDocuments(filter);
         res.json({ items: media, total });
     } catch (err) {

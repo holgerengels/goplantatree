@@ -368,30 +368,8 @@ const getVal = (item, key) => {
 
 // Search + sort
 const filteredItems = computed(() => {
-    let result = [...items.value];
-
-    // Search
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase();
-        result = result.filter(item =>
-            columns.value.some(col => {
-                const val = getVal(item, col.key);
-                return val && String(val).toLowerCase().includes(q);
-            })
-        );
-    }
-
-    // Sort
-    if (sortField.value) {
-        result.sort((a, b) => {
-            const va = a[sortField.value] ?? '';
-            const vb = b[sortField.value] ?? '';
-            const cmp = String(va).localeCompare(String(vb), 'de', { numeric: true });
-            return sortAsc.value ? cmp : -cmp;
-        });
-    }
-
-    return result;
+    // Search, filters, and sorting are all done server-side
+    return items.value;
 });
 
 const toggleSort = (key) => {
@@ -401,6 +379,7 @@ const toggleSort = (key) => {
         sortField.value = key;
         sortAsc.value = true;
     }
+    loadData();
 };
 
 
@@ -542,6 +521,15 @@ const loadData = async () => {
                 }
             }
         }
+
+        if (searchQuery.value) {
+            queryParams.append('search', searchQuery.value);
+        }
+
+        if (sortField.value) {
+            queryParams.append('sort', sortField.value);
+            queryParams.append('sortDir', sortAsc.value ? 'asc' : 'desc');
+        }
         
         const qs = queryParams.toString();
         if (qs) endpoint += `?${qs}`;
@@ -665,6 +653,15 @@ const uploadFile = async () => {
 watch(activeFilters, () => {
     if (config.value) loadData();
 }, { deep: true });
+
+// Debounced server-side search
+let searchTimeout = null;
+watch(searchQuery, () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (config.value) loadData();
+    }, 300);
+});
 
 const loadConfig = async () => {
     const slug = route.params.entity;

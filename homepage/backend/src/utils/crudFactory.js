@@ -172,7 +172,33 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
                 filter = scopeQuery(req, filter);
 
-                let query = Model.find(filter).sort(sort);
+                // Server-side search: build $or across all string fields
+                if (req.query.search) {
+                    const searchRegex = new RegExp(req.query.search, 'i');
+                    const searchConditions = [];
+                    for (const [path, schemaType] of Object.entries(Model.schema.paths)) {
+                        if (schemaType.instance === 'String' && !path.startsWith('_')) {
+                            searchConditions.push({ [path]: searchRegex });
+                        }
+                    }
+                    if (searchConditions.length) {
+                        if (filter.$or) {
+                            filter.$and = [{ $or: filter.$or }, { $or: searchConditions }];
+                            delete filter.$or;
+                        } else {
+                            filter.$or = searchConditions;
+                        }
+                    }
+                }
+
+                // Allow client-specified sort via ?sort=field&sortDir=asc|desc
+                let effectiveSort = sort;
+                if (req.query.sort) {
+                    const dir = req.query.sortDir === 'desc' ? -1 : 1;
+                    effectiveSort = { [req.query.sort]: dir };
+                }
+
+                let query = Model.find(filter).sort(effectiveSort).collation({ locale: 'de', numericOrdering: true });
                 
                 const limit = parseInt(req.query.limit) || (pagination ? 100 : 0);
                 const skip = parseInt(req.query.skip) || 0;

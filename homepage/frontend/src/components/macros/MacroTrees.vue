@@ -43,11 +43,15 @@
         </div>
         <div class="tree-card-body">
           <h3>{{ tree.name }}</h3>
-          <div class="tree-card-specs" v-if="tree.height || tree.width">
-            <span v-if="tree.height" class="spec">↕️ {{ tree.height }}</span>
-            <span v-if="tree.width" class="spec">↔️ {{ tree.width }}</span>
+          <div class="tree-card-specs" v-if="tree.height || tree.width || tree.growthForm">
+            <span class="size-specs">
+              <span v-if="tree.height">↕ {{ tree.height }}</span><span v-if="tree.height && tree.width">, </span><span v-if="tree.width">↔ {{ tree.width }}</span><span v-if="(tree.height || tree.width) && tree.growthForm">, </span><span v-if="tree.growthForm">{{ tree.growthForm }}</span>
+            </span>
           </div>
-          <p v-if="tree.notice" class="tree-card-notice">{{ tree.notice }}</p>
+          <div class="tree-card-tags" v-if="tree.properties?.length">
+            <span v-for="tag in tree.properties" :key="tag" class="tree-tag">{{ tag }}</span>
+          </div>
+          <p v-if="tree.summary" class="tree-card-summary">{{ tree.summary }}</p>
         </div>
       </router-link>
     </div>
@@ -232,17 +236,32 @@ onMounted(async () => {
 }
 
 .tree-card-specs {
-    display: flex;
-    gap: var(--space-md);
     margin-bottom: var(--space-xs);
 }
 
-.spec {
-    font-size: var(--text-xs);
+.size-specs {
     color: var(--color-text-muted);
+    font-size: var(--text-xs);
 }
 
-.tree-card-notice {
+.tree-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: var(--space-xs);
+}
+
+.tree-tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-50, rgba(46, 86, 65, 0.1));
+    color: var(--color-primary-dark);
+    font-size: var(--text-xs);
+    font-weight: 500;
+}
+
+.tree-card-summary {
     font-size: var(--text-xs);
     color: var(--color-text-muted);
     margin: 0;

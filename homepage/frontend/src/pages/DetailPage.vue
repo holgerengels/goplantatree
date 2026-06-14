@@ -63,9 +63,7 @@
                 </div>
               </div>
 
-              <div v-else-if="section.layout === 'notice' && item[section.field]" class="section-notice card">
-                <p>⚠️ {{ item[section.field] }}</p>
-              </div>
+
             </template>
           </div>
         </div>
@@ -354,18 +352,7 @@ figure {
     font-weight: 500;
 }
 
-/* Section: Notice */
-.section-notice {
-    background: rgba(255, 152, 0, 0.08) !important;
-    border-color: rgba(255, 152, 0, 0.2) !important;
-}
-.section-notice:hover {
-    transform: none;
-}
-.section-notice p {
-    margin: 0;
-    color: var(--color-text);
-}
+
 
 /* Section: HTML */
 .detail-main-content {

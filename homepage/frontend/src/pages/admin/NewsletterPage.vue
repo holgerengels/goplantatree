@@ -46,6 +46,13 @@
           Inhalt
         </h2>
 
+        <div class="template-selector">
+          <wa-select label="Template laden" :value="selectedTemplate" @change="loadTemplate($event.target.value)" help-text="Wähle ein Template als Startpunkt — du kannst es danach noch anpassen.">
+            <wa-option value="">— Kein Template —</wa-option>
+            <wa-option v-for="t in templates" :key="t._id" :value="t._id">{{ t.name }} ({{ t.project || 'global' }})</wa-option>
+          </wa-select>
+        </div>
+
         <wa-input
           label="Betreff"
           :value="form.subject"
@@ -165,6 +172,8 @@ const sending = ref(false);
 const sendResult = ref(null);
 const showPreview = ref(false);
 const topics = ref([]);
+const templates = ref([]);
+const selectedTemplate = ref('');
 
 const form = reactive({
     account: '',
@@ -284,7 +293,33 @@ onMounted(async () => {
         topics.value = await api.get('/subscribers/distinct/topic');
     } catch { /* skip */ }
 
+    try {
+        const data = await api.get('/mail-templates?type=newsletter');
+        templates.value = Array.isArray(data) ? data : (data.items || []);
+    } catch { /* skip */ }
+
     loadRecipientCount();
+});
+
+const loadTemplate = async (templateId) => {
+    selectedTemplate.value = templateId;
+    if (!templateId) return;
+    const tpl = templates.value.find(t => t._id === templateId);
+    if (tpl) {
+        form.subject = tpl.subject || '';
+        form.html = tpl.html || '';
+    }
+};
+
+// Reload templates when project filter changes
+watch(() => form.project, async () => {
+    try {
+        const params = new URLSearchParams({ type: 'newsletter' });
+        if (form.project) params.append('project', form.project);
+        const data = await api.get(`/mail-templates?${params.toString()}`);
+        templates.value = Array.isArray(data) ? data : (data.items || []);
+        selectedTemplate.value = '';
+    } catch { /* skip */ }
 });
 </script>
 
@@ -294,6 +329,10 @@ onMounted(async () => {
     flex-direction: column;
     gap: var(--space-lg);
     max-width: 900px;
+}
+
+.template-selector {
+    margin-bottom: var(--space-sm);
 }
 
 .newsletter-header {

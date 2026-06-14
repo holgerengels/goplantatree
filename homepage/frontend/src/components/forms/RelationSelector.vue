@@ -24,7 +24,7 @@ const props = defineProps({
     modelValue: { required: false }
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'select']);
 
 const options = ref([]);
 const loading = ref(false);
@@ -34,6 +34,13 @@ const valueField = computed(() => props.field.valueField || '_id');
 
 const updateValue = (val) => {
     emit('update:modelValue', val || null);
+    // Emit full selected item for copyFrom support
+    if (val && props.field.copyFrom) {
+        const selectedItem = options.value.find(opt => getOptValue(opt) === val);
+        if (selectedItem) {
+            emit('select', selectedItem);
+        }
+    }
 };
 
 const getOptValue = (opt) => {

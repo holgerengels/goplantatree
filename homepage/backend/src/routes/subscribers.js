@@ -1,6 +1,8 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
 import Subscriber from '../models/Subscriber.js';
+import MailTemplate from '../models/MailTemplate.js';
 import { sendMail, getAccountKeys } from '../utils/mailService.js';
+import { renderTemplate } from '../utils/mailTemplateEngine.js';
 
 const router = createCrudRouter(Subscriber, 'subscribers', {
     disableRoutes: ['create'],
@@ -51,24 +53,47 @@ router.post('/', async (req, res, next) => {
             const confirmUrl = `${siteUrl}/bestaetigen/${subscriber.confirmToken}`;
             const account = resolveMailAccount(projectSlug);
 
+            // Try to load template from DB (project-specific first, then without project)
+            let template = null;
+            if (projectSlug) {
+                template = await MailTemplate.findOne({ slug: 'subscribe-confirm', project: projectSlug, active: true });
+            }
+            if (!template) {
+                template = await MailTemplate.findOne({ slug: 'subscribe-confirm', project: null, active: true });
+            }
+
+            const vars = {
+                name: subscriber.name || '',
+                email: subscriber.email || '',
+                project: subscriber.project || '',
+                confirm_url: confirmUrl
+            };
+
+            const mailSubject = template
+                ? renderTemplate(template.subject, vars)
+                : '🌳 Bitte bestätige deine Anmeldung';
+
+            const mailHtml = template
+                ? renderTemplate(template.html, vars)
+                : `
+                    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+                        <h2 style="color: #2E5641;">Anmeldung bestätigen</h2>
+                        <p>Hallo${subscriber.name ? ` ${subscriber.name}` : ''},</p>
+                        <p>bitte bestätige deine Newsletter-Anmeldung mit einem Klick auf den folgenden Link:</p>
+                        <p style="margin: 24px 0;">
+                            <a href="${confirmUrl}" style="background: #2E5641; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">
+                                ✅ Anmeldung bestätigen
+                            </a>
+                        </p>
+                        <p style="color: #888; font-size: 12px;">Falls du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.</p>
+                    </div>
+                `;
+
             try {
                 await sendMail(account, {
                     to: subscriber.email,
-                    subject: '🌳 Bitte bestätige deine Anmeldung',
-                    html: `
-                        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-                            <h2 style="color: #2E5641;">Anmeldung bestätigen</h2>
-                            <p>Hallo${subscriber.name ? ` ${subscriber.name}` : ''},</p>
-                            <p>bitte bestätige deine Newsletter-Anmeldung mit einem Klick auf den folgenden Link:</p>
-                            <p style="margin: 24px 0;">
-                                <a href="${confirmUrl}" style="background: #2E5641; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">
-                                    ✅ Anmeldung bestätigen
-                                </a>
-                            </p>
-                            <p style="color: #888; font-size: 12px;">Falls du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.</p>
-                        </div>
-                    `,
-                    text: `Bitte bestätige deine Newsletter-Anmeldung:\n${confirmUrl}\n\nFalls du dich nicht angemeldet hast, kannst du diese E-Mail ignorieren.`,
+                    subject: mailSubject,
+                    html: mailHtml,
                     template: 'subscribe-confirm',
                     referenceId: subscriber._id,
                     referenceType: 'Subscriber',

@@ -19,6 +19,10 @@
                 "label": "URL-Slug"
             },
             {
+                "key": "project",
+                "label": "Projekt"
+            },
+            {
                 "key": "published",
                 "label": "Veröffentlicht",
                 "type": "boolean"
@@ -35,6 +39,14 @@
             "name": "image",
             "label": "Titelbild",
             "type": "Media"
+        },
+        {
+            "name": "project",
+            "label": "Projekt",
+            "type": "Relation",
+            "reference": "/api/v1/projects?all=true",
+            "labelField": "name",
+            "valueField": "slug"
         },
         {
             "name": "title",
@@ -77,8 +89,9 @@
     ],
     "grid": [
         "image image image image",
-        "title title slug slug",
-        "heroSubtitle heroSubtitle published wideLayout",
+        "project project title title",
+        "slug slug heroSubtitle heroSubtitle",
+        "published wideLayout . .",
         "content content content content"
     ],
     "resource": "pages"

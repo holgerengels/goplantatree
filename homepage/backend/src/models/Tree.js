@@ -20,7 +20,7 @@ const treeSchema = new mongoose.Schema({
     properties: [{ type: String }],
     description: { type: String },
     image: { type: String, default: null },                       // Media slug
-    notice: { type: String }
+    summary: { type: String }
 }, {
     timestamps: true,
     strict: false

@@ -46,6 +46,7 @@
       :field="field"
       :modelValue="modelValue"
       @update:modelValue="updateValue"
+      @select="$emit('select', { field: field, item: $event })"
     />
 
     <!-- OfferingSelector -->
@@ -302,7 +303,7 @@ const props = defineProps({
     useWebAwesome: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'select']);
 
 const copyFormMacro = async (id, event) => {
     try {

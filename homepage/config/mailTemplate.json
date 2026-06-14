@@ -1,0 +1,103 @@
+{
+    "entity": "mail-template",
+    "slug": "mail-templates",
+    "menuOrder": 46,
+    "api": "/api/v1/mail-templates",
+    "label": {
+        "singular": "Mail-Template",
+        "plural": "Mail-Templates"
+    },
+    "icon": "FileText",
+    "fields": [
+        {
+            "name": "slug",
+            "label": "Slug",
+            "type": "Text",
+            "required": true,
+            "hint": "Eindeutiger Bezeichner, z.B. newsletter, subscribe-confirm"
+        },
+        {
+            "name": "name",
+            "label": "Name",
+            "type": "Text",
+            "required": true,
+            "hint": "Anzeigename, z.B. Newsletter Standard"
+        },
+        {
+            "name": "type",
+            "label": "Typ",
+            "type": "Select",
+            "required": true,
+            "options": [
+                { "label": "Newsletter", "value": "newsletter" },
+                { "label": "Transaktional", "value": "transactional" }
+            ]
+        },
+        {
+            "name": "project",
+            "label": "Projekt",
+            "type": "Reference",
+            "reference": "projects",
+            "required": true
+        },
+        {
+            "name": "subject",
+            "label": "Betreff",
+            "type": "Text",
+            "required": true,
+            "hint": "Platzhalter: {{name}}, {{email}}, {{project}}"
+        },
+        {
+            "name": "html",
+            "label": "HTML-Body",
+            "type": "Html",
+            "required": true,
+            "hint": "Newsletter: {{unsubscribe_url}} erforderlich. Bestätigung: {{confirm_url}}"
+        },
+        {
+            "name": "variables",
+            "label": "Verfügbare Platzhalter",
+            "type": "Tags",
+            "hint": "Dokumentation der verwendbaren {{...}} Platzhalter"
+        },
+        {
+            "name": "active",
+            "label": "Aktiv",
+            "type": "Boolean"
+        }
+    ],
+    "grid": [
+        "name name slug slug",
+        "type type project project",
+        "subject subject subject subject",
+        "html html html html",
+        "variables variables active active"
+    ],
+    "admin": {
+        "columns": [
+            {
+                "key": "name",
+                "label": "Name"
+            },
+            {
+                "key": "slug",
+                "label": "Slug"
+            },
+            {
+                "key": "type",
+                "label": "Typ"
+            },
+            {
+                "key": "project",
+                "label": "Projekt"
+            },
+            {
+                "key": "active",
+                "label": "Aktiv",
+                "type": "boolean"
+            }
+        ],
+        "filters": ["project", "type"]
+    },
+    "resource": "mail"
+}

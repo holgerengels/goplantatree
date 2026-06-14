@@ -9,6 +9,7 @@
           :modelValue="getNestedValue(modelValue, field.name)"
           :useWebAwesome="useWebAwesome"
           @update:modelValue="updateField(field.name, $event)"
+          @select="handleCopyFrom"
         />
       </div>
     </div>
@@ -64,6 +65,20 @@ const updateField = (name, value) => {
     }
     curr[parts[parts.length - 1]] = value;
     emit('update:modelValue', props.modelValue);
+};
+
+const handleCopyFrom = ({ field, item }) => {
+    if (!field.copyFrom || !item) return;
+    for (const [sourceKey, targetKey] of Object.entries(field.copyFrom)) {
+        const val = item[sourceKey];
+        if (val !== undefined && val !== null && val !== '') {
+            // Only copy if the target field is empty
+            const current = getNestedValue(props.modelValue, targetKey);
+            if (!current && current !== 0 && current !== false) {
+                updateField(targetKey, val);
+            }
+        }
+    }
 };
 
 // Auto re-validate if errors are showing

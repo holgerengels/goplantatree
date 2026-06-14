@@ -22,6 +22,7 @@ import subscriberRoutes from './src/routes/subscribers.js';
 import configRoutes from './src/routes/config.js';
 import mediaRoutes from './src/routes/media.js';
 import mailRoutes from './src/routes/mail.js';
+import mailTemplateRoutes from './src/routes/mailTemplates.js';
 
 dotenv.config();
 
@@ -99,6 +100,7 @@ app.use('/api/v1/subscribers', subscriberRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/mail', mailRoutes);
+app.use('/api/v1/mail-templates', mailTemplateRoutes);
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

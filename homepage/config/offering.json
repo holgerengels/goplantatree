@@ -93,7 +93,15 @@
             "type": "Relation",
             "reference": "/api/v1/trees",
             "labelField": "name",
-            "valueField": "slug"
+            "valueField": "slug",
+            "copyFrom": {
+                "name": "name",
+                "image": "image",
+                "category": "category",
+                "height": "endgroesseHoehe",
+                "width": "endgroesseBreite",
+                "notice": "notice"
+            }
         },
         {
             "name": "category",
