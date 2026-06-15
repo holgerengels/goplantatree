@@ -38,9 +38,14 @@ describe('mailTemplateEngine', () => {
             expect(result).toBe('Test');
         });
 
-        it('should handle null/undefined values', () => {
+        it('should return null for null values (single expression)', () => {
             const result = renderTemplate('{{val}}', { val: null });
-            expect(result).toBe('');
+            expect(result).toBe(null);
+        });
+
+        it('should replace null values with empty string in interpolation', () => {
+            const result = renderTemplate('Wert: {{val}}', { val: null });
+            expect(result).toBe('Wert: ');
         });
 
         it('should convert numbers to string', () => {
@@ -56,6 +61,81 @@ describe('mailTemplateEngine', () => {
         it('should not replace non-matching patterns', () => {
             const result = renderTemplate('text {notAPlaceholder} end', {});
             expect(result).toBe('text {notAPlaceholder} end');
+        });
+    });
+
+    describe('renderTemplate expressions', () => {
+        it('should evaluate ternary expressions', () => {
+            const result = renderTemplate('{{data.selectedAddons ? "inklusive Wühlmauskorb" : ""}}', {
+                data: { selectedAddons: true }
+            });
+            expect(result).toBe('inklusive Wühlmauskorb');
+        });
+
+        it('should evaluate ternary to empty string when falsy', () => {
+            const result = renderTemplate('{{data.selectedAddons ? "inklusive Wühlmauskorb" : ""}}', {
+                data: { selectedAddons: false }
+            });
+            expect(result).toBe('');
+        });
+
+        it('should evaluate ternary in surrounding text', () => {
+            const result = renderTemplate('Bestellung {{data.count > 1 ? "viele" : "eins"}}', {
+                data: { count: 5 }
+            });
+            expect(result).toBe('Bestellung viele');
+        });
+
+        it('should evaluate boolean comparisons', () => {
+            const result = renderTemplate('{{data.type === "premium"}}', {
+                data: { type: 'premium' }
+            });
+            expect(result).toBe(true);
+        });
+
+        it('should evaluate && and || operators', () => {
+            expect(renderTemplate('{{data.a && data.b}}', { data: { a: true, b: true } })).toBe(true);
+            expect(renderTemplate('{{data.a && data.b}}', { data: { a: true, b: false } })).toBe(false);
+            expect(renderTemplate('{{data.a || data.b}}', { data: { a: false, b: true } })).toBe(true);
+        });
+
+        it('should evaluate string method calls', () => {
+            const result = renderTemplate('{{data.name.toUpperCase()}}', {
+                data: { name: 'max' }
+            });
+            expect(result).toBe('MAX');
+        });
+
+        it('should handle mixed text with expressions', () => {
+            const result = renderTemplate(
+                'Hallo {{name}}, du hast {{data.count}} Bäume bestellt{{data.addon ? " mit Korb" : ""}}.',
+                { name: 'Max', data: { count: 3, addon: true } }
+            );
+            expect(result).toBe('Hallo Max, du hast 3 Bäume bestellt mit Korb.');
+        });
+
+        it('should return original string on syntax error (single expression)', () => {
+            const expr = '{{ invalid &&& syntax }}';
+            expect(renderTemplate(expr, {})).toBe(expr);
+        });
+
+        it('should return empty string on error in interpolation mode', () => {
+            const result = renderTemplate('Start {{ invalid &&& }} End', {});
+            expect(result).toBe('Start  End');
+        });
+
+        it('should handle arithmetic expressions', () => {
+            const result = renderTemplate('{{data.price * data.count}}', {
+                data: { price: 25, count: 3 }
+            });
+            expect(result).toBe(75);
+        });
+
+        it('should handle arithmetic in interpolation', () => {
+            const result = renderTemplate('Gesamt: {{data.price * data.count}} €', {
+                data: { price: 25, count: 3 }
+            });
+            expect(result).toBe('Gesamt: 75 €');
         });
     });
 

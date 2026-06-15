@@ -2,6 +2,19 @@ import { createCrudRouter } from '../utils/crudFactory.js';
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Offering from '../models/Offering.js';
+import MailTemplate from '../models/MailTemplate.js';
+import { sendMail, getAccountKeys } from '../utils/mailService.js';
+import { renderTemplate } from '../utils/mailTemplateEngine.js';
+
+/**
+ * Pick the best mail account for a project.
+ * Tries the project slug first, falls back to 'info'.
+ */
+function resolveMailAccount(projectSlug) {
+    const accounts = getAccountKeys();
+    if (projectSlug && accounts.includes(projectSlug)) return projectSlug;
+    return 'info';
+}
 
 function normalizeString(str) {
     if (!str) return '';
@@ -134,8 +147,48 @@ export default createCrudRouter(Order, 'orders', {
             }
         }
     },
-    postCreate: (item) => ({
-        orderNumber: item.orderNumber,
-        message: 'Bestellung erfolgreich aufgegeben'
-    })
+    postCreate: async (item) => {
+        // Send order confirmation mail (fire-and-forget)
+        try {
+            const projectSlug = item.project || null;
+
+            // Load project-specific template, then global fallback
+            let template = null;
+            if (projectSlug) {
+                template = await MailTemplate.findOne({ slug: 'order-confirm', project: projectSlug, active: true });
+            }
+            if (!template) {
+                template = await MailTemplate.findOne({ slug: 'order-confirm', project: null, active: true });
+            }
+
+            if (template && item.email) {
+                const vars = {
+                    data: item.toObject ? item.toObject() : item
+                };
+
+                const account = resolveMailAccount(projectSlug);
+                const renderedSubject = renderTemplate(template.subject, vars);
+                const renderedHtml = renderTemplate(template.html, vars);
+
+                sendMail(account, {
+                    to: item.email,
+                    subject: renderedSubject,
+                    html: renderedHtml,
+                    template: 'order-confirm',
+                    referenceId: item._id,
+                    referenceType: 'Order',
+                    projectId: projectSlug
+                }).catch(err => {
+                    console.error('[Order] Confirmation mail failed:', err.message);
+                });
+            }
+        } catch (err) {
+            console.error('[Order] Template lookup failed:', err.message);
+        }
+
+        return {
+            orderNumber: item.orderNumber,
+            message: 'Bestellung erfolgreich aufgegeben'
+        };
+    }
 });
