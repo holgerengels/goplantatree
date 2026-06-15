@@ -77,9 +77,9 @@ const configStore = useConfigStore();
 
 const filteredEntities = computed(() => {
     return configStore.adminEntities.filter(entity => {
-        const resName = entity.configName === 'media' ? 'media' : entity.configName + 's';
+        const resName = entity.resource || (entity.configName === 'media' ? 'media' : entity.configName + 's');
         return auth.hasPermission(resName, 'read');
-    });
+    }).sort((a, b) => a.label.plural.localeCompare(b.label.plural));
 });
 
 const logout = () => {
