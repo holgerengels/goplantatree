@@ -55,7 +55,7 @@ const state = ref('');
 const email = ref('');
 const name = ref('');
 const project = ref('');
-const topic = ref('');
+const topics = ref([]);
 const resubscribing = ref(false);
 
 onMounted(async () => {
@@ -64,7 +64,7 @@ onMounted(async () => {
         email.value = result.email;
         name.value = result.name;
         project.value = result.project;
-        topic.value = result.topic;
+        topics.value = result.topics;
         state.value = 'unsubscribed';
     } catch {
         state.value = 'error';

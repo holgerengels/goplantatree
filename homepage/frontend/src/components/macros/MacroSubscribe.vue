@@ -36,7 +36,7 @@ const subscribe = async () => {
     try {
         const payload = {
             email: email.value,
-            topic: props.topic
+            topics: [props.topic]
         };
 
         if (props.project) {

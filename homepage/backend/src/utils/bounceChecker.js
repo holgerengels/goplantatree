@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import MailLog from '../models/MailLog.js';
-
+import Subscriber from '../models/Subscriber.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let mailConfig;
@@ -94,6 +94,18 @@ export async function checkBounces(accountKey) {
                         rawSubject: subject.substring(0, 200)
                     };
                     await logEntry.save();
+
+                    // Mark subscriber as bounced on hard bounce
+                    if (bounceType === 'hard') {
+                        const subscriber = await Subscriber.findOne({
+                            email: bouncedAddress.toLowerCase()
+                        });
+                        if (subscriber && !subscriber.hasStatus('bounced')) {
+                            subscriber.addStatus('bounced');
+                            await subscriber.save();
+                            console.log(`[BounceChecker] Hard bounce — marked subscriber ${bouncedAddress} as bounced`);
+                        }
+                    }
 
                     result.bounced++;
                     result.details.push({

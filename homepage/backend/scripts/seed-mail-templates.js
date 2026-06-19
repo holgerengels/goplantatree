@@ -67,7 +67,7 @@ const defaultTemplates = [
         <a href="{{unsubscribe_url}}" style="color: #888;">Abmelden</a>
     </p>
 </div>`,
-        variables: ['name', 'email', 'project', 'topic', 'unsubscribe_url', 'data.xxx'],
+        variables: ['name', 'email', 'project', 'topics', 'topic', 'unsubscribe_url', 'data.xxx'],
         active: true
     }
 ];

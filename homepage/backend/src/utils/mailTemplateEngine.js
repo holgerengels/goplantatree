@@ -96,7 +96,8 @@ export function buildSubscriberVariables(subscriber, siteUrl) {
         name: subscriber.name || '',
         email: subscriber.email || '',
         project: subscriber.project || '',
-        topic: subscriber.topic || '',
+        topics: subscriber.topics || [],
+        topic: (subscriber.topics || []).join(', '),
         unsubscribe_url: `${base}/abmelden/${subscriber.confirmToken}`,
         data: subscriber.data || {}
     };

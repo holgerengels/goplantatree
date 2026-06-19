@@ -20,7 +20,7 @@ try {
  * Resolve account config for a project slug (or account key like 'info').
  * Credentials come from environment variables referenced in mail.json.
  */
-function getAccountConfig(accountKey) {
+export function getAccountConfig(accountKey) {
     const account = mailConfig.accounts[accountKey];
     if (!account) {
         throw new Error(`[Mail] No mail account configured for "${accountKey}"`);
@@ -36,7 +36,7 @@ function getAccountConfig(accountKey) {
 // Cache transporters per account to reuse connections
 const transporterCache = new Map();
 
-function getTransporter(accountKey) {
+export function getTransporter(accountKey) {
     if (transporterCache.has(accountKey)) return transporterCache.get(accountKey);
 
     const config = getAccountConfig(accountKey);

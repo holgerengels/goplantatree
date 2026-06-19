@@ -164,7 +164,7 @@ describe('mailTemplateEngine', () => {
                 name: 'Max',
                 email: 'max@test.com',
                 project: 'test-project',
-                topic: 'general',
+                topics: ['general', 'klimabaumaktion'],
                 confirmToken: 'abc123',
                 data: { orderNumber: 'GPT-001' }
             };
@@ -173,7 +173,8 @@ describe('mailTemplateEngine', () => {
             expect(vars.name).toBe('Max');
             expect(vars.email).toBe('max@test.com');
             expect(vars.project).toBe('test-project');
-            expect(vars.topic).toBe('general');
+            expect(vars.topics).toEqual(['general', 'klimabaumaktion']);
+            expect(vars.topic).toBe('general, klimabaumaktion');
             expect(vars.unsubscribe_url).toBe('https://example.com/abmelden/abc123');
             expect(vars.data.orderNumber).toBe('GPT-001');
         });

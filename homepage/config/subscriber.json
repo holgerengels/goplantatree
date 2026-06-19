@@ -13,7 +13,7 @@
         "allowImport": true,
         "filters": [
             "project",
-            "topic",
+            "topics",
             "status"
         ],
         "columns": [
@@ -30,8 +30,8 @@
                 "label": "Name"
             },
             {
-                "key": "topic",
-                "label": "Thema"
+                "key": "topics",
+                "label": "Themen"
             },
             {
                 "key": "status",
@@ -57,8 +57,8 @@
                 "label": "Name"
             },
             {
-                "key": "topic",
-                "label": "Thema"
+                "key": "topics",
+                "label": "Themen"
             },
             {
                 "key": "status",
@@ -92,14 +92,14 @@
             "type": "Text"
         },
         {
-            "name": "topic",
-            "label": "Thema",
-            "type": "Autocomplete",
-            "reference": "/subscribers/distinct/topic",
+            "name": "topics",
+            "label": "Themen",
+            "type": "Tags",
+            "reference": "/subscribers/distinct/topics",
             "options": [
                 "general"
             ],
-            "default": "general",
+            "default": ["general"],
             "hint": "Frei wählbar, z.B. general, klimabaumaktion, pflanzung"
         },
         {
@@ -124,7 +124,7 @@
     "grid": [
         "project project . .",
         "email email name name",
-        "topic topic status status",
+        "topics topics status status",
         "data data data data"
     ],
     "resource": "subscribers"

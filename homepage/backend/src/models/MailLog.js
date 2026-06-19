@@ -14,6 +14,7 @@ const mailLogSchema = new mongoose.Schema({
     template: { type: String },                              // e.g. 'order-confirmation', 'newsletter'
     referenceId: { type: mongoose.Schema.Types.ObjectId },   // Order-ID, Subscriber-ID, etc.
     referenceType: { type: String },                         // 'Order', 'Subscriber', etc.
+    campaignId: { type: String, index: true },               // Groups mails into a newsletter campaign
     status: {
         type: String,
         enum: ['queued', 'sent', 'bounced', 'failed'],

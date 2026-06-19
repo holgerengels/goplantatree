@@ -10,7 +10,7 @@ const router = createCrudRouter(Subscriber, 'subscribers', {
     buildFilter: (req) => {
         const filter = {};
         if (req.query.project) filter.project = req.query.project;
-        if (req.query.topic) filter.topic = req.query.topic;
+        if (req.query.topic) filter.topics = req.query.topic;
         if (req.query.status) {
             // Match subscribers that have the requested status
             // and exclude bounced/unsubscribed when filtering for 'confirmed'
@@ -36,6 +36,12 @@ function resolveMailAccount(projectSlug) {
 router.post('/', async (req, res, next) => {
     try {
         const payload = { ...req.body };
+
+        // Normalize: accept both 'topic' (string) and 'topics' (array) from clients
+        if (payload.topic && !payload.topics) {
+            payload.topics = [payload.topic];
+            delete payload.topic;
+        }
 
         // project is now a slug string — store directly
         const projectSlug = payload.project || null;
@@ -149,7 +155,7 @@ router.get('/unsubscribe/:token', async (req, res, next) => {
             email: subscriber.email,
             name: subscriber.name,
             project: subscriber.project || null,
-            topic: subscriber.topic
+            topics: subscriber.topics
         });
     } catch (err) {
         next(err);

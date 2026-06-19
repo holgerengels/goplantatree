@@ -83,7 +83,7 @@
             <code>{<!-- -->{name}}</code> — Name,
             <code>{<!-- -->{email}}</code> — E-Mail,
             <code>{<!-- -->{project}}</code> — Projekt,
-            <code>{<!-- -->{topic}}</code> — Thema,
+            <code>{<!-- -->{topics}}</code> — Themen,
             <code>{<!-- -->{unsubscribe_url}}</code> — Abmelde-Link,
             <code>{<!-- -->{data.xxx}}</code> — Zusatzdaten
           </div>
@@ -122,7 +122,7 @@
           :loading="sending ? true : undefined"
         >
           <wa-icon name="send" slot="prefix"></wa-icon>
-          {{ sending ? 'Wird versendet…' : 'Newsletter senden' }}
+          {{ sending ? 'Wird gestartet…' : 'Newsletter senden' }}
         </wa-button>
 
         <span v-if="!form.account" class="send-hint">⚠ Bitte Mail-Konto auswählen</span>
@@ -132,24 +132,73 @@
         <span v-else-if="recipientCount === 0" class="send-hint">⚠ Keine Empfänger:innen</span>
       </div>
 
-      <!-- Result -->
-      <div v-if="sendResult" class="card newsletter-section send-result">
+      <!-- Campaign Progress -->
+      <div v-if="campaign" class="card newsletter-section campaign-progress">
         <h2 class="section-title">
-          <component :is="icons.CheckCircle" :size="20" />
-          Ergebnis
+          <component :is="campaignIcon" :size="20" />
+          Campaign: {{ campaign.campaignId }}
         </h2>
-        <div class="result-badges">
-          <wa-badge variant="success">{{ sendResult.sent }} gesendet</wa-badge>
-          <wa-badge v-if="sendResult.failed > 0" variant="danger">{{ sendResult.failed }} fehlgeschlagen</wa-badge>
-          <wa-badge variant="neutral">{{ sendResult.total }} gesamt</wa-badge>
+
+        <!-- Progress bar -->
+        <div class="progress-wrapper">
+          <div class="progress-bar">
+            <div class="progress-fill progress-sent" :style="{ width: sentPercent + '%' }"></div>
+            <div class="progress-fill progress-failed" :style="{ width: failedPercent + '%' }"></div>
+          </div>
+          <div class="progress-label">
+            {{ campaign.sent + campaign.failed }}/{{ campaign.total }}
+            <span v-if="campaign.status === 'rate-limited'" class="rate-limit-hint">⏳ Rate-Limit — pausiert</span>
+          </div>
         </div>
-        <div v-if="sendResult.errors?.length" class="result-errors">
-          <h3>Fehler:</h3>
+
+        <!-- Status badges -->
+        <div class="result-badges">
+          <wa-badge variant="success">{{ campaign.sent }} gesendet</wa-badge>
+          <wa-badge v-if="campaign.failed > 0" variant="danger">{{ campaign.failed }} fehlgeschlagen</wa-badge>
+          <wa-badge v-if="campaign.queued > 0" variant="warning">{{ campaign.queued }} ausstehend</wa-badge>
+          <wa-badge v-if="campaign.bounced > 0" variant="neutral">{{ campaign.bounced }} bounced</wa-badge>
+          <wa-badge variant="neutral">{{ campaign.total }} gesamt</wa-badge>
+        </div>
+
+        <!-- Status line -->
+        <div class="campaign-status">
+          <span :class="'status-' + campaign.status">{{ statusLabel }}</span>
+          <span v-if="campaign.lastActivity" class="status-time">
+            Letzte Aktivität: {{ formatTime(campaign.lastActivity) }}
+          </span>
+        </div>
+
+        <!-- Errors -->
+        <div v-if="campaign.errors?.length" class="result-errors">
+          <h3>Letzte Fehler:</h3>
           <ul>
-            <li v-for="(err, i) in sendResult.errors" :key="i">
+            <li v-for="(err, i) in campaign.errors.slice(-10)" :key="i">
               {{ err.email }}: {{ err.error }}
             </li>
           </ul>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="campaign-actions">
+          <wa-button
+            v-if="campaign.status === 'stopped' && campaign.queued > 0"
+            variant="primary"
+            @click="resumeCampaign"
+            :loading="resuming ? true : undefined"
+          >
+            <wa-icon name="play" slot="prefix"></wa-icon>
+            Fortsetzen ({{ campaign.queued }} ausstehend)
+          </wa-button>
+
+          <wa-button
+            v-if="campaign.status === 'sending' || campaign.status === 'rate-limited'"
+            variant="danger"
+            appearance="outlined"
+            @click="abortCampaign"
+          >
+            <wa-icon name="x-circle" slot="prefix"></wa-icon>
+            Abbrechen
+          </wa-button>
         </div>
       </div>
     </div>
@@ -157,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import * as icons from 'lucide-vue-next';
 import AdminLayout from '../../components/admin/AdminLayout.vue';
 import HtmlEditor from '../../components/forms/HtmlEditor.vue';
@@ -169,11 +218,15 @@ const projects = ref([]);
 const recipientCount = ref(null);
 const loadingRecipients = ref(false);
 const sending = ref(false);
-const sendResult = ref(null);
 const showPreview = ref(false);
 const topics = ref([]);
 const templates = ref([]);
 const selectedTemplate = ref('');
+
+// Campaign tracking
+const campaign = ref(null);
+const resuming = ref(false);
+let pollInterval = null;
 
 const form = reactive({
     account: '',
@@ -193,12 +246,52 @@ const canSend = computed(() => {
     return form.account && form.subject && form.html && hasUnsubscribeLink.value && recipientCount.value > 0;
 });
 
+// Campaign computed
+const sentPercent = computed(() => {
+    if (!campaign.value || !campaign.value.total) return 0;
+    return Math.round((campaign.value.sent / campaign.value.total) * 100);
+});
+
+const failedPercent = computed(() => {
+    if (!campaign.value || !campaign.value.total) return 0;
+    return Math.round((campaign.value.failed / campaign.value.total) * 100);
+});
+
+const campaignIcon = computed(() => {
+    const s = campaign.value?.status;
+    if (s === 'completed') return icons.CheckCircle;
+    if (s === 'sending' || s === 'rate-limited') return icons.Loader;
+    if (s === 'stopped' || s === 'aborted') return icons.PauseCircle;
+    if (s === 'error') return icons.AlertCircle;
+    return icons.Clock;
+});
+
+const statusLabel = computed(() => {
+    const labels = {
+        'starting': '⏳ Wird gestartet…',
+        'sending': '📤 Wird versendet…',
+        'rate-limited': '⏳ Rate-Limit erreicht — pausiert bis nächste Stunde',
+        'completed': '✅ Abgeschlossen',
+        'aborted': '⏸ Abgebrochen',
+        'stopped': '⏸ Gestoppt (Server-Neustart?)',
+        'error': '❌ Fehler',
+        'resuming': '▶ Wird fortgesetzt…'
+    };
+    return labels[campaign.value?.status] || campaign.value?.status;
+});
+
+const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
 // Preview rendering with example data
 const exampleVars = {
     name: 'Max Mustermann',
     email: 'max@example.com',
     project: 'klimabaumaktion-ulm',
     topic: 'general',
+    topics: ['general'],
     unsubscribe_url: '#abmelden-vorschau',
     data: { orderNumber: 'GPT-2026-0042', quantity: 3 }
 };
@@ -239,15 +332,47 @@ watch([() => form.project, () => form.topic], () => {
     loadRecipientCount();
 });
 
-// Send newsletter
+// ─── Campaign polling ────────────────────────────────────────────────────
+
+const pollCampaign = async () => {
+    if (!campaign.value?.campaignId) return;
+    try {
+        const data = await api.get(`/mail/campaigns/${campaign.value.campaignId}`);
+        campaign.value = data;
+
+        // Stop polling if campaign is done
+        if (['completed', 'aborted', 'error', 'stopped'].includes(data.status)) {
+            stopPolling();
+        }
+    } catch {
+        // silently ignore poll errors
+    }
+};
+
+const startPolling = () => {
+    stopPolling();
+    pollInterval = setInterval(pollCampaign, 5000);
+};
+
+const stopPolling = () => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+};
+
+onUnmounted(() => stopPolling());
+
+// ─── Send newsletter ─────────────────────────────────────────────────────
+
 const sendNewsletter = async () => {
     if (!canSend.value) return;
 
-    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger:innen senden?\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`);
+    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger:innen senden?\n\nDer Versand läuft im Hintergrund. Du kannst den Fortschritt hier verfolgen.`);
     if (!ok) return;
 
     sending.value = true;
-    sendResult.value = null;
+    campaign.value = null;
 
     try {
         const payload = {
@@ -260,19 +385,68 @@ const sendNewsletter = async () => {
         if (form.text) payload.text = form.text;
 
         const result = await api.post('/mail/send-newsletter', payload);
-        sendResult.value = result;
 
-        if (result.failed === 0) {
-            toast.success(`✅ Newsletter an ${result.sent} Empfänger:innen versendet!`);
+        if (result.campaignId) {
+            toast.success(`📨 Campaign ${result.campaignId} gestartet — ${result.queued} Mails in der Queue`);
+            campaign.value = {
+                campaignId: result.campaignId,
+                total: result.total || result.queued,
+                sent: 0,
+                failed: 0,
+                queued: result.queued,
+                bounced: 0,
+                status: 'sending',
+                errors: []
+            };
+            startPolling();
         } else {
-            toast.warning(`Newsletter versendet: ${result.sent} erfolgreich, ${result.failed} fehlgeschlagen.`);
+            // Fallback for zero recipients etc.
+            toast.info(result.message || 'Keine Empfänger gefunden.');
         }
     } catch (err) {
-        toast.error('Fehler beim Versand: ' + err.message);
+        toast.error('Fehler beim Starten: ' + err.message);
     } finally {
         sending.value = false;
     }
 };
+
+// ─── Resume / Abort ──────────────────────────────────────────────────────
+
+const resumeCampaign = async () => {
+    if (!campaign.value?.campaignId) return;
+    resuming.value = true;
+    try {
+        await api.post(`/mail/campaigns/${campaign.value.campaignId}/resume`, {
+            account: form.account,
+            subject: form.subject,
+            html: form.html,
+            text: form.text || undefined
+        });
+        toast.success('Campaign wird fortgesetzt…');
+        campaign.value.status = 'resuming';
+        startPolling();
+    } catch (err) {
+        toast.error('Resume fehlgeschlagen: ' + err.message);
+    } finally {
+        resuming.value = false;
+    }
+};
+
+const abortCampaign = async () => {
+    if (!campaign.value?.campaignId) return;
+    const ok = await confirm('Campaign wirklich abbrechen?\n\nBereits gesendete Mails bleiben erhalten. Du kannst den Versand später fortsetzen.');
+    if (!ok) return;
+    try {
+        await api.post(`/mail/campaigns/${campaign.value.campaignId}/abort`);
+        toast.info('Campaign wird abgebrochen…');
+        // Poll once more to get final status
+        setTimeout(pollCampaign, 2000);
+    } catch (err) {
+        toast.error('Abbruch fehlgeschlagen: ' + err.message);
+    }
+};
+
+// ─── Init ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
     try {
@@ -290,12 +464,26 @@ onMounted(async () => {
     } catch { /* skip */ }
 
     try {
-        topics.value = await api.get('/subscribers/distinct/topic');
+        topics.value = await api.get('/subscribers/distinct/topics');
     } catch { /* skip */ }
 
     try {
         const data = await api.get('/mail-templates?type=newsletter');
         templates.value = Array.isArray(data) ? data : (data.items || []);
+    } catch { /* skip */ }
+
+    // Check if there's a running/stopped campaign
+    try {
+        const campaigns = await api.get('/mail/campaigns');
+        if (campaigns.length > 0) {
+            const latest = campaigns[0];
+            if (['sending', 'rate-limited', 'stopped'].includes(latest.status) || latest.queued > 0) {
+                campaign.value = latest;
+                if (['sending', 'rate-limited'].includes(latest.status)) {
+                    startPolling();
+                }
+            }
+        }
     } catch { /* skip */ }
 
     loadRecipientCount();
@@ -458,14 +646,78 @@ watch(() => form.project, async () => {
     font-size: var(--text-sm);
 }
 
-.send-result {
-    border-left: 4px solid var(--color-success);
+/* ─── Campaign Progress ───────────────────────────────────────────── */
+
+.campaign-progress {
+    border-left: 4px solid var(--color-primary);
+}
+
+.progress-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.progress-bar {
+    display: flex;
+    height: 24px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.progress-sent {
+    background: var(--color-success, #22c55e);
+}
+
+.progress-failed {
+    background: var(--color-error, #ef4444);
+}
+
+.progress-label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rate-limit-hint {
+    color: var(--color-warning, #f59e0b);
+    font-weight: 600;
 }
 
 .result-badges {
     display: flex;
     gap: var(--space-sm);
     flex-wrap: wrap;
+}
+
+.campaign-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--text-sm);
+}
+
+.campaign-status .status-time {
+    color: var(--color-text-muted);
+}
+
+.status-completed { color: var(--color-success, #22c55e); font-weight: 600; }
+.status-sending, .status-resuming { color: var(--color-primary); font-weight: 600; }
+.status-rate-limited { color: var(--color-warning, #f59e0b); font-weight: 600; }
+.status-stopped, .status-aborted { color: var(--color-text-muted); font-weight: 600; }
+.status-error { color: var(--color-error, #ef4444); font-weight: 600; }
+
+.campaign-actions {
+    display: flex;
+    gap: var(--space-md);
 }
 
 .result-errors {

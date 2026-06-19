@@ -33,6 +33,6 @@
     },
     "defaults": {
         "rateLimitMs": 1500,
-        "maxPerHour": 200
+        "maxPerHour": 300
     }
 }

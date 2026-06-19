@@ -53,7 +53,7 @@ describe('Subscribers API (Soft Refs)', () => {
             expect(sub.confirmToken).toBeDefined();
         });
 
-        it('should reject duplicate email per project+topic', async () => {
+        it('should reject duplicate email per project', async () => {
             await request(app)
                 .post('/api/v1/subscribers')
                 .send({ email: 'dup@example.com', project: 'test-project' });
@@ -102,7 +102,7 @@ describe('Subscribers API (Soft Refs)', () => {
                 email: 'unsub@example.com',
                 name: 'Unsub User',
                 project: 'test-project',
-                topic: 'general'
+                topics: ['general']
             });
 
             const res = await request(app)
@@ -145,7 +145,7 @@ describe('Subscribers API (Soft Refs)', () => {
         it('should import subscribers from a CSV file', async () => {
             const token = generateToken({ subscribers: { create: 'all' } });
             const csvData = [
-                'E-Mail,Name,Thema,Projekt',
+                'E-Mail,Name,Themen,Projekt',
                 'import1@example.com,Import 1,general,test-project',
                 'import2@example.com,Import 2,pflanzung,other-project'
             ].join('\n');
@@ -172,11 +172,11 @@ describe('Subscribers API (Soft Refs)', () => {
         });
 
         it('should skip duplicate records on unique index constraint', async () => {
-            await Subscriber.create({ email: 'dup-import@example.com', project: 'test-project', topic: 'general' });
+            await Subscriber.create({ email: 'dup-import@example.com', project: 'test-project', topics: ['general'] });
 
             const token = generateToken({ subscribers: { create: 'all' } });
             const csvData = [
-                'E-Mail,Name,Thema,Projekt',
+                'E-Mail,Name,Themen,Projekt',
                 'dup-import@example.com,Dup Name,general,test-project',
                 'new-import@example.com,New Name,general,test-project'
             ].join('\n');
@@ -203,7 +203,7 @@ describe('Subscribers API (Soft Refs)', () => {
             }, JWT_SECRET);
 
             const csvData = [
-                'E-Mail,Name,Thema,Projekt',
+                'E-Mail,Name,Themen,Projekt',
                 'scoped@example.com,Scoped,general,other-project'
             ].join('\n');
 
@@ -222,7 +222,7 @@ describe('Subscribers API (Soft Refs)', () => {
         it('should list validation errors for rows with invalid data', async () => {
             const token = generateToken({ subscribers: { create: 'all' } });
             const csvData = [
-                'E-Mail,Name,Thema,Projekt',
+                'E-Mail,Name,Themen,Projekt',
                 ',No Email,general,test-project',
                 'valid-err@example.com,Valid,general,test-project'
             ].join('\n');

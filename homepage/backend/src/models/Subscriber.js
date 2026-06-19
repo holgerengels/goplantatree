@@ -5,7 +5,7 @@ const subscriberSchema = new mongoose.Schema({
     project: { type: String, default: null, index: true },        // Project slug
     email: { type: String, required: true },
     name: { type: String },
-    topic: { type: String, default: 'general' },
+    topics: { type: [String], default: ['general'] },
     subscribedAt: { type: Date, default: Date.now },
     status: {
         type: [String],
@@ -20,8 +20,8 @@ const subscriberSchema = new mongoose.Schema({
     strict: false
 });
 
-// Unique email per project+topic
-subscriberSchema.index({ project: 1, email: 1, topic: 1 }, { unique: true });
+// Unique email per project
+subscriberSchema.index({ project: 1, email: 1 }, { unique: true });
 
 // Generate confirm token before save
 subscriberSchema.pre('save', function (next) {
