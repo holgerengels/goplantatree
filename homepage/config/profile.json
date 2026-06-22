@@ -30,6 +30,7 @@
                     "label": "Objekttyp",
                     "type": "Select",
                     "options": [
+                        "addons",
                         "mail",
                         "media",
                         "offerings",

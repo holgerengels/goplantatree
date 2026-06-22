@@ -29,6 +29,11 @@
             <wa-option value="">Alle Themen</wa-option>
             <wa-option v-for="t in topics" :key="t" :value="t">{{ t }}</wa-option>
           </wa-select>
+
+          <wa-select label="Thema ausschließen" :value="form.excludeTopic" @change="form.excludeTopic = $event.target.value" clearable>
+            <wa-option value="">— Keins —</wa-option>
+            <wa-option v-for="t in topics" :key="t" :value="t">{{ t }}</wa-option>
+          </wa-select>
         </div>
 
         <div class="recipient-info">
@@ -181,7 +186,7 @@
         <!-- Action buttons -->
         <div class="campaign-actions">
           <wa-button
-            v-if="campaign.status === 'stopped' && campaign.queued > 0"
+            v-if="['stopped', 'aborted', 'error'].includes(campaign.status) && campaign.queued > 0"
             variant="primary"
             @click="resumeCampaign"
             :loading="resuming ? true : undefined"
@@ -199,6 +204,48 @@
             <wa-icon name="x-circle" slot="prefix"></wa-icon>
             Abbrechen
           </wa-button>
+
+          <wa-button
+            v-if="['stopped', 'aborted', 'error', 'completed'].includes(campaign.status)"
+            variant="danger"
+            appearance="outlined"
+            @click="deleteCampaign"
+          >
+            <wa-icon name="trash-2" slot="prefix"></wa-icon>
+            Löschen
+          </wa-button>
+        </div>
+      </div>
+
+      <!-- Bounce Check (account-wide, not campaign-specific) -->
+      <div class="card newsletter-section">
+        <h2 class="section-title">
+          <component :is="icons.ShieldAlert" :size="20" />
+          Bounce-Erkennung
+        </h2>
+        <p class="section-hint">Prüft alle E-Mail-Konten per IMAP auf Bounce-Nachrichten und markiert betroffene Abonnent:innen.</p>
+        <div class="campaign-actions">
+          <wa-button
+            variant="neutral"
+            @click="checkBounces"
+            :loading="checkingBounces ? true : undefined"
+          >
+            <wa-icon name="refresh-cw" slot="prefix"></wa-icon>
+            Alle Accounts prüfen
+          </wa-button>
+        </div>
+
+        <div v-if="bounceResult" class="bounce-result">
+          <wa-badge variant="neutral">{{ bounceResult.checked }} geprüft</wa-badge>
+          <wa-badge :variant="bounceResult.bounced > 0 ? 'danger' : 'success'">{{ bounceResult.bounced }} Bounces</wa-badge>
+          <div v-if="bounceResult.errors?.length" class="bounce-errors">
+            <wa-badge v-for="(e, i) in bounceResult.errors" :key="i" variant="warning">{{ e.account }}: {{ e.error }}</wa-badge>
+          </div>
+          <ul v-if="bounceResult.details?.length" class="bounce-details">
+            <li v-for="(d, i) in bounceResult.details" :key="i">
+              {{ d.address }} — <code>{{ d.type }}</code> {{ d.diagnosticCode }}
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -232,6 +279,7 @@ const form = reactive({
     account: '',
     project: '',
     topic: '',
+    excludeTopic: '',
     subject: '',
     html: '',
     text: ''
@@ -317,6 +365,7 @@ const loadRecipientCount = async () => {
         params.append('status', 'confirmed');
         if (form.project) params.append('project', form.project);
         if (form.topic) params.append('topic', form.topic);
+        if (form.excludeTopic) params.append('excludeTopic', form.excludeTopic);
 
         const data = await api.get(`/subscribers?${params.toString()}`);
         const items = Array.isArray(data) ? data : (data.items || []);
@@ -328,7 +377,7 @@ const loadRecipientCount = async () => {
     }
 };
 
-watch([() => form.project, () => form.topic], () => {
+watch([() => form.project, () => form.topic, () => form.excludeTopic], () => {
     loadRecipientCount();
 });
 
@@ -382,6 +431,7 @@ const sendNewsletter = async () => {
         };
         if (form.project) payload.project = form.project;
         if (form.topic) payload.topic = form.topic;
+        if (form.excludeTopic) payload.excludeTopic = form.excludeTopic;
         if (form.text) payload.text = form.text;
 
         const result = await api.post('/mail/send-newsletter', payload);
@@ -416,12 +466,7 @@ const resumeCampaign = async () => {
     if (!campaign.value?.campaignId) return;
     resuming.value = true;
     try {
-        await api.post(`/mail/campaigns/${campaign.value.campaignId}/resume`, {
-            account: form.account,
-            subject: form.subject,
-            html: form.html,
-            text: form.text || undefined
-        });
+        await api.post(`/mail/campaigns/${campaign.value.campaignId}/resume`);
         toast.success('Campaign wird fortgesetzt…');
         campaign.value.status = 'resuming';
         startPolling();
@@ -443,6 +488,47 @@ const abortCampaign = async () => {
         setTimeout(pollCampaign, 2000);
     } catch (err) {
         toast.error('Abbruch fehlgeschlagen: ' + err.message);
+    }
+};
+
+const deleteCampaign = async () => {
+    if (!campaign.value?.campaignId) return;
+    const ok = await confirm('Campaign wirklich löschen?\n\nAlle zugehörigen Mail-Logs werden ebenfalls gelöscht. Dies kann nicht rückgängig gemacht werden.');
+    if (!ok) return;
+    try {
+        await api.delete(`/mail/campaigns/${campaign.value.campaignId}`);
+        toast.success('Campaign gelöscht.');
+        campaign.value = null;
+        stopPolling();
+    } catch (err) {
+        toast.error('Löschen fehlgeschlagen: ' + err.message);
+    }
+};
+
+// ─── Bounce check ────────────────────────────────────────────────────────
+
+const checkingBounces = ref(false);
+const bounceResult = ref(null);
+
+const checkBounces = async () => {
+    checkingBounces.value = true;
+    bounceResult.value = null;
+    try {
+        const result = await api.post('/mail/check-bounces');
+        bounceResult.value = result;
+        if (result.bounced > 0) {
+            toast.success(`${result.bounced} Bounce(s) erkannt und markiert.`);
+            if (campaign.value) pollCampaign();
+        } else {
+            toast.info(`${result.checked} Mails geprüft, keine Bounces.`);
+        }
+        if (result.errors?.length) {
+            toast.warning(`${result.errors.length} Account(s) mit Fehlern.`);
+        }
+    } catch (err) {
+        toast.error('Bounce-Check fehlgeschlagen: ' + err.message);
+    } finally {
+        checkingBounces.value = false;
     }
 };
 

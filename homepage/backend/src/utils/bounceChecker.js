@@ -54,24 +54,23 @@ export async function checkBounces(accountKey) {
         const lock = await client.getMailboxLock('INBOX');
 
         try {
-            // Search for unseen messages that look like bounces
-            // Common bounce subjects/senders
-            const messages = client.fetch(
-                { seen: false },
-                { envelope: true, source: true }
-            );
-
-            for await (const msg of messages) {
+            // Pass 1: Fetch only envelopes (fast) to identify bounce candidates
+            const candidates = [];
+            for await (const msg of client.fetch({ seen: false }, { envelope: true, uid: true })) {
                 result.checked++;
-                const envelope = msg.envelope;
-                const subject = envelope.subject || '';
-                const from = envelope.from?.[0]?.address || '';
+                const subject = msg.envelope.subject || '';
+                const from = msg.envelope.from?.[0]?.address || '';
 
-                // Detect bounce by subject patterns and sender
-                const isBounce = isBounceMessage(subject, from);
-                if (!isBounce) continue;
+                if (isBounceMessage(subject, from)) {
+                    candidates.push({ uid: msg.uid, subject });
+                }
+            }
 
-                // Extract original recipient from bounce body
+            console.log(`[BounceChecker] ${result.checked} unseen mails, ${candidates.length} bounce candidates`);
+
+            // Pass 2: Download source only for bounce candidates
+            for (const { uid, subject } of candidates) {
+                const msg = await client.fetchOne(uid, { source: true }, { uid: true });
                 const source = msg.source?.toString('utf-8') || '';
                 const bouncedAddress = extractBouncedAddress(source);
                 const diagnosticCode = extractDiagnosticCode(source);
@@ -100,10 +99,10 @@ export async function checkBounces(accountKey) {
                         const subscriber = await Subscriber.findOne({
                             email: bouncedAddress.toLowerCase()
                         });
-                        if (subscriber && !subscriber.hasStatus('bounced')) {
-                            subscriber.addStatus('bounced');
+                        if (subscriber && !subscriber.status.includes('bounced')) {
+                            subscriber.status.push('bounced');
                             await subscriber.save();
-                            console.log(`[BounceChecker] Hard bounce — marked subscriber ${bouncedAddress} as bounced`);
+                            console.log(`[BounceChecker] Hard bounce — marked ${bouncedAddress} as bounced`);
                         }
                     }
 
@@ -117,7 +116,7 @@ export async function checkBounces(accountKey) {
                 }
 
                 // Mark bounce message as seen
-                await client.messageFlagsAdd(msg.uid, ['\\Seen'], { uid: true });
+                await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
             }
         } finally {
             lock.release();

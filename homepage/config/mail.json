@@ -32,7 +32,7 @@
         }
     },
     "defaults": {
-        "rateLimitMs": 1500,
+        "rateLimitMs": 12000,
         "maxPerHour": 300
     }
 }

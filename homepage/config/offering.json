@@ -164,21 +164,8 @@
         {
             "name": "addons",
             "label": "Zusatzoptionen",
-            "type": "ObjectArray",
-            "description": "z.B. Wühlmauskorb, Pfahl, etc.",
-            "itemFields": [
-                {
-                    "name": "name",
-                    "label": "Name",
-                    "type": "Text",
-                    "required": true
-                },
-                {
-                    "name": "description",
-                    "label": "Beschreibung",
-                    "type": "Text"
-                }
-            ]
+            "type": "AddonSelector",
+            "description": "z.B. Wühlmauskorb, Pfahl, etc."
         },
         {
             "name": "sortOrder",

@@ -10,10 +10,19 @@ const router = createCrudRouter(Subscriber, 'subscribers', {
     buildFilter: (req) => {
         const filter = {};
         if (req.query.project) filter.project = req.query.project;
-        if (req.query.topic) filter.topics = req.query.topic;
+
+        // Topic filtering: include and/or exclude
+        const includeTopic = req.query.topics || req.query.topic;
+        const excludeTopic = req.query.excludeTopic;
+        if (includeTopic && excludeTopic) {
+            filter.topics = { $in: [includeTopic], $nin: [excludeTopic] };
+        } else if (includeTopic) {
+            filter.topics = includeTopic;
+        } else if (excludeTopic) {
+            filter.topics = { $nin: [excludeTopic] };
+        }
+
         if (req.query.status) {
-            // Match subscribers that have the requested status
-            // and exclude bounced/unsubscribed when filtering for 'confirmed'
             filter.status = req.query.status === 'confirmed'
                 ? { $all: ['confirmed'], $nin: ['bounced', 'unsubscribed'] }
                 : req.query.status;

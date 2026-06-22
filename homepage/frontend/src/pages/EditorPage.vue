@@ -331,24 +331,51 @@ const deleteSelected = async () => {
     }
 };
 
+// Cache for dynamically loaded filter options
+const filterOptionsCache = reactive({});
+
+const loadFilterOptions = async () => {
+    if (!config.value?.admin?.filters || !config.value?.fields) return;
+
+    for (const key of config.value.admin.filters) {
+        if (key === 'project') continue; // handled by projectsStore
+
+        const fieldDef = config.value.fields.find(f => f.name === key);
+        if (fieldDef?.reference) {
+            try {
+                const values = await api.get(fieldDef.reference);
+                if (Array.isArray(values)) {
+                    filterOptionsCache[key] = values.filter(v => v != null && v !== '');
+                }
+            } catch {
+                if (fieldDef.options) filterOptionsCache[key] = fieldDef.options;
+            }
+        } else if (fieldDef?.options) {
+            filterOptionsCache[key] = fieldDef.options;
+        }
+    }
+};
+
 const getFilterOptions = (key) => {
     if (key === 'project') {
         return projectsStore.projects.map(p => ({ label: p.name, value: p.slug }));
     }
 
-    if (!config.value || !config.value.fields) return [];
-    
-    // First try to find options in field config
-    const fieldDef = config.value.fields.find(f => f.name === key);
-    if (fieldDef && fieldDef.options && Array.isArray(fieldDef.options)) {
-        return fieldDef.options.map(opt => typeof opt === 'string' ? { label: opt, value: opt } : opt);
+    // Use cached values from distinct API or static options
+    if (filterOptionsCache[key]?.length) {
+        return filterOptionsCache[key].map(opt => typeof opt === 'string' ? { label: opt, value: opt } : opt);
     }
-    
-    // Fallback: extract unique values from current items
+
+    if (!config.value || !config.value.fields) return [];
+
+    // Fallback: extract unique values from current items (handles arrays)
     const uniqueValues = new Set();
     items.value.forEach(item => {
-        if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
-            uniqueValues.add(item[key]);
+        const val = item[key];
+        if (Array.isArray(val)) {
+            val.forEach(v => { if (v != null && v !== '') uniqueValues.add(v); });
+        } else if (val !== undefined && val !== null && val !== '') {
+            uniqueValues.add(val);
         }
     });
     return Array.from(uniqueValues).sort().map(val => ({ label: val, value: val }));
@@ -673,6 +700,7 @@ const loadConfig = async () => {
         if (config.value.admin?.filters?.includes('project')) {
             await projectsStore.fetchProjects(); // Ensure projects are loaded
         }
+        await loadFilterOptions(); // Load dynamic filter options from distinct API
         await loadData(); // Load table data immediately
     }
 };

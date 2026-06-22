@@ -55,9 +55,9 @@
         </div>
 
         <!-- Addons -->
-        <div v-if="selectedOffering.addons?.length" class="offering-addons">
+        <div v-if="resolvedAddons.length" class="offering-addons">
           <p class="addons-title">Zusatzoptionen:</p>
-          <div v-for="addon in selectedOffering.addons" :key="addon.name">
+          <div v-for="addon in resolvedAddons" :key="addon.slug">
             <wa-checkbox
               class="addon-checkbox"
               :checked="isAddonSelected(addon.name)"
@@ -89,6 +89,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const options = ref([]);
 const treeMap = ref({});
+const addonMap = ref({});
 const loading = ref(false);
 
 const updateValue = (val) => {
@@ -105,6 +106,15 @@ const normalizedValue = computed(() => {
 const selectedOffering = computed(() => {
     if (!props.modelValue) return null;
     return options.value.find(item => item.slug === normalizedValue.value || item._id === normalizedValue.value) || null;
+});
+
+// Resolve addon slugs to full objects for the selected offering
+const resolvedAddons = computed(() => {
+    const o = selectedOffering.value;
+    if (!o || !Array.isArray(o.addons)) return [];
+    return o.addons
+        .map(slug => addonMap.value[slug])
+        .filter(Boolean);
 });
 
 const cardImageStyle = computed(() => {
@@ -143,18 +153,26 @@ const loadData = async () => {
     const endpoint = props.field.reference || '/api/v1/offerings';
     loading.value = true;
     try {
-        const [data, treeData] = await Promise.all([
+        const [data, treeData, addonData] = await Promise.all([
             api.get(endpoint),
-            api.get('/api/v1/trees')
+            api.get('/api/v1/trees'),
+            api.get('/api/v1/addons')
         ]);
         options.value = Array.isArray(data) ? data : (data.items || Object.values(data).find(v => Array.isArray(v)) || []);
         // Build slug → tree map for image resolution
         const trees = Array.isArray(treeData) ? treeData : (treeData.items || []);
-        const map = {};
+        const tMap = {};
         for (const t of trees) {
-            if (t.slug) map[t.slug] = t;
+            if (t.slug) tMap[t.slug] = t;
         }
-        treeMap.value = map;
+        treeMap.value = tMap;
+        // Build slug → addon map for name/description resolution
+        const addons = Array.isArray(addonData) ? addonData : (addonData.items || []);
+        const aMap = {};
+        for (const a of addons) {
+            if (a.slug) aMap[a.slug] = a;
+        }
+        addonMap.value = aMap;
     } catch (err) {
         console.error('Failed to load offerings:', err);
     } finally {

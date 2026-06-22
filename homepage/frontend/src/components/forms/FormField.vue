@@ -173,6 +173,18 @@
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
     </div>
 
+    <!-- Addon Selector -->
+    <div v-else-if="field.type === 'AddonSelector'" class="form-group">
+      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
+      <p v-if="field.description" class="form-hint" style="margin-bottom: var(--space-sm);">{{ field.description }}</p>
+      <AddonSelector
+        :modelValue="modelValue || []"
+        :context="context"
+        @update:modelValue="updateValue($event)"
+      />
+      <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
+    </div>
+
     <!-- File (for direct uploads) -->
     <div v-else-if="field.type === 'File'" class="form-group">
       <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
@@ -291,6 +303,7 @@ import { api } from '../../services/api.js';
 import RichTextEditor from './RichTextEditor.vue';
 import HtmlEditor from './HtmlEditor.vue';
 import MediaSelector from './MediaSelector.vue';
+import AddonSelector from './AddonSelector.vue';
 import RelationSelector from './RelationSelector.vue';
 import OfferingSelector from './OfferingSelector.vue';
 import TagsInput from './TagsInput.vue';

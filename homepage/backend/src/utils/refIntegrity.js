@@ -25,6 +25,9 @@ const SOFT_REFS = {
         { model: 'Page', field: 'image' },
         { model: 'Tree', field: 'image' },
     ],
+    'Addon': [
+        { model: 'Offering', field: 'addons' },
+    ],
 };
 
 /**

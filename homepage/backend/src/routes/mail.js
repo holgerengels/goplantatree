@@ -1,5 +1,6 @@
 import express from 'express';
 import MailLog from '../models/MailLog.js';
+import Campaign from '../models/Campaign.js';
 import Subscriber from '../models/Subscriber.js';
 import { sendMail, verifyConnection, getAccountKeys, getRateLimitConfig, getTransporter, getAccountConfig } from '../utils/mailService.js';
 import { checkBounces } from '../utils/bounceChecker.js';
@@ -11,8 +12,8 @@ const router = express.Router();
 // All mail routes require admin authentication
 router.use(auth, requirePermission('mail', 'read'));
 
-// ─── Active campaigns (in-memory, survives within process lifetime) ───────
-const activeCampaigns = new Map();
+// Track which campaigns are actively being processed in this process
+const runningCampaigns = new Set();
 
 /**
  * Generate a human-readable campaign ID.
@@ -145,6 +146,34 @@ router.post('/check-bounces/:account', requirePermission('mail', 'create'), asyn
     }
 });
 
+/**
+ * POST /api/v1/mail/check-bounces
+ * Check ALL configured accounts for bounces.
+ */
+router.post('/check-bounces', requirePermission('mail', 'create'), async (req, res, next) => {
+    try {
+        const accounts = getAccountKeys();
+        const combined = { checked: 0, bounced: 0, details: [] };
+        const errors = [];
+
+        for (const account of accounts) {
+            try {
+                const result = await checkBounces(account);
+                combined.checked += result.checked;
+                combined.bounced += result.bounced;
+                combined.details.push(...result.details);
+            } catch (err) {
+                errors.push({ account, error: err.message });
+            }
+        }
+
+        if (errors.length > 0) combined.errors = errors;
+        res.json(combined);
+    } catch (err) {
+        next(err);
+    }
+});
+
 // ─── Campaign-based newsletter sending ───────────────────────────────────
 
 /**
@@ -161,66 +190,55 @@ router.post('/check-bounces/:account', requirePermission('mail', 'create'), asyn
  * @param {String} html - HTML template
  * @param {String} [text] - Plain text template
  */
-async function processCampaignQueue(campaignId, account, subject, html, text) {
-    const campaign = activeCampaigns.get(campaignId);
+async function processCampaignQueue(campaignId) {
+    const campaign = await Campaign.findOne({ campaignId });
     if (!campaign) return;
 
+    runningCampaigns.add(campaignId);
+
+    const { account, subjectTemplate: subject, htmlTemplate: html, textTemplate: text } = campaign;
     const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
     const { rateLimitMs, maxPerHour } = getRateLimitConfig();
 
-    campaign.status = 'sending';
-    campaign.startedAt = campaign.startedAt || new Date();
+    await Campaign.updateOne({ campaignId }, { status: 'sending' });
 
     let sentThisWindow = 0;
     let windowStart = Date.now();
 
-    const resetWindowIfNeeded = async () => {
-        const elapsed = Date.now() - windowStart;
-        if (elapsed >= 3600000) {
-            // New hour window
-            sentThisWindow = 0;
-            windowStart = Date.now();
-        } else if (sentThisWindow >= maxPerHour) {
-            // Hit hourly limit — wait until next window
-            const waitMs = 3600000 - elapsed + 1000;
-            console.log(`[Campaign ${campaignId}] Rate limit reached (${maxPerHour}/h). Pausing for ${Math.ceil(waitMs / 60000)} min …`);
-            campaign.status = 'rate-limited';
-            await new Promise(resolve => setTimeout(resolve, waitMs));
-            sentThisWindow = 0;
-            windowStart = Date.now();
-            campaign.status = 'sending';
-        }
-    };
-
     try {
-        // Process loop: fetch queued entries one by one
         while (true) {
-            // Check for abort
-            const currentCampaign = activeCampaigns.get(campaignId);
-            if (!currentCampaign || currentCampaign.aborted) {
-                console.log(`[Campaign ${campaignId}] Aborted.`);
-                campaign.status = 'aborted';
+            // Check if aborted (re-read from DB to catch external abort)
+            const freshCampaign = await Campaign.findOne({ campaignId }, { status: 1 }).lean();
+            if (freshCampaign?.status === 'aborted') {
+                console.log(`[Campaign ${campaignId}] Aborted by user.`);
                 break;
             }
 
-            // Rate limit check
-            await resetWindowIfNeeded();
+            // Rate limit: wait until next window if we've sent enough this hour
+            if (sentThisWindow >= maxPerHour) {
+                await Campaign.updateOne({ campaignId }, { status: 'rate-limited' });
+                const elapsed = Date.now() - windowStart;
+                const waitMs = Math.max(0, 3600000 - elapsed);
+                console.log(`[Campaign ${campaignId}] Rate limit reached (${sentThisWindow}/${maxPerHour}). Waiting ${Math.round(waitMs / 1000)}s.`);
+                await new Promise(resolve => setTimeout(resolve, waitMs));
+                sentThisWindow = 0;
+                windowStart = Date.now();
+                await Campaign.updateOne({ campaignId }, { status: 'sending' });
+            }
 
             // Fetch next queued entry
             const logEntry = await MailLog.findOne({ campaignId, status: 'queued' });
             if (!logEntry) {
                 console.log(`[Campaign ${campaignId}] All mails processed.`);
-                campaign.status = 'completed';
                 break;
             }
 
-            // Load subscriber for template rendering
             const subscriber = await Subscriber.findById(logEntry.referenceId).lean();
             if (!subscriber) {
                 logEntry.status = 'failed';
                 logEntry.error = 'Subscriber not found';
                 await logEntry.save();
-                campaign.failed++;
+                await Campaign.updateOne({ campaignId }, { $inc: { failed: 1 } });
                 continue;
             }
 
@@ -240,38 +258,50 @@ async function processCampaignQueue(campaignId, account, subject, html, text) {
                 logEntry.sentAt = new Date();
                 logEntry.smtpResponse = info.response;
                 await logEntry.save();
-                campaign.sent++;
+                await Campaign.updateOne({ campaignId }, { $inc: { sent: 1 } });
                 sentThisWindow++;
             } catch (smtpErr) {
                 logEntry.status = 'failed';
                 logEntry.error = smtpErr.message;
                 await logEntry.save();
-                campaign.failed++;
-                campaign.errors.push({ email: subscriber.email, error: smtpErr.message });
+                await Campaign.updateOne({ campaignId }, {
+                    $inc: { failed: 1 },
+                    $push: { errors: { $each: [{ email: subscriber.email, error: smtpErr.message }], $slice: -50 } }
+                });
+
+                if (/\b55[0134]\b/.test(smtpErr.message)) {
+                    try {
+                        const sub = await Subscriber.findById(subscriber._id);
+                        if (sub && !sub.status.includes('bounced')) {
+                            sub.status.push('bounced');
+                            await sub.save();
+                        }
+                    } catch { /* ignore */ }
+                }
             }
 
-            // Progress logging every 50 mails
-            const processed = campaign.sent + campaign.failed;
-            if (processed % 50 === 0) {
-                console.log(`[Campaign ${campaignId}] Progress: ${processed}/${campaign.total} (${campaign.sent} sent, ${campaign.failed} failed)`);
-            }
-
-            // Rate limiting delay
             await new Promise(resolve => setTimeout(resolve, rateLimitMs));
         }
     } catch (err) {
         console.error(`[Campaign ${campaignId}] Unexpected error:`, err.message);
-        campaign.status = 'error';
-        campaign.errors.push({ email: '(system)', error: err.message });
+        await Campaign.updateOne({ campaignId }, {
+            status: 'error',
+            $push: { errors: { $each: [{ email: '(system)', error: err.message }], $slice: -50 } }
+        });
+    } finally {
+        const final = await Campaign.findOne({ campaignId }, { status: 1 }).lean();
+        if (final?.status === 'sending') {
+            await Campaign.updateOne({ campaignId }, { status: 'completed', completedAt: new Date() });
+        } else if (final?.status !== 'error') {
+            await Campaign.updateOne({ campaignId }, { completedAt: new Date() });
+        }
+        runningCampaigns.delete(campaignId);
+        console.log(`[Campaign ${campaignId}] Finished.`);
     }
-
-    campaign.completedAt = new Date();
-    console.log(`[Campaign ${campaignId}] Finished: ${campaign.sent} sent, ${campaign.failed} failed, status: ${campaign.status}`);
 }
 
 /**
  * Send a mail directly via SMTP without creating a new MailLog entry.
- * Used by the campaign processor which manages its own log entries.
  */
 function sendMailDirect(accountKey, options) {
     const config = getAccountConfig(accountKey);
@@ -303,7 +333,7 @@ function sendMailDirect(accountKey, options) {
  */
 router.post('/send-newsletter', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
-        const { account, project, topic, subject, html, text } = req.body;
+        const { account, project, topic, excludeTopic, subject, html, text } = req.body;
 
         // Validate required fields
         if (!account || !subject || !html) {
@@ -322,7 +352,13 @@ router.post('/send-newsletter', requirePermission('mail', 'create'), async (req,
             status: { $all: ['confirmed'], $nin: ['bounced', 'unsubscribed'] }
         };
         if (project) subscriberFilter.project = project;
-        if (topic) subscriberFilter.topics = topic;
+        if (topic && excludeTopic) {
+            subscriberFilter.topics = { $in: [topic], $nin: [excludeTopic] };
+        } else if (topic) {
+            subscriberFilter.topics = topic;
+        } else if (excludeTopic) {
+            subscriberFilter.topics = { $nin: [excludeTopic] };
+        }
 
         const subscribers = await Subscriber.find(subscriberFilter).lean();
         if (subscribers.length === 0) {
@@ -365,28 +401,24 @@ router.post('/send-newsletter', requirePermission('mail', 'create'), async (req,
 
         await MailLog.insertMany(logEntries);
 
-        // Register campaign in memory
-        const campaign = {
+        // Create persistent campaign record
+        await Campaign.create({
             campaignId,
             account,
-            subject,
-            html,
-            text: text || null,
+            subjectTemplate: subject,
+            htmlTemplate: html,
+            textTemplate: text || null,
             project: project || null,
             topic: topic || null,
             total: toEnqueue.length,
             sent: 0,
             failed: 0,
             errors: [],
-            status: 'starting',
-            startedAt: new Date(),
-            completedAt: null,
-            aborted: false
-        };
-        activeCampaigns.set(campaignId, campaign);
+            status: 'starting'
+        });
 
         // Start background processing (fire and forget)
-        processCampaignQueue(campaignId, account, subject, html, text);
+        processCampaignQueue(campaignId);
 
         console.log(`[Campaign ${campaignId}] Created: ${toEnqueue.length} mails queued for account "${account}"`);
 
@@ -407,41 +439,28 @@ router.post('/send-newsletter', requirePermission('mail', 'create'), async (req,
  */
 router.get('/campaigns', async (req, res, next) => {
     try {
-        // Get campaigns from DB (aggregated from MailLog)
-        const campaigns = await MailLog.aggregate([
-            { $match: { campaignId: { $ne: null } } },
-            {
-                $group: {
-                    _id: '$campaignId',
-                    total: { $sum: 1 },
-                    sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
-                    failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-                    queued: { $sum: { $cond: [{ $eq: ['$status', 'queued'] }, 1, 0] } },
-                    bounced: { $sum: { $cond: [{ $eq: ['$status', 'bounced'] }, 1, 0] } },
-                    startedAt: { $min: '$createdAt' },
-                    lastActivity: { $max: '$updatedAt' }
-                }
-            },
-            { $sort: { startedAt: -1 } },
-            { $limit: 20 }
-        ]);
+        const campaigns = await Campaign.find()
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
 
-        // Enrich with in-memory status
-        const result = campaigns.map(c => {
-            const active = activeCampaigns.get(c._id);
+        // Enrich with queued counts from MailLog
+        const result = await Promise.all(campaigns.map(async (c) => {
+            const queued = await MailLog.countDocuments({ campaignId: c.campaignId, status: 'queued' });
+            const bounced = await MailLog.countDocuments({ campaignId: c.campaignId, status: 'bounced' });
             return {
-                campaignId: c._id,
+                campaignId: c.campaignId,
                 total: c.total,
                 sent: c.sent,
                 failed: c.failed,
-                queued: c.queued,
-                bounced: c.bounced,
+                queued,
+                bounced,
                 startedAt: c.startedAt,
-                lastActivity: c.lastActivity,
-                status: active?.status || (c.queued > 0 ? 'stopped' : 'completed'),
-                errors: active?.errors?.slice(-10) || []
+                lastActivity: c.updatedAt,
+                status: c.status,
+                errors: (c.errors || []).slice(-10)
             };
-        });
+        }));
 
         res.json(result);
     } catch (err) {
@@ -456,49 +475,26 @@ router.get('/campaigns', async (req, res, next) => {
 router.get('/campaigns/:id', async (req, res, next) => {
     try {
         const campaignId = req.params.id;
+        const campaign = await Campaign.findOne({ campaignId }).lean();
 
-        // Aggregate current state from DB (source of truth)
-        const [stats] = await MailLog.aggregate([
-            { $match: { campaignId } },
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: 1 },
-                    sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
-                    failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-                    queued: { $sum: { $cond: [{ $eq: ['$status', 'queued'] }, 1, 0] } },
-                    bounced: { $sum: { $cond: [{ $eq: ['$status', 'bounced'] }, 1, 0] } },
-                    startedAt: { $min: '$createdAt' },
-                    lastActivity: { $max: '$updatedAt' }
-                }
-            }
-        ]);
-
-        if (!stats) {
+        if (!campaign) {
             return res.status(404).json({ error: 'Campaign nicht gefunden.' });
         }
 
-        // Get last errors from DB
-        const failedEntries = await MailLog.find({ campaignId, status: 'failed' })
-            .sort({ updatedAt: -1 })
-            .limit(20)
-            .select('to error updatedAt')
-            .lean();
-
-        // In-memory status (if campaign is still active in this process)
-        const active = activeCampaigns.get(campaignId);
+        const queued = await MailLog.countDocuments({ campaignId, status: 'queued' });
+        const bounced = await MailLog.countDocuments({ campaignId, status: 'bounced' });
 
         res.json({
             campaignId,
-            total: stats.total,
-            sent: stats.sent,
-            failed: stats.failed,
-            queued: stats.queued,
-            bounced: stats.bounced,
-            startedAt: stats.startedAt,
-            lastActivity: stats.lastActivity,
-            status: active?.status || (stats.queued > 0 ? 'stopped' : 'completed'),
-            errors: failedEntries.map(e => ({ email: e.to, error: e.error }))
+            total: campaign.total,
+            sent: campaign.sent,
+            failed: campaign.failed,
+            queued,
+            bounced,
+            startedAt: campaign.startedAt,
+            lastActivity: campaign.updatedAt,
+            status: campaign.status,
+            errors: (campaign.errors || []).slice(-10)
         });
     } catch (err) {
         next(err);
@@ -507,60 +503,34 @@ router.get('/campaigns/:id', async (req, res, next) => {
 
 /**
  * POST /api/v1/mail/campaigns/:id/resume
- * Resume a stopped/aborted campaign by reprocessing queued entries.
- *
- * Body:
- *   account — Mail account key (required, in case server restarted and lost in-memory state)
- *   subject — Subject template (required)
- *   html    — HTML template (required)
- *   text    — (optional) Plain text template
+ * Resume a stopped/aborted campaign. All template data is read from the
+ * persisted Campaign document — no form fields needed.
  */
 router.post('/campaigns/:id/resume', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
         const campaignId = req.params.id;
-        const { account, subject, html, text } = req.body;
 
-        if (!account || !subject || !html) {
-            return res.status(400).json({ error: 'account, subject und html sind Pflichtfelder.' });
+        // Check if campaign is already running in this process
+        if (runningCampaigns.has(campaignId)) {
+            return res.status(409).json({ error: 'Campaign läuft bereits.' });
         }
 
-        // Check if campaign is already running
-        const existing = activeCampaigns.get(campaignId);
-        if (existing && existing.status === 'sending') {
-            return res.status(409).json({ error: 'Campaign läuft bereits.' });
+        const campaign = await Campaign.findOne({ campaignId });
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign nicht gefunden.' });
         }
 
         // Count remaining queued entries
         const queuedCount = await MailLog.countDocuments({ campaignId, status: 'queued' });
         if (queuedCount === 0) {
+            campaign.status = 'completed';
+            campaign.completedAt = new Date();
+            await campaign.save();
             return res.json({ campaignId, queued: 0, message: 'Keine ausstehenden Mails.' });
         }
 
-        // Get total count for progress tracking
-        const totalCount = await MailLog.countDocuments({ campaignId });
-        const sentCount = await MailLog.countDocuments({ campaignId, status: 'sent' });
-        const failedCount = await MailLog.countDocuments({ campaignId, status: 'failed' });
-
-        // Register campaign in memory
-        const campaign = {
-            campaignId,
-            account,
-            subject,
-            html,
-            text: text || null,
-            total: totalCount,
-            sent: sentCount,
-            failed: failedCount,
-            errors: [],
-            status: 'resuming',
-            startedAt: new Date(),
-            completedAt: null,
-            aborted: false
-        };
-        activeCampaigns.set(campaignId, campaign);
-
-        // Start background processing
-        processCampaignQueue(campaignId, account, subject, html, text);
+        // Start background processing (reads template from Campaign model)
+        processCampaignQueue(campaignId);
 
         console.log(`[Campaign ${campaignId}] Resumed: ${queuedCount} mails remaining`);
 
@@ -577,18 +547,56 @@ router.post('/campaigns/:id/resume', requirePermission('mail', 'create'), async 
 /**
  * POST /api/v1/mail/campaigns/:id/abort
  * Abort a running campaign. Already sent mails are kept.
+ * Works even after server restart since status is persisted.
  */
 router.post('/campaigns/:id/abort', requirePermission('mail', 'create'), async (req, res, next) => {
     try {
         const campaignId = req.params.id;
-        const campaign = activeCampaigns.get(campaignId);
 
-        if (!campaign) {
-            return res.status(404).json({ error: 'Keine aktive Campaign mit dieser ID.' });
+        const result = await Campaign.updateOne(
+            { campaignId, status: { $in: ['sending', 'rate-limited', 'starting'] } },
+            { status: 'aborted' }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Keine laufende Campaign mit dieser ID.' });
         }
 
-        campaign.aborted = true;
         res.json({ campaignId, message: 'Campaign wird abgebrochen. Bereits gesendete Mails bleiben erhalten.' });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * DELETE /api/v1/mail/campaigns/:id
+ * Delete a campaign and its MailLog entries.
+ * Only allowed for non-running campaigns.
+ */
+router.delete('/campaigns/:id', requirePermission('mail', 'create'), async (req, res, next) => {
+    try {
+        const campaignId = req.params.id;
+
+        // Don't allow deleting running campaigns
+        if (runningCampaigns.has(campaignId)) {
+            return res.status(409).json({ error: 'Campaign läuft noch und kann nicht gelöscht werden.' });
+        }
+
+        const campaign = await Campaign.findOne({ campaignId });
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign nicht gefunden.' });
+        }
+
+        if (['sending', 'rate-limited', 'starting'].includes(campaign.status)) {
+            return res.status(409).json({ error: 'Campaign läuft noch. Bitte erst abbrechen.' });
+        }
+
+        // Delete MailLog entries and campaign
+        const logResult = await MailLog.deleteMany({ campaignId });
+        await Campaign.deleteOne({ campaignId });
+
+        console.log(`[Campaign ${campaignId}] Deleted: ${logResult.deletedCount} log entries removed`);
+        res.json({ campaignId, deleted: true, logsRemoved: logResult.deletedCount });
     } catch (err) {
         next(err);
     }
