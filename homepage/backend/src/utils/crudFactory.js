@@ -7,6 +7,7 @@ import XLSX from 'xlsx';
 import multer from 'multer';
 import { auth, requirePermission, optionalAuth } from '../middleware/auth.js';
 import { findReferences, cascadeSlugUpdate } from './refIntegrity.js';
+import ChangeLog from '../models/ChangeLog.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = process.env.CONFIG_DIR || join(__dirname, '..', '..', '..', 'config');
@@ -67,6 +68,63 @@ const escapeCSV = (val) => {
         return '"' + str.replace(/"/g, '""') + '"';
     }
     return str;
+};
+
+/** Fields to strip from changelog snapshots (sensitive or binary) */
+const SANITIZE_KEYS = ['passwordHash', 'data', '__v'];
+
+/**
+ * Remove sensitive / binary fields from a document snapshot for logging.
+ */
+const sanitizeForLog = (doc) => {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+    for (const key of SANITIZE_KEYS) {
+        delete obj[key];
+    }
+    // Strip binary variant data from Media documents
+    if (obj.variants && typeof obj.variants === 'object') {
+        const cleaned = {};
+        for (const [k, v] of Object.entries(obj.variants)) {
+            if (v && typeof v === 'object') {
+                const { data: _data, ...rest } = v;
+                cleaned[k] = rest;
+            } else {
+                cleaned[k] = v;
+            }
+        }
+        obj.variants = cleaned;
+    }
+    return obj;
+};
+
+/**
+ * Compute a shallow diff between two plain objects.
+ * Returns { field: { from, to } } for changed top-level keys.
+ */
+export const computeDiff = (before, after) => {
+    if (!before || !after) return null;
+    const diff = {};
+    const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    for (const key of allKeys) {
+        if (SANITIZE_KEYS.includes(key)) continue;
+        if (key === '_id' || key === '__v') continue;
+        const bVal = JSON.stringify(before[key] ?? null);
+        const aVal = JSON.stringify(after[key] ?? null);
+        if (bVal !== aVal) {
+            diff[key] = { from: before[key] ?? null, to: after[key] ?? null };
+        }
+    }
+    return Object.keys(diff).length ? diff : null;
+};
+
+/**
+ * Fire-and-forget changelog entry creation.
+ */
+const logChange = (entry) => {
+    ChangeLog.create(entry).catch(err => {
+        console.error('[ChangeLog] Failed to write log entry:', err.message);
+    });
 };
 
 /**
@@ -432,6 +490,18 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                     const item = new Model(data);
                     await item.save();
                     stats.imported++;
+
+                    // Changelog: log import create
+                    logChange({
+                        user: req.user?.username || 'system',
+                        resource: resourceName,
+                        action: 'create',
+                        documentId: item._id.toString(),
+                        documentSlug: item.slug || null,
+                        before: null,
+                        after: sanitizeForLog(item),
+                        metadata: { source: 'import', filename: req.file?.originalname || null }
+                    });
                 } catch (err) {
                     if (err.code === 11000) {
                         stats.skipped++;
@@ -493,6 +563,20 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 
                 await item.save();
 
+                // Changelog: log create
+                const afterSnap = sanitizeForLog(item);
+                const meta = publicCreate ? { source: 'public', ip: req.ip } : null;
+                logChange({
+                    user: req.user?.username || 'public',
+                    resource: resourceName,
+                    action: 'create',
+                    documentId: item._id.toString(),
+                    documentSlug: item.slug || null,
+                    before: null,
+                    after: afterSnap,
+                    metadata: meta
+                });
+
                 if (postCreate) {
                     const response = await postCreate(item, req);
                     if (response) return res.status(201).json(response);
@@ -525,22 +609,41 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                     req.body.project = req.user.project;
                 }
 
+                // Load old state BEFORE update for changelog
+                const oldDoc = await Model.findOne(queryObj);
+                if (!oldDoc) return res.status(404).json({ error: 'Eintrag nicht gefunden oder keine Berechtigung' });
+                const beforeSnap = sanitizeForLog(oldDoc);
+
                 // Check if slug is changing and cascade update references
+                let cascadeResult = null;
                 if (refIntegrityModel && lookupField === 'slug' && req.body.slug) {
-                    const existing = await Model.findOne(queryObj);
-                    if (existing && existing.slug !== req.body.slug) {
-                        const cascadeResult = await cascadeSlugUpdate(refIntegrityModel, existing.slug, req.body.slug);
-                        // Store cascade info for response
-                        req._cascadeResult = cascadeResult;
+                    if (oldDoc.slug !== req.body.slug) {
+                        cascadeResult = await cascadeSlugUpdate(refIntegrityModel, oldDoc.slug, req.body.slug);
                     }
                 }
 
                 const item = await Model.findOneAndUpdate(queryObj, req.body, { new: true, runValidators: true });
                 if (!item) return res.status(404).json({ error: 'Eintrag nicht gefunden oder keine Berechtigung' });
+
+                // Changelog: log update
+                const afterSnap = sanitizeForLog(item);
+                const diff = computeDiff(beforeSnap, afterSnap);
+                const meta = cascadeResult?.totalUpdated > 0 ? { cascade: cascadeResult } : null;
+                logChange({
+                    user: req.user?.username || 'system',
+                    resource: resourceName,
+                    action: 'update',
+                    documentId: item._id.toString(),
+                    documentSlug: item.slug || null,
+                    before: beforeSnap,
+                    after: afterSnap,
+                    diff,
+                    metadata: meta
+                });
                 
                 const response = item.toObject();
-                if (req._cascadeResult?.totalUpdated > 0) {
-                    response._cascade = req._cascadeResult;
+                if (cascadeResult?.totalUpdated > 0) {
+                    response._cascade = cascadeResult;
                 }
                 res.json(response);
             } catch (err) {
@@ -572,11 +675,13 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                     }
                 }
 
+                // Load items BEFORE delete for changelog
+                const itemsToDelete = await Model.find(queryObj);
+
                 // Check for existing references before deleting
                 if (refIntegrityModel && req.query.force !== 'true') {
-                    const items = await Model.find(queryObj);
                     const referencedItems = [];
-                    for (const item of items) {
+                    for (const item of itemsToDelete) {
                         const slug = item.slug || item._id.toString();
                         const refs = await findReferences(refIntegrityModel, slug);
                         if (refs.count > 0) {
@@ -597,6 +702,21 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 }
 
                 const result = await Model.deleteMany(queryObj);
+
+                // Changelog: log each deleted item individually
+                for (const item of itemsToDelete) {
+                    logChange({
+                        user: req.user?.username || 'system',
+                        resource: resourceName,
+                        action: 'delete',
+                        documentId: item._id.toString(),
+                        documentSlug: item.slug || null,
+                        before: sanitizeForLog(item),
+                        after: null,
+                        metadata: { source: 'bulk' }
+                    });
+                }
+
                 res.json({ message: `${result.deletedCount} Einträge gelöscht` });
             } catch (err) {
                 next(err);
@@ -628,6 +748,18 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 }
 
                 await Model.findOneAndDelete(queryObj);
+
+                // Changelog: log delete
+                logChange({
+                    user: req.user?.username || 'system',
+                    resource: resourceName,
+                    action: 'delete',
+                    documentId: item._id.toString(),
+                    documentSlug: item.slug || null,
+                    before: sanitizeForLog(item),
+                    after: null
+                });
+
                 res.json({ message: 'Eintrag gelöscht' });
             } catch (err) {
                 next(err);

@@ -24,6 +24,7 @@ import configRoutes from './src/routes/config.js';
 import mediaRoutes from './src/routes/media.js';
 import mailRoutes from './src/routes/mail.js';
 import mailTemplateRoutes from './src/routes/mailTemplates.js';
+import changelogRoutes from './src/routes/changelog.js';
 
 dotenv.config();
 
@@ -103,6 +104,7 @@ app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/mail', mailRoutes);
 app.use('/api/v1/mail-templates', mailTemplateRoutes);
+app.use('/api/v1/changelog', changelogRoutes);
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

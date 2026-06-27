@@ -1,0 +1,42 @@
+{
+    "entity": "changelog",
+    "slug": "aenderungslog",
+    "menuOrder": 95,
+    "api": "/api/v1/changelog",
+    "label": {
+        "singular": "Änderung",
+        "plural": "Änderungslog"
+    },
+    "icon": "History",
+    "adminOnly": true,
+    "admin": {
+        "filters": [
+            "resource",
+            "action"
+        ],
+        "columns": [
+            {
+                "key": "timestamp",
+                "label": "Zeitpunkt",
+                "type": "date"
+            },
+            {
+                "key": "user",
+                "label": "Benutzer"
+            },
+            {
+                "key": "resource",
+                "label": "Ressource"
+            },
+            {
+                "key": "action",
+                "label": "Aktion"
+            },
+            {
+                "key": "documentSlug",
+                "label": "Bezeichnung"
+            }
+        ]
+    },
+    "resource": "changelog"
+}
