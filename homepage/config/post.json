@@ -13,7 +13,7 @@
             "headline": "title",
             "description": "excerpt",
             "articleBody": "content",
-            "image": "image.url",
+            "image": "image",
             "datePublished": "publishedAt",
             "author": "author"
         }

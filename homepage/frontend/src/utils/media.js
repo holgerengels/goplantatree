@@ -45,9 +45,7 @@ export function buildCaption(media) {
 }
 
 export function mediaUrl(slug) {
-    if (!slug) return null;
-    if (typeof slug === 'object' && slug.url) return slug.url;
-    if (typeof slug !== 'string') return null;
+    if (!slug || typeof slug !== 'string') return null;
     return `/api/v1/media/by-slug/${slug}/file`;
 }
 

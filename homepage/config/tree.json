@@ -12,7 +12,7 @@
         "mapping": {
             "headline": "name",
             "description": "description",
-            "image": "image.url"
+            "image": "image"
         }
     },
     "icon": "TreePine",

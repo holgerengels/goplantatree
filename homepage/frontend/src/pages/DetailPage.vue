@@ -188,7 +188,10 @@ useJsonLd(() => {
         for (const [ldKey, itemPath] of Object.entries(config.value.jsonld.mapping)) {
             const val = resolvePath(item.value, itemPath);
             if (val) {
-                if (typeof val === 'string' && val.startsWith('/')) {
+                // Media slug → full URL for image fields
+                if (ldKey === 'image' && typeof val === 'string' && !val.startsWith('http') && !val.startsWith('/')) {
+                    ld[ldKey] = `${window.location.origin}/api/v1/media/by-slug/${val}/file`;
+                } else if (typeof val === 'string' && val.startsWith('/')) {
                     ld[ldKey] = window.location.origin + val;
                 } else {
                     ld[ldKey] = val;

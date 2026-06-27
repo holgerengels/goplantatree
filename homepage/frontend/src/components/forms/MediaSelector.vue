@@ -144,12 +144,10 @@ const handleLicenseInput = (targetObj, value) => {
   }
 };
 
-// Resolve preview URL
+// Resolve preview URL from loaded media details
 const previewUrl = computed(() => {
-  if (!props.modelValue) return null;
-  const url = (typeof props.modelValue === 'object' && props.modelValue.url) ? props.modelValue.url
-    : (mediaDetails.value && mediaDetails.value.url) ? mediaDetails.value.url : null;
-  return url ? url + '?v=small' : null;
+  if (!props.modelValue || !mediaDetails.value?.url) return null;
+  return mediaDetails.value.url + '?v=small';
 });
 
 // Fetch details from slug
