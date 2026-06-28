@@ -40,6 +40,22 @@
       </wa-option>
     </wa-select>
 
+    <!-- Radio Group -->
+    <wa-radio-group
+      v-else-if="field.type === 'Radio'"
+      :label="field.label"
+      :value="modelValue || ''"
+      :name="field.name"
+      :required="field.required === true"
+      :hint="field.hint"
+      orientation="horizontal"
+      @change="updateValue($event.target.value)"
+    >
+      <wa-radio v-for="opt in resolvedOptions" :key="opt.value" :value="opt.value">
+        {{ opt.label }}
+      </wa-radio>
+    </wa-radio-group>
+
     <!-- Relation -->
     <RelationSelector
       v-else-if="field.type === 'Relation'"
@@ -280,6 +296,9 @@
       </div>
       <span v-if="field.hint" class="form-hint">{{ field.hint }}</span>
     </div>
+
+    <!-- Content Block (static HTML, no input) -->
+    <div v-else-if="field.type === 'Content'" class="form-content-block" v-html="field.content"></div>
 
     <!-- Default: Text -->
     <wa-input
@@ -637,5 +656,6 @@ const getObjectArrayFieldStyle = (subField, fieldDef) => {
     background: var(--color-primary-50, rgba(46, 86, 65, 0.08));
     color: var(--color-primary-dark);
 }
+
 
 </style>

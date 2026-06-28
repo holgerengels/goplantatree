@@ -57,8 +57,8 @@ const treeMap = ref({});
 const projectSlug = ref('');
 
 const imageStyle = (offering) => {
-    const url = mediaUrl(offering.image)
-        || mediaUrl(treeMap.value[offering.tree]?.image);
+    const url = mediaUrl(offering.image, 'small')
+        || mediaUrl(treeMap.value[offering.tree]?.image, 'small');
     if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(offering.category) };
 };

@@ -33,6 +33,7 @@
               <li>Wähle deinen Wunschbaum</li>
               <li>Du erhältst eine Bestätigungs-E-Mail</li>
               <li>Hole deinen Baum am Ausgabetermin ab</li>
+              <li>Pflanze ihn am besten noch am selben Tag ein</li>
             </ol>
             <div v-if="timeline.length" class="order-timeline">
               <div

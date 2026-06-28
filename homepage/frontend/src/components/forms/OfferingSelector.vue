@@ -97,10 +97,10 @@ const updateValue = (val) => {
 };
 
 const normalizedValue = computed(() => {
-    if (props.modelValue && typeof props.modelValue === 'object' && props.modelValue._id) {
-        return props.modelValue._id;
-    }
-    return props.modelValue || '';
+    if (!props.modelValue) return '';
+    if (typeof props.modelValue === 'string') return props.modelValue;
+    // Denormalized offering object (from saved orders) or populated reference
+    return props.modelValue.slug || props.modelValue._id || '';
 });
 
 const selectedOffering = computed(() => {
@@ -120,7 +120,7 @@ const resolvedAddons = computed(() => {
 const cardImageStyle = computed(() => {
     const o = selectedOffering.value;
     if (!o) return {};
-    const url = mediaUrl(o.image) || mediaUrl(treeMap.value[o.tree]?.image);
+    const url = mediaUrl(o.image, 'thumb') || mediaUrl(treeMap.value[o.tree]?.image, 'thumb');
     if (url) return { backgroundImage: `url(${url})` };
     return { background: getCategoryGradient(o.category) };
 });

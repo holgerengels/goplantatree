@@ -115,7 +115,7 @@ watch(() => item.value?.image, async (imageSlug) => {
             const info = await api.get(`/media/by-slug/${imageSlug}/info`);
             imageData.value = {
                 ...info,
-                fileUrl: `/api/v1/media/by-slug/${imageSlug}/file`
+                fileUrl: `/api/v1/media/by-slug/${imageSlug}/file?v=medium`
             };
         } catch {
             // Media not found — graceful fallback

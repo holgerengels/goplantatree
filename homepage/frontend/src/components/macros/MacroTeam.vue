@@ -5,7 +5,7 @@
     </div>
     <div class="team-grid">
       <div v-for="member in sortedMembers" :key="member.name" class="team-card card">
-        <img v-if="member.avatar && member.avatar.url" :src="member.avatar.url + '?v=thumb'" :alt="member.name" class="team-avatar team-avatar-img" />
+        <img v-if="member.avatar" :src="mediaUrl(member.avatar.slug || member.avatar, 'thumb')" :alt="member.name" class="team-avatar team-avatar-img" />
         <div v-else class="team-avatar">{{ member.name.charAt(0) }}</div>
         <div class="team-info">
           <h4>{{ member.name }}</h4>
@@ -19,6 +19,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useProjectContent } from '../../composables/useProjectContent.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     project: { type: String, required: true },

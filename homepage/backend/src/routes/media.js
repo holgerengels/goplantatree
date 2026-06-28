@@ -87,9 +87,22 @@ router.get('/:id', auth, requirePermission('media', 'read'), async (req, res) =>
 // GET /api/v1/media/by-slug/:slug/file — Public: Serve media file by slug
 router.get('/by-slug/:slug/file', async (req, res) => {
     try {
-        const media = await Media.findOne({ slug: req.params.slug });
-        if (!media || !media.data) return res.status(404).send('Not found');
-        
+        const variant = req.query.v;
+        let fields = 'slug data mimeType';
+        if (variant) fields += ` variants.${variant}`;
+
+        const media = await Media.findOne({ slug: req.params.slug }).select(fields);
+        if (!media) return res.status(404).send('Not found');
+
+        // Serve variant if requested and available
+        if (variant && media.variants?.get(variant)) {
+            const v = media.variants.get(variant);
+            res.set('Content-Type', v.mimeType);
+            res.set('Cache-Control', 'public, max-age=31536000');
+            return res.send(v.data);
+        }
+
+        if (!media.data) return res.status(404).send('Not found');
         res.set('Content-Type', media.mimeType);
         res.set('Cache-Control', 'public, max-age=31536000');
         res.send(media.data);

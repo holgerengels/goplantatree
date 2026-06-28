@@ -44,8 +44,9 @@ export function buildCaption(media) {
     return '';
 }
 
-export function mediaUrl(slug) {
+export function mediaUrl(slug, variant) {
     if (!slug || typeof slug !== 'string') return null;
-    return `/api/v1/media/by-slug/${slug}/file`;
+    const base = `/api/v1/media/by-slug/${slug}/file`;
+    return variant ? `${base}?v=${variant}` : base;
 }
 

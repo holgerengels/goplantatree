@@ -40,7 +40,7 @@ const heroTitle = computed(() => homePage.value?.title || 'go plant a tree!');
 const heroSubtitle = computed(() => homePage.value?.heroSubtitle || 'Es gibt so viele Stellen, an denen man noch Bäume pflanzen könnte … es müsste nur jemand tun!');
 const heroImage = computed(() => {
     if (!homePage.value?.image) return undefined;
-    return `/api/v1/media/by-slug/${homePage.value.image}/file`;
+    return `/api/v1/media/by-slug/${homePage.value.image}/file?v=medium`;
 });
 
 useJsonLd(() => ({

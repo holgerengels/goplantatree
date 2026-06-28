@@ -81,12 +81,12 @@ const handleCopyFrom = ({ field, item }) => {
     }
 };
 
-// Auto re-validate if errors are showing
+// Auto re-validate if errors are showing (no scroll — user is editing)
 watch(() => props.modelValue, () => {
-    if (errors.value.length > 0) validate();
+    if (errors.value.length > 0) validate(false);
 }, { deep: true });
 
-const validate = () => {
+const validate = (scroll = true) => {
     const result = validateFields(
         props.modelValue,
         props.fields,
@@ -95,7 +95,7 @@ const validate = () => {
         props.action
     );
     errors.value = result.errors;
-    if (!result.isValid) {
+    if (!result.isValid && scroll) {
         nextTick(() => {
             errorBox.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
         });

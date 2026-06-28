@@ -401,7 +401,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
                 .send({
                     project: 'test-project',
                     offering: 'winterlinde',
-                    name: 'Schrebergärtner',
+                    name: 'Max Schrebergärtner',
                     email: 'schreber@example.com',
                     street: 'Schrebergartenanlage Rißhalde, Parzelle 12',
                     zip: '89073',

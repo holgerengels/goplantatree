@@ -29,7 +29,7 @@ const props = defineProps({
 });
 
 const imageStyle = computed(() => {
-    const url = mediaUrl(props.post.image);
+    const url = mediaUrl(props.post.image, 'small');
     if (url) {
         return { backgroundImage: `url(${url})` };
     }

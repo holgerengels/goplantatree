@@ -133,7 +133,7 @@ const filteredTrees = computed(() => {
 const countByCategory = (cat) => trees.value.filter(t => t.category === cat).length;
 
 const cardImageStyle = (tree) => {
-    const url = mediaUrl(tree.image);
+    const url = mediaUrl(tree.image, 'small');
     if (url) {
         return { backgroundImage: `url(${url})` };
     }

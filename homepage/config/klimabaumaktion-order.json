@@ -52,12 +52,16 @@
             "required": true
         },
         {
-            "name": "quantity",
-            "label": "Anzahl",
-            "type": "Integer",
-            "required": true,
-            "default": 1,
-            "visible": false
+            "name": "timeSlot",
+            "label": "Ausgabezeitraum",
+            "description": "Bitte wähle einen Zeitraum für die Abholung",
+            "type": "Radio",
+            "options": [
+                "09:00 - 11:00 Uhr",
+                "11:00 - 13:00 Uhr",
+                "13:00 - 15:00 Uhr"
+            ],
+            "required": true
         },
         {
             "name": "gardenType",
@@ -71,25 +75,69 @@
             ]
         },
         {
-            "name": "notes",
-            "label": "Anmerkungen",
-            "type": "Text"
-        },
-        {
-            "name": "agb",
-            "label": "Ich akzeptiere die Teilnahmebedingungen und verpflichte mich, den Baum im Stadtgebiet Ulm zu pflanzen.",
+            "name": "confirmation",
+            "label": "Ich nehme zur Kenntnis, dass mein Baum im Stadtkreis Ulm gepflanzt werden muss. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
             "type": "Boolean",
             "required": true
+        },
+        {
+            "name": "privacy",
+            "label": "Ich bin damit einverstanden, dass meine Daten zum Zwecke der Abwicklung der Klimabaumaktion gespeichert werden. Die Daten werden nicht an Dritte weitergegeben.",
+            "type": "Boolean",
+            "required": true
+        },
+        {
+            "name": "contact_header",
+            "type": "Content",
+            "content": "<h5>Wir benötigen deine Kontaktdaten ...</h5>"
+        },
+        {
+            "name": "address_header",
+            "type": "Content",
+            "content": "<h5>Wo soll der Baum gepflanzt werden?</h5>"
+        },
+        {
+            "name": "tree_header",
+            "type": "Content",
+            "content": "<h5>Welcher Baum soll es sein?</h5><p>Wenn du nicht sicher bist, welcher Baum für deinen Pflanzort geeignet ist, kannst du dich vom BUND Ulm telefonisch beraten lassen: <a href=\"tel:+4973166695\">0731 66695</a></p>"
+        },
+        {
+            "name": "delivery_header",
+            "type": "Content",
+            "content": "<h5>Wie kommt der Baum zu dir?</h5><p>Die Ausgabe der Bäume erfolgt am 7.11.26. Bitte wähle einen Zeitraum für die Abholung:</p>"
+        },
+        {
+            "name": "delivery_description",
+            "type": "Content",
+            "content": "<p>Wir müssen die Ausgabe über den Tag verteilen, damit keine zu langen Wartezeiten entstehen. Bitte versuche dich an die gewählte Zeit zu halten!</p><p>Die meisten Bäume passen in einen normalen PKW. Solltest du keine Möglichkeit haben, deinen Baum abzuholen, kann dieser auch geliefert werden. Unsere Kapazitäten hierfür sind jedoch begrenzt. Bitte wende dich dafür an die Geschäftsstelle des BUND Ulm (<a href=\"tel:+4973166695\">0731 66695</a>).</p><p>Wer das (kostenpflichtige) Angebot vom BUND Ulm wahrnehmen möchte, sich den Baum pflanzen zu lassen, vereinbart dafür einen Termin beim BUND.</p>"
+        },
+        {
+            "name": "agree_header",
+            "type": "Content",
+            "content": "<h5>Wir brauchen deine Zustimmung ...</h5>"
+        },
+        {
+            "name": "final_word",
+            "type": "Content",
+            "content": "<p>Bitte kümmere dich gut um deinen Baum und beachte, dass dein Baum zeitnah eingepflanzt werden sollte. Am besten noch am selben Tag. Eine detaillierte Pflanzanleitung bekommst von uns zur Übergabe zusammen mit deinem Baum.</p>"
         }
     ],
     "grid": [
+        "contact_header contact_header contact_header contact_header",
         "name name email email",
         "phone phone . .",
+        "address_header address_header address_header address_header",
         "street street specialAddress specialAddress",
         "zip zip city city",
-        "offering offering offering offering",
         "gardenType gardenType gardenType gardenType",
-        "notes notes notes notes",
-        "agb agb agb agb"
+        "tree_header tree_header tree_header tree_header",
+        "offering offering offering offering",
+        "delivery_header delivery_header delivery_header delivery_header",
+        "timeSlot timeSlot timeSlot timeSlot",
+        "delivery_description delivery_description delivery_description delivery_description",
+        "agree_header agree_header agree_header agree_header",
+        "confirmation confirmation confirmation confirmation",
+        "privacy privacy privacy privacy",
+        "final_word final_word final_word final_word"
     ]
 }

@@ -12,7 +12,7 @@
         rel="noopener"
         class="sponsor-card card"
       >
-        <img v-if="sponsor.logo && sponsor.logo.url" :src="sponsor.logo.url + '?v=thumb'" :alt="sponsor.name" class="sponsor-logo" />
+        <img v-if="sponsor.logo" :src="mediaUrl(sponsor.logo.slug || sponsor.logo, 'thumb')" :alt="sponsor.name" class="sponsor-logo" />
         <span class="sponsor-name">{{ sponsor.name }}</span>
       </a>
     </div>
@@ -21,6 +21,7 @@
 
 <script setup>
 import { useProjectContent } from '../../composables/useProjectContent.js';
+import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
     project: { type: String, required: true },

@@ -126,6 +126,8 @@ export function validateFields(data, fields, user = null, resource = '', action 
     for (const field of evaluated) {
         // Skip invisible fields
         if (field.visible === false) continue;
+        // Skip display-only content blocks
+        if (field.type === 'Content') continue;
         
         // Check required
         if (field.required === true) {

@@ -39,7 +39,25 @@ export default createCrudRouter(Order, 'orders', {
         return filter;
     },
     preCreate: async (data) => {
-        // 1. Structural PLZ check (German postal code must be exactly 5 digits)
+        // 1. Name must contain first and last name (at least two words)
+        if (data.name && data.name.trim().split(/\s+/).length < 2) {
+            const err = new mongoose.Error.ValidationError(null);
+            err.addError('name', new mongoose.Error.ValidatorError({
+                message: 'Bitte gib Vor- und Nachname an.'
+            }));
+            throw err;
+        }
+
+        // 2. Street must contain a house number
+        if (data.street && !data.specialAddress && !/\d/.test(data.street)) {
+            const err = new mongoose.Error.ValidationError(null);
+            err.addError('street', new mongoose.Error.ValidatorError({
+                message: 'Bitte gib auch die Hausnummer an.'
+            }));
+            throw err;
+        }
+
+        // 3. Structural PLZ check (German postal code must be exactly 5 digits)
         if (data.zip && !/^\d{5}$/.test(data.zip)) {
             const err = new mongoose.Error.ValidationError(null);
             err.addError('zip', new mongoose.Error.ValidatorError({
