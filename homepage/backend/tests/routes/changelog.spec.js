@@ -200,5 +200,90 @@ describe('ChangeLog Integration', () => {
             expect(res.status).toBe(200);
             expect(res.body).toHaveLength(2);
         });
+
+        it('should exclude before/after from list response', async () => {
+            const token = generateToken(adminPerms);
+
+            await ChangeLog.create({
+                user: 'admin',
+                resource: 'trees',
+                action: 'update',
+                documentId: 'id1',
+                before: { name: 'Old Name', category: 'Laubbaum' },
+                after: { name: 'New Name', category: 'Laubbaum' },
+                diff: { name: { from: 'Old Name', to: 'New Name' } }
+            });
+
+            const res = await request(app)
+                .get('/api/v1/changelog')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.items).toHaveLength(1);
+
+            const item = res.body.items[0];
+            // before and after should be excluded from list
+            expect(item.before).toBeUndefined();
+            expect(item.after).toBeUndefined();
+            // diff should still be present
+            expect(item.diff).toBeDefined();
+            expect(item.diff.name.from).toBe('Old Name');
+            expect(item.diff.name.to).toBe('New Name');
+        });
+
+        it('should include before/after in detail response', async () => {
+            const token = generateToken(adminPerms);
+
+            await ChangeLog.create({
+                user: 'admin',
+                resource: 'trees',
+                action: 'update',
+                documentId: 'detail-doc',
+                before: { name: 'Old Name' },
+                after: { name: 'New Name' },
+                diff: { name: { from: 'Old Name', to: 'New Name' } }
+            });
+
+            const res = await request(app)
+                .get('/api/v1/changelog/detail-doc')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveLength(1);
+
+            const entry = res.body[0];
+            // Detail response should include full data
+            expect(entry.before).toBeDefined();
+            expect(entry.before.name).toBe('Old Name');
+            expect(entry.after).toBeDefined();
+            expect(entry.after.name).toBe('New Name');
+        });
+
+        it('should return distinct values for a field', async () => {
+            const token = generateToken(adminPerms);
+
+            await ChangeLog.create([
+                { user: 'admin', resource: 'trees', action: 'create', documentId: 'id1' },
+                { user: 'admin', resource: 'orders', action: 'create', documentId: 'id2' },
+                { user: 'admin', resource: 'trees', action: 'update', documentId: 'id3' }
+            ]);
+
+            const res = await request(app)
+                .get('/api/v1/changelog/distinct/resource')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(['orders', 'trees']);
+        });
+
+        it('should reject invalid field names for distinct', async () => {
+            const token = generateToken(adminPerms);
+
+            const res = await request(app)
+                .get('/api/v1/changelog/distinct/$invalid')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(400);
+        });
     });
 });

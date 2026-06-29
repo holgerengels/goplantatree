@@ -14,8 +14,10 @@
       </div>
       <div class="timeline-content card">
         <span class="timeline-date badge badge-primary">{{ formatDate(item.date) }}</span>
-        <h4>{{ item.label }}</h4>
-        <p v-if="item.description">{{ item.description }}</p>
+        <div class="timeline-text">
+          <h4>{{ item.label }}</h4>
+          <p v-if="item.description">{{ item.description }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -91,7 +93,7 @@ defineProps({
 }
 
 .timeline-content {
-    padding: var(--space-lg) !important;
+    padding: var(--space-md) var(--space-lg) !important;
 }
 .timeline-content:hover {
     transform: none;
@@ -101,13 +103,27 @@ defineProps({
     margin-bottom: var(--space-sm);
 }
 
-.timeline-content h4 {
-    margin: var(--space-sm) 0 var(--space-xs);
+.timeline-text h4 {
+    margin: 0 0 var(--space-xs);
     color: var(--color-primary-dark);
 }
 
-.timeline-content p {
+.timeline-text p {
     font-size: var(--text-sm);
     margin: 0;
+}
+
+@media (min-width: 480px) {
+    .timeline-content {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-md);
+    }
+    .timeline-date {
+        margin-bottom: 0;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
 }
 </style>

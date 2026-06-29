@@ -5,6 +5,26 @@ import { auth, requirePermission } from '../middleware/auth.js';
 const router = Router();
 
 /**
+ * GET /api/v1/changelog/distinct/:field
+ * Distinct values for a field (for filter dropdowns).
+ */
+router.get('/distinct/:field', auth, requirePermission('changelog', 'read'), async (req, res, next) => {
+    try {
+        const field = req.params.field;
+        if (!/^[a-zA-Z_]+$/.test(field)) {
+            return res.status(400).json({ error: 'Ungültiger Feldname' });
+        }
+        const values = await ChangeLog.distinct(field);
+        const cleaned = values
+            .filter(v => v != null && v !== '')
+            .sort((a, b) => String(a).localeCompare(String(b)));
+        res.json(cleaned);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
  * GET /api/v1/changelog
  * Readonly, paginated changelog with filters.
  * Requires changelog:read permission.
@@ -31,6 +51,7 @@ router.get('/', auth, requirePermission('changelog', 'read'), async (req, res, n
 
         const [items, total] = await Promise.all([
             ChangeLog.find(filter)
+                .select('-before -after')
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limit),

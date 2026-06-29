@@ -15,7 +15,7 @@ import Timeline from '../common/Timeline.vue';
 const props = defineProps({
     project: { type: String, required: true },
     title: { type: String, default: 'Zeitstrahl' },
-    subtitle: { type: String, default: 'Von der Bestellung bis zur Ausgabe' }
+    subtitle: { type: String }
 });
 
 const timelineItems = useProjectContent(() => props.project, 'timeline');

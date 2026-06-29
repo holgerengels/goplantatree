@@ -40,6 +40,20 @@
             <span v-else class="nav-icon">{{ entity.icon }}</span>
             {{ entity.label.plural }}
           </router-link>
+
+          <!-- Changelog — separated at the bottom -->
+          <template v-if="changelogEntity">
+            <div class="sidebar-divider"></div>
+            <router-link
+              to="/admin/aenderungslog"
+              class="sidebar-link"
+              active-class="active"
+              @click="isSidebarOpen = false"
+            >
+              <component :is="icons.History" class="nav-icon" />
+              Änderungslog
+            </router-link>
+          </template>
         </nav>
 
         <div class="sidebar-footer">
@@ -77,9 +91,15 @@ const configStore = useConfigStore();
 
 const filteredEntities = computed(() => {
     return configStore.adminEntities.filter(entity => {
+        if (entity.slug === 'aenderungslog') return false; // shown separately below
         const resName = entity.resource || (entity.configName === 'media' ? 'media' : entity.configName + 's');
         return auth.hasPermission(resName, 'read');
     }).sort((a, b) => a.label.plural.localeCompare(b.label.plural));
+});
+
+const changelogEntity = computed(() => {
+    return configStore.adminEntities.find(e => e.slug === 'aenderungslog')
+        && auth.hasPermission('changelog', 'read');
 });
 
 const logout = () => {

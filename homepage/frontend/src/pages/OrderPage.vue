@@ -1,6 +1,6 @@
 <template>
   <div class="order-page">
-    <HeroSection title="Baum bestellen" :subtitle="project?.name || ''" height="35vh" badge="Kostenlos" />
+    <HeroSection :title="project?.name || ''" subtitle="Jeder Baum zählt ..." height="35vh"/>
 
     <section class="section">
       <div class="container">
@@ -41,7 +41,7 @@
                 :key="item.label"
                 :class="['timeline-entry', item.status]"
               >
-                <span class="tl-icon">{{ item.status === 'done' ? '✅' : item.status === 'active' ? '🔵' : '⏳' }}</span>
+                <span class="tl-icon">{{ item.status === 'done' ? '✅' : item.status === 'active' ? '🔵' : '⚪' }}</span>
                 <span class="tl-date">{{ formatDate(item.date) }}</span>
                 <span class="tl-label">{{ item.label }}</span>
               </div>

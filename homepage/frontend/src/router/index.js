@@ -68,6 +68,14 @@ const routes = [
         meta: { requiresAuth: true }
     },
 
+    // Admin — Changelog (dedicated read-only view)
+    {
+        path: '/admin/aenderungslog',
+        name: 'admin-changelog',
+        component: () => import('../pages/admin/ChangelogPage.vue'),
+        meta: { requiresAuth: true }
+    },
+
     // Admin — Generic entity editor
     {
         path: '/admin/:entity',
