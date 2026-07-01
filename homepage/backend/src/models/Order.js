@@ -30,7 +30,6 @@ const orderSchema = new mongoose.Schema({
     city: { type: String, required: [true, 'Stadt ist ein Pflichtfeld'] },
     specialAddress: { type: Boolean, default: false },
     quantity: { type: Number, required: [true, 'Anzahl ist ein Pflichtfeld'], default: 1 },
-    agb: { type: Boolean, required: [true, 'AGB müssen akzeptiert werden'] },
     selectedAddons: [{ type: String }],
     address: { type: String }
 }, {

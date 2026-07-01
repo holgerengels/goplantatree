@@ -22,7 +22,7 @@ const offeringSchema = new mongoose.Schema({
     available: { type: Boolean, default: true },
     stock: { type: Number, default: -1 },  // -1 = unlimited
     priceNet: { type: Number },
-    notice: { type: String },
+    notices: [{ type: String }],
     addons: [{ type: String }],  // Array of Addon slugs
     sortOrder: { type: Number, default: 0 }
 }, {

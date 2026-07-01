@@ -168,6 +168,7 @@ import * as icons from 'lucide-vue-next';
 import AdminLayout from '../../components/admin/AdminLayout.vue';
 import { useConfigStore } from '../../stores/config.js';
 import { api } from '../../services/api.js';
+import { formatDateTime } from '../../utils/format.js';
 
 const configStore = useConfigStore();
 
@@ -205,13 +206,7 @@ const objectLink = computed(() => {
   return `/admin/${entity.slug}`;
 });
 
-const formatDateTime = (d) => {
-  if (!d) return '';
-  return new Date(d).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-};
+
 
 const formatValue = (val) => {
   if (val === null || val === undefined) return '–';
@@ -266,6 +261,8 @@ const loadData = async () => {
     const params = new URLSearchParams();
     params.append('limit', pageSize);
     params.append('skip', (currentPage.value - 1) * pageSize);
+    params.append('sort', sortField.value);
+    params.append('sortDir', sortAsc.value ? 'asc' : 'desc');
 
     if (filterResource.value) params.append('resource', filterResource.value);
     if (filterAction.value) params.append('action', filterAction.value);
@@ -370,55 +367,8 @@ onMounted(() => {
   -webkit-overflow-scrolling: touch;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
 
-.data-table th {
-  text-align: left;
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-  padding: var(--space-sm);
-  border-bottom: 2px solid var(--color-border-light);
-  user-select: none;
-}
 
-.data-table th.sortable {
-  cursor: pointer;
-}
-
-.data-table th.sortable:hover {
-  color: var(--color-primary);
-}
-
-.sort-indicator {
-  font-size: var(--text-xs);
-  margin-left: 4px;
-}
-
-.data-table td {
-  padding: var(--space-sm);
-  border-bottom: 1px solid var(--color-border-light);
-  font-size: var(--text-sm);
-}
-
-.data-table tr {
-  cursor: pointer;
-}
-
-.data-table tr:hover {
-  background: var(--color-primary-50);
-}
-
-.cell-text {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .diff-summary {
   color: var(--color-text-muted);

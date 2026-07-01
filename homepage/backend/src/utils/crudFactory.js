@@ -150,6 +150,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
     const { 
         publicRead = false,
         publicCreate = false,
+        publicFields = null,
         lookupField = '_id', 
         buildFilter = () => ({}), 
         publishedField = null,
@@ -232,7 +233,8 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
                 // Server-side search: build $or across all string fields
                 if (req.query.search) {
-                    const searchRegex = new RegExp(req.query.search, 'i');
+                    const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const searchRegex = new RegExp(escaped, 'i');
                     const searchConditions = [];
                     for (const [path, schemaType] of Object.entries(Model.schema.paths)) {
                         if (schemaType.instance === 'String' && !path.startsWith('_')) {
@@ -254,6 +256,12 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 if (req.query.sort) {
                     const dir = req.query.sortDir === 'desc' ? -1 : 1;
                     effectiveSort = { [req.query.sort]: dir };
+                }
+
+                // Count-only mode: return just the total without loading documents
+                if (req.query.count === 'true') {
+                    const total = await Model.countDocuments(filter);
+                    return res.json({ total });
                 }
 
                 let query = Model.find(filter).sort(effectiveSort).collation({ locale: 'de', numericOrdering: true });
@@ -552,7 +560,14 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
         router.post('/', ...createMiddleware, async (req, res, next) => {
             try {
-                const data = { ...req.body };
+                let data = { ...req.body };
+
+                // Security: restrict fields on public endpoints to prevent arbitrary data injection
+                if (publicCreate && publicFields) {
+                    data = Object.fromEntries(
+                        Object.entries(data).filter(([k]) => publicFields.includes(k))
+                    );
+                }
                 if (!publicCreate && req.permissionScope === 'own' && req.user?.project) {
                     data.project = req.user.project;
                 }

@@ -1,10 +1,7 @@
 import { Router } from 'express';
-import { readFileSync, readdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CONFIG_DIR = process.env.CONFIG_DIR || join(__dirname, '..', '..', '..', 'config');
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { CONFIG_DIR } from '../utils/configLoader.js';
 
 const router = Router();
 

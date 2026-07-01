@@ -49,9 +49,11 @@
           </div>
         </div>
 
-        <!-- Notice -->
-        <div v-if="selectedOffering.notice" class="offering-notice">
-          ⚠️ {{ selectedOffering.notice }}
+        <!-- Notices -->
+        <div v-if="selectedOffering.notices && selectedOffering.notices.length" class="offering-notices">
+          <div v-for="(notice, i) in selectedOffering.notices" :key="i" class="offering-notice">
+            ⚠️ {{ notice }}
+          </div>
         </div>
 
         <!-- Addons -->
@@ -269,7 +271,13 @@ onMounted(loadData);
     margin-top: 2px;
 }
 
-/* Notice */
+/* Notices */
+.offering-notices {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .offering-notice {
     padding: var(--space-xs) var(--space-sm);
     background: rgba(255, 152, 0, 0.1);

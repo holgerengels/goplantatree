@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { getToken } from '../services/tokenStorage.js';
 
 const routes = [
     {
@@ -112,7 +113,7 @@ const router = createRouter({
 // Navigation guard for admin routes
 router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth) {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         if (!token) {
             return next({ name: 'login', query: { redirect: to.fullPath } });
         }

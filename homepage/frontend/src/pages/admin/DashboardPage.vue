@@ -63,9 +63,8 @@ onMounted(async () => {
         try {
             const cfg = await configStore.fetchConfig(entity.configName);
             if (!cfg.api) return null;
-            const data = await api.get(cfg.api);
-            const count = Array.isArray(data) ? data.length : (data.total || 0);
-            return { icon: entity.icon, label: entity.label.plural, value: count, slug: entity.slug };
+            const data = await api.get(`${cfg.api}?count=true`);
+            return { icon: entity.icon, label: entity.label.plural, value: data.total || 0, slug: entity.slug };
         } catch { 
             return null; 
         }
@@ -135,24 +134,7 @@ onMounted(async () => {
     margin-bottom: var(--space-md);
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.data-table th {
-    text-align: left;
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    padding: var(--space-sm);
-    border-bottom: 2px solid var(--color-border-light);
-}
-.data-table td {
-    padding: var(--space-sm);
-    border-bottom: 1px solid var(--color-border-light);
-    font-size: var(--text-sm);
-}
+
 
 .muted {
     color: var(--color-text-muted);

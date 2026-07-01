@@ -819,46 +819,8 @@ watch(() => route.params.entity, async () => {
 }
 
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
 
-.data-table th {
-    text-align: left;
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    padding: var(--space-sm);
-    border-bottom: 2px solid var(--color-border-light);
-    user-select: none;
-}
 
-.data-table th.sortable {
-    cursor: pointer;
-}
-.data-table th.sortable:hover {
-    color: var(--color-primary);
-}
-
-.sort-indicator {
-    font-size: var(--text-xs);
-    margin-left: 4px;
-}
-
-.data-table td {
-    padding: var(--space-sm);
-    border-bottom: 1px solid var(--color-border-light);
-    font-size: var(--text-sm);
-}
-
-.data-table tr {
-    cursor: pointer;
-}
-.data-table tr:hover {
-    background: var(--color-primary-50);
-}
 
 .cell-text {
     max-width: 300px;

@@ -121,6 +121,16 @@ export async function verifyConnection(accountKey) {
 }
 
 /**
+ * Pick the best mail account for a project.
+ * Tries the project slug first, falls back to 'info'.
+ */
+export function resolveMailAccount(projectSlug) {
+    const accounts = getAccountKeys();
+    if (projectSlug && accounts.includes(projectSlug)) return projectSlug;
+    return 'info';
+}
+
+/**
  * Get available account keys.
  */
 export function getAccountKeys() {

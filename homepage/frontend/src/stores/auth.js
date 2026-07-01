@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { getToken, setToken as storeToken, removeToken } from '../services/tokenStorage.js';
 
 const API = '/api/v1';
 
 export const useAuthStore = defineStore('auth', () => {
-    const token = ref(localStorage.getItem('token') || null);
+    const token = ref(getToken());
     const user = ref(null);
 
     const isAuthenticated = computed(() => !!token.value);
@@ -52,8 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     const setAuth = (t, u) => {
         token.value = t;
         user.value = u ? { ...u, permissions: permissions.value } : null;
-        if (t) localStorage.setItem('token', t);
-        else localStorage.removeItem('token');
+        storeToken(t);
     };
 
     const login = async (username, password) => {
@@ -92,13 +92,8 @@ export const useAuthStore = defineStore('auth', () => {
         setAuth(null, null);
     };
 
-    const authHeaders = computed(() => ({
-        Authorization: `Bearer ${token.value}`,
-        'Content-Type': 'application/json'
-    }));
-
     // Restore user on init
     if (token.value) fetchMe();
 
-    return { token, user, isAuthenticated, permissions, hasPermission, hasItemPermission, login, logout, fetchMe, authHeaders };
+    return { token, user, isAuthenticated, permissions, hasPermission, hasItemPermission, login, logout, fetchMe };
 });

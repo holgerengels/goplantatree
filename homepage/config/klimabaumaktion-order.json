@@ -17,7 +17,8 @@
         {
             "name": "phone",
             "label": "Telefonnummer",
-            "type": "Text"
+            "type": "Text",
+            "required": true
         },
         {
             "name": "street",
@@ -57,9 +58,10 @@
             "description": "Bitte wähle einen Zeitraum für die Abholung",
             "type": "Radio",
             "options": [
-                "09:00 - 11:00 Uhr",
-                "11:00 - 13:00 Uhr",
-                "13:00 - 15:00 Uhr"
+                "10:00 - 11:00 Uhr",
+                "11:00 - 12:00 Uhr",
+                "12:00 - 13:00 Uhr",
+                "13:00 - 14:00 Uhr"
             ],
             "required": true
         },
@@ -76,7 +78,7 @@
         },
         {
             "name": "confirmation",
-            "label": "Ich nehme zur Kenntnis, dass mein Baum im Stadtkreis Ulm gepflanzt werden muss. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
+            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtkreis Ulm pflanzen werde. Mir ist bewusst, dass pro Haushalt nur ein Baum bestellt werden darf. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
             "type": "Boolean",
             "required": true
         },
@@ -85,6 +87,12 @@
             "label": "Ich bin damit einverstanden, dass meine Daten zum Zwecke der Abwicklung der Klimabaumaktion gespeichert werden. Die Daten werden nicht an Dritte weitergegeben.",
             "type": "Boolean",
             "required": true
+        },
+        {
+            "name": "newsletter",
+            "label": "Ich möchte über neue Aktionen von go plant a tree informiert werden und melde mich hiermit zum Newsletter an.",
+            "type": "Boolean",
+            "required": false
         },
         {
             "name": "contact_header",
@@ -109,7 +117,7 @@
         {
             "name": "delivery_description",
             "type": "Content",
-            "content": "<p>Wir müssen die Ausgabe über den Tag verteilen, damit keine zu langen Wartezeiten entstehen. Bitte versuche dich an die gewählte Zeit zu halten!</p><p>Die meisten Bäume passen in einen normalen PKW. Solltest du keine Möglichkeit haben, deinen Baum abzuholen, kann dieser auch geliefert werden. Unsere Kapazitäten hierfür sind jedoch begrenzt. Bitte wende dich dafür an die Geschäftsstelle des BUND Ulm (<a href=\"tel:+4973166695\">0731 66695</a>).</p><p>Wer das (kostenpflichtige) Angebot vom BUND Ulm wahrnehmen möchte, sich den Baum pflanzen zu lassen, vereinbart dafür einen Termin beim BUND.</p>"
+            "content": "<p>Wir müssen die Ausgabe über den Tag verteilen, damit keine zu langen Wartezeiten entstehen. Bitte versuche dich an die gewählte Zeit zu halten!</p><p>Die meisten Bäume passen in einen normalen PKW. Solltest du keine Möglichkeit haben, deinen Baum abzuholen, kann dieser auch geliefert werden. Unsere Kapazitäten hierfür sind jedoch begrenzt. Bitte wende dich dafür an die Geschäftsstelle des BUND Ulm (<a href=\"tel:+4973166695\">0731 66695</a>).</p><p>Wer das kostenpflichtige Angebot vom BUND Ulm wahrnehmen möchte, sich den Baum pflanzen zu lassen, vereinbart dafür einen Termin beim BUND.</p>"
         },
         {
             "name": "agree_header",
@@ -138,6 +146,7 @@
         "agree_header agree_header agree_header agree_header",
         "confirmation confirmation confirmation confirmation",
         "privacy privacy privacy privacy",
+        "newsletter newsletter newsletter newsletter",
         "final_word final_word final_word final_word"
     ]
 }

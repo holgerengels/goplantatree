@@ -232,6 +232,29 @@
       <p v-else class="form-hint">Keine Vorschau verfügbar.</p>
     </div>
 
+    <!-- StringArray (editable list of plain text entries) -->
+    <div v-else-if="field.type === 'StringArray'" class="form-group string-array-container">
+      <label :class="['form-label', { required: field.required === true }]">{{ field.label }}</label>
+      <p v-if="field.description" class="form-hint" style="margin-bottom: var(--space-sm);">{{ field.description }}</p>
+      <div class="string-array-list">
+        <div v-for="(item, index) in (modelValue || [])" :key="index" class="string-array-item">
+          <wa-input
+            type="text"
+            :value="item"
+            :disabled="field.readonly === true ? true : undefined"
+            @input="updateStringArrayItem(index, $event.target.value)"
+          ></wa-input>
+          <wa-button size="small" variant="warning" @click="removeStringArrayItem(index)" :disabled="field.readonly === true ? true : undefined">✕</wa-button>
+          <wa-button size="small" variant="neutral" @click="moveStringArrayItem(index, -1)" :disabled="index === 0 || field.readonly === true ? true : undefined">▲</wa-button>
+          <wa-button size="small" variant="neutral" @click="moveStringArrayItem(index, 1)" :disabled="index >= (modelValue || []).length - 1 || field.readonly === true ? true : undefined">▼</wa-button>
+        </div>
+      </div>
+      <wa-button size="small" @click="addStringArrayItem" :disabled="field.readonly === true ? true : undefined" style="margin-top: var(--space-xs);">
+        + Hinzufügen
+      </wa-button>
+      <span v-if="field.hint" class="form-hint" style="display:block; margin-top:var(--space-sm);">{{ field.hint }}</span>
+    </div>
+
     <!-- Tags / Chips -->
     <TagsInput
       v-else-if="field.type === 'Tags'"
@@ -303,7 +326,8 @@
     <!-- Default: Text -->
     <wa-input
       v-else
-      type="text"
+      :type="inferInputType(field)"
+      :autocomplete="inferAutocomplete(field)"
       :label="field.label"
       :required="field.required === true"
       :disabled="field.readonly === true ? true : undefined"
@@ -352,6 +376,19 @@ const copyFormMacro = async (id, event) => {
         console.error('Failed to copy macro', err);
     }
 };
+
+// Map well-known field names to HTML input types and autocomplete values
+const AUTOCOMPLETE_MAP = {
+    email:  { type: 'email', autocomplete: 'email' },
+    phone:  { type: 'tel',   autocomplete: 'tel' },
+    name:   { type: 'text',  autocomplete: 'name' },
+    street: { type: 'text',  autocomplete: 'street-address' },
+    zip:    { type: 'text',  autocomplete: 'postal-code' },
+    city:   { type: 'text',  autocomplete: 'address-level2' },
+};
+
+const inferInputType = (field) => AUTOCOMPLETE_MAP[field.name]?.type || 'text';
+const inferAutocomplete = (field) => AUTOCOMPLETE_MAP[field.name]?.autocomplete || 'off';
 
 const updateValue = (val) => {
     emit('update:modelValue', val);
@@ -521,6 +558,36 @@ const getObjectArrayFieldStyle = (subField, fieldDef) => {
     if (!fieldDef.grid || fieldDef.grid.length === 0) return {};
     return { gridArea: subField.name.replace(/\./g, '_') };
 };
+
+// Methods for StringArray type
+const addStringArrayItem = () => {
+    const arr = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+    arr.push('');
+    updateValue(arr);
+};
+
+const removeStringArrayItem = (index) => {
+    if (!Array.isArray(props.modelValue)) return;
+    const arr = [...props.modelValue];
+    arr.splice(index, 1);
+    updateValue(arr);
+};
+
+const updateStringArrayItem = (index, value) => {
+    if (!Array.isArray(props.modelValue)) return;
+    const arr = [...props.modelValue];
+    arr[index] = value;
+    updateValue(arr);
+};
+
+const moveStringArrayItem = (index, direction) => {
+    if (!Array.isArray(props.modelValue)) return;
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= props.modelValue.length) return;
+    const arr = [...props.modelValue];
+    [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+    updateValue(arr);
+};
 </script>
 
 <style scoped>
@@ -657,5 +724,26 @@ const getObjectArrayFieldStyle = (subField, fieldDef) => {
     color: var(--color-primary-dark);
 }
 
+/* StringArray */
+.string-array-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.string-array-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.string-array-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.string-array-item wa-input {
+    flex: 1;
+}
 
 </style>

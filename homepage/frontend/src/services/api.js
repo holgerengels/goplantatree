@@ -1,7 +1,9 @@
+import { getToken } from './tokenStorage.js';
+
 const BASE_URL = '/api/v1';
 
 const getHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     return {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -9,7 +11,7 @@ const getHeaders = () => {
 };
 
 const getAuthHeader = () => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 

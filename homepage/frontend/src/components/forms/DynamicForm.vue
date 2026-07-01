@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, defineExpose, computed, watch, ref, nextTick } from 'vue';
+import { defineProps, defineEmits, defineExpose, computed, watch, ref, nextTick, onBeforeUnmount } from 'vue';
 import FormField from './FormField.vue';
 import { evaluateFields, validateFields, applyPermissionsToFields } from '../../utils/evaluation.js';
 import { useAuthStore } from '../../stores/auth.js';
@@ -50,6 +50,7 @@ const checkWidth = () => { isNarrow.value = window.innerWidth < 768; };
 checkWidth();
 if (typeof window !== 'undefined') {
     window.addEventListener('resize', checkWidth);
+    onBeforeUnmount(() => window.removeEventListener('resize', checkWidth));
 }
 
 const getNestedValue = (obj, path) => {
@@ -74,7 +75,9 @@ const handleCopyFrom = ({ field, item }) => {
         if (val !== undefined && val !== null && val !== '') {
             // Only copy if the target field is empty
             const current = getNestedValue(props.modelValue, targetKey);
-            if (!current && current !== 0 && current !== false) {
+            const isEmpty = !current && current !== 0 && current !== false
+                || (Array.isArray(current) && current.length === 0);
+            if (isEmpty) {
                 updateField(targetKey, val);
             }
         }

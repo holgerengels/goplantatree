@@ -2,19 +2,13 @@ import { createCrudRouter } from '../utils/crudFactory.js';
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Offering from '../models/Offering.js';
+import Project from '../models/Project.js';
 import MailTemplate from '../models/MailTemplate.js';
-import { sendMail, getAccountKeys } from '../utils/mailService.js';
+import { sendMail, resolveMailAccount } from '../utils/mailService.js';
 import { renderTemplate } from '../utils/mailTemplateEngine.js';
+import { loadConfig, getConfigFieldNames } from '../utils/configLoader.js';
 
-/**
- * Pick the best mail account for a project.
- * Tries the project slug first, falls back to 'info'.
- */
-function resolveMailAccount(projectSlug) {
-    const accounts = getAccountKeys();
-    if (projectSlug && accounts.includes(projectSlug)) return projectSlug;
-    return 'info';
-}
+
 
 function normalizeString(str) {
     if (!str) return '';
@@ -24,8 +18,7 @@ function normalizeString(str) {
         .replace(/ö/g, 'oe')
         .replace(/ü/g, 'ue')
         .replace(/ß/g, 'ss')
-        .replace(/[^a-z0-9]/g, '')
-        .trim();
+        .replace(/[^a-z0-9]/g, '');
 }
 
 export default createCrudRouter(Order, 'orders', {
@@ -39,6 +32,21 @@ export default createCrudRouter(Order, 'orders', {
         return filter;
     },
     preCreate: async (data) => {
+        // Security: filter fields based on project-specific config (prevent arbitrary data injection)
+        if (data.project) {
+            const project = await Project.findOne({ slug: data.project }).select('orderFormConfig').lean();
+            const configName = project?.orderFormConfig || 'order';
+            const config = loadConfig(configName) || loadConfig('order');
+            const allowedFields = getConfigFieldNames(config);
+            if (allowedFields) {
+                // Always allow 'project' (set by frontend, not in form config)
+                const allowed = new Set([...allowedFields, 'project']);
+                for (const key of Object.keys(data)) {
+                    if (!allowed.has(key)) delete data[key];
+                }
+            }
+        }
+
         // 1. Name must contain first and last name (at least two words)
         if (data.name && data.name.trim().split(/\s+/).length < 2) {
             const err = new mongoose.Error.ValidationError(null);

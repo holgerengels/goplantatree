@@ -5,6 +5,20 @@ import { auth, requirePermission } from '../middleware/auth.js';
 const router = Router();
 
 /**
+ * Apply project-based scope filtering for 'own' permission users.
+ * Restricts results to changelog entries where the document's project matches the user's project.
+ */
+const applyScope = (filter, req) => {
+    if (req.permissionScope === 'own' && req.user?.project) {
+        filter.$or = [
+            { 'before.project': req.user.project },
+            { 'after.project': req.user.project }
+        ];
+    }
+    return filter;
+};
+
+/**
  * GET /api/v1/changelog/distinct/:field
  * Distinct values for a field (for filter dropdowns).
  */
@@ -38,21 +52,23 @@ router.get('/', auth, requirePermission('changelog', 'read'), async (req, res, n
         if (req.query.user) filter.user = req.query.user;
         if (req.query.action) filter.action = req.query.action;
 
-        // Scope: 'own' users only see changes to their project
-        if (req.permissionScope === 'own' && req.user?.project) {
-            filter.$or = [
-                { 'before.project': req.user.project },
-                { 'after.project': req.user.project }
-            ];
-        }
+        applyScope(filter, req);
 
         const limit = parseInt(req.query.limit) || 100;
         const skip = parseInt(req.query.skip) || 0;
 
+        // Configurable sort (only allow known fields)
+        const SORTABLE = ['timestamp', 'resource', 'action', 'user', 'documentSlug'];
+        let sort = { timestamp: -1 };
+        if (req.query.sort && SORTABLE.includes(req.query.sort)) {
+            const dir = req.query.sortDir === 'asc' ? 1 : -1;
+            sort = { [req.query.sort]: dir };
+        }
+
         const [items, total] = await Promise.all([
             ChangeLog.find(filter)
                 .select('-before -after')
-                .sort({ timestamp: -1 })
+                .sort(sort)
                 .skip(skip)
                 .limit(limit),
             ChangeLog.countDocuments(filter)
@@ -72,13 +88,7 @@ router.get('/:documentId', auth, requirePermission('changelog', 'read'), async (
     try {
         const filter = { documentId: req.params.documentId };
 
-        // Scope: 'own' users only see changes to their project
-        if (req.permissionScope === 'own' && req.user?.project) {
-            filter.$or = [
-                { 'before.project': req.user.project },
-                { 'after.project': req.user.project }
-            ];
-        }
+        applyScope(filter, req);
 
         const items = await ChangeLog.find(filter).sort({ timestamp: -1 });
         res.json(items);

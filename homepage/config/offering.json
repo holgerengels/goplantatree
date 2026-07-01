@@ -100,7 +100,7 @@
                 "category": "category",
                 "height": "endgroesseHoehe",
                 "width": "endgroesseBreite",
-                "notice": "notice"
+                "notices": "notices"
             }
         },
         {
@@ -157,9 +157,9 @@
             "type": "Currency"
         },
         {
-            "name": "notice",
-            "label": "Hinweis (wird bei Auswahl angezeigt)",
-            "type": "Text"
+            "name": "notices",
+            "label": "Hinweise (werden bei Auswahl angezeigt)",
+            "type": "StringArray"
         },
         {
             "name": "addons",
@@ -182,7 +182,7 @@
         "priceNet priceNet sortOrder sortOrder",
         "pflanzgroesseHoehe pflanzgroesseStammumfang endgroesseHoehe endgroesseBreite",
         "bemerkung bemerkung bemerkung bemerkung",
-        "notice notice notice notice",
+        "notices notices notices notices",
         "addons addons addons addons"
     ],
     "resource": "offerings"

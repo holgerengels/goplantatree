@@ -3,7 +3,7 @@
  */
 
 /**
- * Format a date string in short German format: "06.05.2026"
+ * Format a date string in short German format: "15.5.2024"
  */
 export function formatDate(d) {
     if (!d) return '';
@@ -11,13 +11,17 @@ export function formatDate(d) {
 }
 
 /**
- * Format a date string in long German format: "06.05.2026"
+ * @deprecated Use formatDate() — produces the same output.
  */
-export function formatDateLong(d) {
+export const formatDateLong = formatDate;
+
+/**
+ * Format a date string with time in German format: "15.05.2024, 14:30"
+ */
+export function formatDateTime(d) {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('de-DE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
+    return new Date(d).toLocaleString('de-DE', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
 }

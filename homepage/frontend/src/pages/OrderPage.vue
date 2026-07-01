@@ -73,7 +73,8 @@
           <router-link to="/" class="btn btn-primary">Zur Startseite</router-link>
         </div>
 
-        <p v-if="!formConfig && !submitted" class="loading-text">Formular wird geladen…</p>
+        <p v-if="loadError" class="loading-text" style="color: var(--color-error)">{{ loadError }}</p>
+        <p v-else-if="!formConfig && !submitted" class="loading-text">Formular wird geladen…</p>
       </div>
     </section>
   </div>
@@ -85,14 +86,12 @@ import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicForm from '../components/forms/DynamicForm.vue';
 import { useProjectsStore } from '../stores/projects.js';
-import { useOrdersStore } from '../stores/orders.js';
 import { formatDateLong as formatDate } from '../utils/format.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
 import { api } from '../services/api.js';
 
 const route = useRoute();
 const projectsStore = useProjectsStore();
-const ordersStore = useOrdersStore();
 
 const project = computed(() => projectsStore.currentProject);
 const formConfig = ref(null);
@@ -100,6 +99,7 @@ const orderData = reactive({});
 const formRef = ref(null);
 const submitting = ref(false);
 const submitted = ref(false);
+const loadError = ref('');
 const orderNumber = ref('');
 
 // Provide offerings for dynamic:offerings options in FormField
@@ -123,7 +123,7 @@ const submitOrder = async () => {
 
     submitting.value = true;
     try {
-        const result = await ordersStore.submitOrder({
+        const result = await api.post('/orders', {
             ...orderData,
             project: project.value.slug
         });
@@ -162,13 +162,20 @@ onMounted(async () => {
     // Load available offerings for this project
     try {
         offerings.value = await api.get(`/offerings?project=${slug}&available=true`);
-    } catch { /* skip */ }
+    } catch (err) {
+        console.error('Failed to load offerings:', err.message);
+    }
 
     // Load form config
     if (project.value?.orderFormConfig) {
         try {
             formConfig.value = await api.get(`/config/${project.value.orderFormConfig}`);
-        } catch { /* skip */ }
+        } catch (err) {
+            console.error('Failed to load form config:', err.message);
+            loadError.value = 'Das Bestellformular konnte nicht geladen werden. Bitte versuche es später erneut.';
+        }
+    } else if (project.value?.active) {
+        loadError.value = 'Für dieses Projekt ist kein Bestellformular konfiguriert.';
     }
 });
 </script>

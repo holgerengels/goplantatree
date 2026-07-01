@@ -1,7 +1,7 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
 import Subscriber from '../models/Subscriber.js';
 import MailTemplate from '../models/MailTemplate.js';
-import { sendMail, getAccountKeys } from '../utils/mailService.js';
+import { sendMail, resolveMailAccount } from '../utils/mailService.js';
 import { renderTemplate } from '../utils/mailTemplateEngine.js';
 
 const router = createCrudRouter(Subscriber, 'subscribers', {
@@ -31,32 +31,26 @@ const router = createCrudRouter(Subscriber, 'subscribers', {
     }
 });
 
-/**
- * Pick the best mail account for a project.
- * Tries the project slug first, falls back to 'info'.
- */
-function resolveMailAccount(projectSlug) {
-    const accounts = getAccountKeys();
-    if (projectSlug && accounts.includes(projectSlug)) return projectSlug;
-    return 'info';
-}
+
 
 // POST /api/v1/subscribers — Public: subscribe to mailing list
 router.post('/', async (req, res, next) => {
     try {
-        const payload = { ...req.body };
+        // Security: only accept known fields (prevent arbitrary data injection)
+        const { email, name, topic, topics, project } = req.body;
+        const payload = { email, name, project: project || null };
 
         // Normalize: accept both 'topic' (string) and 'topics' (array) from clients
-        if (payload.topic && !payload.topics) {
-            payload.topics = [payload.topic];
-            delete payload.topic;
+        if (topic && !topics) {
+            payload.topics = [topic];
+        } else if (topics) {
+            payload.topics = Array.isArray(topics) ? topics : [topics];
         }
 
-        // project is now a slug string — store directly
-        const projectSlug = payload.project || null;
+        const projectSlug = payload.project;
 
-        // New subscribers start with empty status (pending confirmation)
-        payload.status = payload.status || [];
+        // Security: always force empty status on public creation (prevent Double-Opt-In bypass)
+        payload.status = [];
 
         const subscriber = new Subscriber(payload);
         await subscriber.save();
