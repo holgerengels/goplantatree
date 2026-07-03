@@ -2,9 +2,9 @@
   <div class="detail-page" v-if="config && item">
     <section class="section detail-header">
       <div class="container">
-        <router-link :to="listUrl" class="back-link">
+        <!--router-link :to="listUrl" class="back-link">
           ← Zurück zu {{ config.label.plural }}
-        </router-link>
+        </router-link-->
 
         <!-- Badges -->
         <div class="detail-badges" v-if="badges.length">

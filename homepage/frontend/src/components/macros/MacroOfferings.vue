@@ -9,7 +9,7 @@
         <div class="offering-image" :style="imageStyle(offering)">
           <div class="badge-group">
             <span class="badge badge-accent">{{ offering.category }}</span>
-            <router-link v-if="offering.tree" :to="`/baeume/${offering.tree}`" class="badge badge-primary tree-badge-link" target="_blank" title="Steckbrief in neuem Tab öffnen">
+            <router-link v-if="offering.tree" :to="`/baeume/${offering.tree}`" class="badge badge-primary tree-badge-link" title="Steckbrief öffnen">
               → mehr Infos
             </router-link>
           </div>

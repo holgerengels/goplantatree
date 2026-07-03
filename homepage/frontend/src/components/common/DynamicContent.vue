@@ -71,8 +71,8 @@ const handleContentClick = (e) => {
 
     e.preventDefault();
 
-    const resolved = new URL(href, window.location.href).pathname;
-    router.push(resolved);
+    const url = new URL(href, window.location.href);
+    router.push(url.pathname + url.search);
 };
 
 onMounted(() => {
