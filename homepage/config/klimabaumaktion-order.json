@@ -32,7 +32,7 @@
             "type": "Text",
             "required": true,
             "validation": {
-                "expression": "/^(8907[0-9]|8908[01]|89231)$/.test(zip)",
+                "expression": "/^(8907[0-9]|89081|8923[13])$/.test(zip)",
                 "message": "Die Klimabaumaktion beschränkt sich auf Ulm und Neu-Ulm."
             }
         },
