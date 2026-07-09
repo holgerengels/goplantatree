@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true },
     passwordHash: { type: String, required: true },
     profiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'PermissionProfile' }],
-    displayName: { type: String }
+    displayName: { type: String },
+    apiKey: { type: String, unique: true, sparse: true }
 }, {
     timestamps: true
 });
@@ -29,6 +30,7 @@ userSchema.methods.comparePassword = async function (password) {
 userSchema.set('toJSON', {
     transform: (doc, ret) => {
         delete ret.passwordHash;
+        delete ret.apiKey;
         return ret;
     }
 });

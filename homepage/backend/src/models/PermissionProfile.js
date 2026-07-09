@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { slugify } from '../utils/slugify.js';
 
 const permissionSchema = new mongoose.Schema({
     resource: { type: String, required: true },
@@ -10,10 +11,19 @@ const permissionSchema = new mongoose.Schema({
 
 const permissionProfileSchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     description: { type: String },
     permissions: [permissionSchema]
 }, {
     timestamps: true
+});
+
+// Auto-generate slug from name before save
+permissionProfileSchema.pre('save', function (next) {
+    if (this.isModified('name') || !this.slug) {
+        this.slug = slugify(this.name);
+    }
+    next();
 });
 
 export default mongoose.model('PermissionProfile', permissionProfileSchema);
