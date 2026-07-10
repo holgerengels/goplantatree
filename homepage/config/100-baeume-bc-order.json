@@ -64,8 +64,7 @@
             "options": [
                 "10:00 - 11:00 Uhr",
                 "11:00 - 12:00 Uhr",
-                "12:00 - 13:00 Uhr",
-                "13:00 - 14:00 Uhr"
+                "12:00 - 13:00 Uhr"
             ],
             "required": true
         },
@@ -82,7 +81,7 @@
         },
         {
             "name": "confirmation",
-            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtkreis Ulm pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
+            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtkreis Biberach pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
             "type": "Boolean",
             "required": true
         },
@@ -111,7 +110,7 @@
         {
             "name": "tree_header",
             "type": "Content",
-            "content": "<h5>Welcher Baum soll es sein?</h5><p>Wenn du nicht sicher bist, welcher Baum für deinen Pflanzort geeignet ist, kannst du dich vom BUND Ulm telefonisch beraten lassen: <a href=\"tel:+4973166695\">0731 66695</a></p>"
+            "content": "<h5>Welcher Baum soll es sein?</h5><p>Wenn du nicht sicher bist, welcher Baum für deinen Pflanzort geeignet ist, kannst du dich vom BUND Biberach telefonisch beraten lassen: <a href=\"tel:+49???\">???</a></p>"
         },
         {
             "name": "delivery_header",
@@ -121,7 +120,7 @@
         {
             "name": "delivery_description",
             "type": "Content",
-            "content": "<p>Wir müssen die Ausgabe über den Tag verteilen, damit keine zu langen Wartezeiten entstehen. Bitte versuche, dich an die gewählte Zeit zu halten!</p><p>Die meisten Bäume passen in einen normalen PKW (bitte beachte die angegebenen Pflanzgrößen). Solltest du keine Möglichkeit haben, deinen Baum abzuholen, kann dieser auch geliefert werden. Unsere Kapazitäten hierfür sind jedoch begrenzt. Bitte wende dich dafür an die Geschäftsstelle des BUND Ulm (<a href=\"tel:+4973166695\">0731 66695</a>).</p><p>Wer das kostenpflichtige Angebot vom BUND Ulm wahrnehmen möchte, sich den Baum pflanzen zu lassen, vereinbart dafür einen Termin beim BUND.</p>"
+            "content": "<p>Wir müssen die Ausgabe über den Tag verteilen, damit keine zu langen Wartezeiten entstehen. Bitte versuche, dich an die gewählte Zeit zu halten!</p><p>Die meisten Bäume passen in einen normalen PKW (bitte beachte die angegebenen Pflanzgrößen).</p>"
         },
         {
             "name": "agree_header",
