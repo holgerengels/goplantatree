@@ -1,124 +1,134 @@
 /**
- * Google Apps Script – GoPlantATree Orders → Google Sheet Sync
+ * Google Apps Script – GoPlantATree Bestellungen → Google Sheet
  *
  * Anleitung:
  * 1. Google Sheet öffnen
  * 2. Erweiterungen → Apps Script
- * 3. Diesen Code einfügen
- * 4. API_URL und API_KEY anpassen
- * 5. syncOrders() manuell ausführen zum Testen
- * 6. Trigger einrichten: Bearbeiten → Auslöser → Neuer Auslöser
- *    → syncOrders, zeitgesteuert, z.B. stündlich
+ * 3. Diesen Code einfügen (Code.gs ersetzen)
+ * 4. syncOrders() manuell ausführen zum Testen (▶ Button)
+ * 5. Optional: Trigger einrichten für automatische Synchronisation:
+ *    → Links auf "Auslöser" (Uhr-Symbol) → "+ Auslöser hinzufügen"
+ *    → Funktion: syncOrders, zeitgesteuert, z.B. stündlich
  */
 
 // ─── Konfiguration ──────────────────────────────────────────
-const CONFIG = {
+var CONFIG = {
   API_URL: 'https://goplantatree.org/api/v1/orders',
   API_KEY: 'DEIN-API-KEY-HIER',
-  PROJECT: 'klimabaumaktion-ulm',  // Projekt-Slug (oder leer lassen für alle)
-  SHEET_NAME: 'Bestellungen',       // Name des Tabellenblatts
+  PROJECT: 'klimabaumaktion-ulm',
+  SHEET_NAME: 'Bestellungen',
 };
 
-// Spalten, die ins Sheet geschrieben werden (Reihenfolge = Spaltenreihenfolge)
-const COLUMNS = [
-  { header: 'Bestellnr.',       path: 'orderNumber' },
-  { header: 'Status',           path: 'status' },
-  { header: 'Bestellt am',      path: 'orderedAt',    format: 'date' },
-  { header: 'Name',             path: 'name' },
-  { header: 'E-Mail',           path: 'email' },
-  { header: 'Telefon',          path: 'phone' },
-  { header: 'Straße',           path: 'street' },
-  { header: 'PLZ',              path: 'zip' },
-  { header: 'Stadt',            path: 'city' },
-  { header: 'Sonderadresse',    path: 'specialAddress', format: 'boolean' },
-  { header: 'Baum',             path: 'offering.name' },
-  { header: 'Kategorie',        path: 'offering.category' },
-  { header: 'Botanisch',        path: 'offering.bezeichnungBotanisch' },
-  { header: 'Preis (netto)',    path: 'offering.priceNet' },
-  { header: 'Zeitfenster',      path: 'timeSlot' },
-  { header: 'Pflanzort',        path: 'gardenType' },
+// Spalten – Reihenfolge hier = Spaltenreihenfolge im Sheet
+var COLUMNS = [
+  { header: 'Bestellnr.',    path: 'orderNumber' },
+  { header: 'Status',        path: 'status' },
+  { header: 'Bestellt am',   path: 'orderedAt',    format: 'date' },
+  { header: 'Name',          path: 'name' },
+  { header: 'E-Mail',        path: 'email' },
+  { header: 'Telefon',       path: 'phone' },
+  { header: 'Straße',        path: 'street' },
+  { header: 'PLZ',           path: 'zip' },
+  { header: 'Stadt',         path: 'city' },
+  { header: 'Sonderadresse', path: 'specialAddress', format: 'boolean' },
+  { header: 'Baum',          path: 'offering.name' },
+  { header: 'Kategorie',     path: 'offering.category' },
+  { header: 'Botanisch',     path: 'offering.bezeichnungBotanisch' },
+  { header: 'Preis (netto)', path: 'offering.priceNet' },
+  { header: 'Zeitfenster',   path: 'timeSlot' },
+  { header: 'Pflanzort',     path: 'gardenType' },
 ];
 
 // ─── Hauptfunktion ──────────────────────────────────────────
 
 function syncOrders() {
-  const orders = fetchAllOrders();
+  var orders = fetchAllOrders();
   if (!orders || orders.length === 0) {
     Logger.log('Keine Bestellungen gefunden.');
     return;
   }
 
-  const sheet = getOrCreateSheet(CONFIG.SHEET_NAME);
+  var sheet = getOrCreateSheet(CONFIG.SHEET_NAME);
+  var headers = COLUMNS.map(function(c) { return c.header; });
 
-  // Header schreiben
-  const headers = COLUMNS.map(c => c.header);
+  // Header-Zeile schreiben (fett)
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
 
-  // Daten aufbereiten
-  const rows = orders.map(order => {
-    return COLUMNS.map(col => {
-      const value = getNestedValue(order, col.path);
-      if (col.format === 'date' && value) {
-        return new Date(value);
-      }
-      if (col.format === 'boolean') {
-        return value ? 'Ja' : 'Nein';
-      }
-      return value || '';
+  // Datenzeilen aufbereiten
+  var rows = orders.map(function(order) {
+    return COLUMNS.map(function(col) {
+      var value = getNestedValue(order, col.path);
+      if (col.format === 'date' && value) return new Date(value);
+      if (col.format === 'boolean') return value ? 'Ja' : 'Nein';
+      return value != null ? value : '';
     });
   });
 
   // Alte Daten löschen (ab Zeile 2) und neue schreiben
-  if (sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).clearContent();
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
   }
   if (rows.length > 0) {
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   }
 
-  Logger.log(`${rows.length} Bestellungen synchronisiert.`);
+  // Spaltenbreiten automatisch anpassen
+  for (var i = 1; i <= headers.length; i++) {
+    sheet.autoResizeColumn(i);
+  }
+
+  Logger.log(rows.length + ' Bestellungen synchronisiert.');
 }
 
-// ─── API-Abruf ──────────────────────────────────────────────
+// ─── API-Abruf (mit skip/limit Paginierung) ─────────────────
 
 function fetchAllOrders() {
-  const allOrders = [];
-  let page = 1;
-  const limit = 100;
+  var allOrders = [];
+  var skip = 0;
+  var limit = 100;
 
   while (true) {
-    let url = `${CONFIG.API_URL}?limit=${limit}&page=${page}`;
+    var url = CONFIG.API_URL + '?limit=' + limit + '&skip=' + skip;
     if (CONFIG.PROJECT) {
-      url += `&project=${encodeURIComponent(CONFIG.PROJECT)}`;
+      url += '&project=' + encodeURIComponent(CONFIG.PROJECT);
     }
 
-    const response = UrlFetchApp.fetch(url, {
+    Logger.log('Lade: ' + url);
+
+    var response = UrlFetchApp.fetch(url, {
       method: 'GET',
       headers: {
-        'x-api-key': CONFIG.API_KEY,
-        'Content-Type': 'application/json'
+        'x-api-key': CONFIG.API_KEY
       },
       muteHttpExceptions: true
     });
 
     if (response.getResponseCode() !== 200) {
-      Logger.log(`API-Fehler: ${response.getResponseCode()} – ${response.getContentText()}`);
-      return allOrders;
+      Logger.log('API-Fehler: ' + response.getResponseCode() + ' – ' + response.getContentText());
+      break;
     }
 
-    const data = JSON.parse(response.getContentText());
-    const items = data.items || data;
+    var data = JSON.parse(response.getContentText());
 
-    if (!Array.isArray(items) || items.length === 0) break;
+    // API gibt { items: [...], total: N } zurück
+    var items = data.items || [];
+    var total = data.total || 0;
 
-    allOrders.push(...items);
+    if (items.length === 0) break;
 
-    // Prüfen ob es weitere Seiten gibt
-    if (data.totalPages && page >= data.totalPages) break;
-    if (items.length < limit) break;
+    for (var i = 0; i < items.length; i++) {
+      allOrders.push(items[i]);
+    }
 
-    page++;
+    Logger.log('Geladen: ' + allOrders.length + ' / ' + total);
+
+    // Alle geladen?
+    if (allOrders.length >= total) break;
+
+    skip += limit;
   }
 
   return allOrders;
@@ -127,14 +137,18 @@ function fetchAllOrders() {
 // ─── Hilfsfunktionen ────────────────────────────────────────
 
 function getNestedValue(obj, path) {
-  return path.split('.').reduce((current, key) => {
-    return current && current[key] !== undefined ? current[key] : null;
-  }, obj);
+  var parts = path.split('.');
+  var current = obj;
+  for (var i = 0; i < parts.length; i++) {
+    if (current == null) return null;
+    current = current[parts[i]];
+  }
+  return current !== undefined ? current : null;
 }
 
 function getOrCreateSheet(name) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName(name);
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName(name);
   if (!sheet) {
     sheet = spreadsheet.insertSheet(name);
   }

@@ -67,9 +67,10 @@
         <!-- Success state -->
         <div v-if="submitted" class="order-success card">
           <div class="success-icon">🎉</div>
-          <h2>Bestellung erfolgreich!</h2>
-          <p>Deine Bestellnummer: <strong>{{ orderNumber }}</strong></p>
-          <p>Wir melden uns bei dir mit weiteren Details zur Abholung.</p>
+          <h2>ACHTUNG!</h2>
+          <p>Deine Bestellung ist nur gültig, wenn Du eine Bestätigungsmail erhalten hast! Schau bitte auch im Spam-Ordner nach. Solltest Du binnen 5 min keine Bestätigung erhalten haben, nimm bitte Kontakt mit uns auf!</p>
+          <p>Deine Bestellnummer lautet: <strong>{{ orderNumber }}</strong></p>
+          <p>Wir melden uns Ende Oktober bei dir mit weiteren Details zur Abholung.</p>
           <router-link to="/" class="btn btn-primary">Zur Startseite</router-link>
         </div>
 

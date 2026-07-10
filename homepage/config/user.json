@@ -47,12 +47,18 @@
             "reference": "/api/v1/projects?all=true",
             "labelField": "name",
             "valueField": "slug"
+        },
+        {
+            "name": "apiKey",
+            "label": "API-Key (für externe Integrationen)",
+            "type": "Text"
         }
     ],
     "grid": [
         "username displayName",
         "email passwordHash",
-        "profiles project"
+        "profiles project",
+        "apiKey apiKey"
     ],
     "admin": {
         "columns": [

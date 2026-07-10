@@ -101,7 +101,7 @@
         {
             "name": "contact_header",
             "type": "Content",
-            "content": "<h5>Wir benötigen deine Kontaktdaten ...</h5>"
+            "content": "<h5>Wir benötigen deine Kontaktdaten ...</h5><p>Für die Durchführung der Aktion ist insbesondere eine korrekte E-Mail-Adresse erforderlich! Deine Bestellung ist nur gültig, wenn Du eine Bestätigungsmail erhalten hast!</p>"
         },
         {
             "name": "address_header",
