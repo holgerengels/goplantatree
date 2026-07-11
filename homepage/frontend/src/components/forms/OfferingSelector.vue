@@ -152,7 +152,12 @@ watch(() => props.modelValue, () => {
 });
 
 const loadData = async () => {
-    const endpoint = props.field.reference || '/api/v1/offerings';
+    let endpoint = props.field.reference || '/api/v1/offerings';
+    // Filter offerings by project (from route context)
+    const projectSlug = window.location.pathname.match(/\/bestellen\/([^/]+)/)?.[1];
+    if (projectSlug && !endpoint.includes('project=')) {
+        endpoint += (endpoint.includes('?') ? '&' : '?') + 'project=' + encodeURIComponent(projectSlug);
+    }
     loading.value = true;
     try {
         const [data, treeData, addonData] = await Promise.all([

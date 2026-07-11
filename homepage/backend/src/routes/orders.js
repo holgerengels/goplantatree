@@ -1,5 +1,6 @@
 import { createCrudRouter } from '../utils/crudFactory.js';
 import mongoose from 'mongoose';
+import dns from 'dns';
 import Order from '../models/Order.js';
 import Offering from '../models/Offering.js';
 import Project from '../models/Project.js';
@@ -72,6 +73,24 @@ export default createCrudRouter(Order, 'orders', {
                 message: 'Die Postleitzahl muss genau 5 Ziffern enthalten.'
             }));
             throw err;
+        }
+
+        // 4. Email domain MX record check
+        if (data.email) {
+            const emailStr = data.email.trim().replace(/\.$/, ''); // strip trailing dot
+            const domain = emailStr.split('@')[1];
+            if (domain) {
+                try {
+                    await dns.promises.resolveMx(domain);
+                    data.email = emailStr; // use cleaned version
+                } catch {
+                    const err = new mongoose.Error.ValidationError(null);
+                    err.addError('email', new mongoose.Error.ValidatorError({
+                        message: `Die E-Mail-Domain "${domain}" scheint ungültig zu sein. Bitte überprüfe deine E-Mail-Adresse.`
+                    }));
+                    throw err;
+                }
+            }
         }
 
         // Only run address validation if required fields are present (let Mongoose validate missing fields first)
@@ -169,7 +188,11 @@ export default createCrudRouter(Order, 'orders', {
                     priceNet: offering.priceNet
                 };
             } else {
-                data.offering = { slug: offeringSlug, name: offeringSlug };
+                const err = new mongoose.Error.ValidationError(null);
+                err.addError('offering', new mongoose.Error.ValidatorError({
+                    message: `Das Angebot "${offeringSlug}" ist für dieses Projekt nicht verfügbar.`
+                }));
+                throw err;
             }
         }
     },

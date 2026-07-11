@@ -17,7 +17,7 @@ const mailLogSchema = new mongoose.Schema({
     campaignId: { type: String, index: true },               // Groups mails into a newsletter campaign
     status: {
         type: String,
-        enum: ['queued', 'sent', 'bounced', 'failed'],
+        enum: ['queued', 'sent', 'bounced', 'failed', 'superseded'],
         default: 'queued',
         index: true
     },

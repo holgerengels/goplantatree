@@ -1,26 +1,29 @@
 /**
- * Google Apps Script – GoPlantATree Bestellungen → Google Sheet
+ * Google Apps Script – GoPlantATree → Google Sheet
+ *
+ * Synchronisiert Bestellungen und Angebote (Offerings) in separate Sheets.
  *
  * Anleitung:
  * 1. Google Sheet öffnen
  * 2. Erweiterungen → Apps Script
  * 3. Diesen Code einfügen (Code.gs ersetzen)
- * 4. syncOrders() manuell ausführen zum Testen (▶ Button)
+ * 4. syncOrders() / syncOfferings() manuell ausführen zum Testen (▶ Button)
  * 5. Optional: Trigger einrichten für automatische Synchronisation:
  *    → Links auf "Auslöser" (Uhr-Symbol) → "+ Auslöser hinzufügen"
- *    → Funktion: syncOrders, zeitgesteuert, z.B. stündlich
+ *    → Funktion: syncAll, zeitgesteuert, z.B. stündlich
  */
 
 // ─── Konfiguration ──────────────────────────────────────────
+
 var CONFIG = {
-  API_URL: 'https://goplantatree.org/api/v1/orders',
+  BASE_URL: 'https://goplantatree.org/api/v1',
   API_KEY: 'DEIN-API-KEY-HIER',
   PROJECT: 'klimabaumaktion-ulm',
-  SHEET_NAME: 'Bestellungen',
 };
 
-// Spalten – Reihenfolge hier = Spaltenreihenfolge im Sheet
-var COLUMNS = [
+// ─── Spaltendefinitionen ────────────────────────────────────
+
+var ORDER_COLUMNS = [
   { header: 'Bestellnr.',    path: 'orderNumber' },
   { header: 'Status',        path: 'status' },
   { header: 'Bestellt am',   path: 'orderedAt',    format: 'date' },
@@ -31,6 +34,7 @@ var COLUMNS = [
   { header: 'PLZ',           path: 'zip' },
   { header: 'Stadt',         path: 'city' },
   { header: 'Sonderadresse', path: 'specialAddress', format: 'boolean' },
+  { header: 'Baum (Slug)',   path: 'offering.slug' },
   { header: 'Baum',          path: 'offering.name' },
   { header: 'Kategorie',     path: 'offering.category' },
   { header: 'Botanisch',     path: 'offering.bezeichnungBotanisch' },
@@ -39,17 +43,66 @@ var COLUMNS = [
   { header: 'Pflanzort',     path: 'gardenType' },
 ];
 
-// ─── Hauptfunktion ──────────────────────────────────────────
+var OFFERING_COLUMNS = [
+  { header: 'Name',              path: 'name' },
+  { header: 'Slug',              path: 'slug' },
+  { header: 'Kategorie',         path: 'category' },
+  { header: 'Botanisch',         path: 'bezeichnungBotanisch' },
+  { header: 'Pflanzgröße Höhe',  path: 'pflanzgroesseHoehe' },
+  { header: 'Pflanzgröße StU',   path: 'pflanzgroesseStammumfang' },
+  { header: 'Endgröße Höhe',     path: 'endgroesseHoehe' },
+  { header: 'Endgröße Breite',   path: 'endgroesseBreite' },
+  { header: 'Preis (netto)',     path: 'priceNet' },
+  { header: 'Bestand',           path: 'stock' },
+  { header: 'Verfügbar',         path: 'available',  format: 'boolean' },
+  { header: 'Bemerkung',         path: 'bemerkung' },
+  { header: 'Sortierung',        path: 'sortOrder' },
+];
+
+// ─── Menü ───────────────────────────────────────────────────
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('🌳 GoPlantATree')
+    .addItem('Bestellungen synchronisieren', 'syncOrders')
+    .addItem('Angebote synchronisieren', 'syncOfferings')
+    .addSeparator()
+    .addItem('Alles synchronisieren', 'syncAll')
+    .addToUi();
+}
+
+// ─── Einstiegspunkte ────────────────────────────────────────
+
+function syncAll() {
+  syncOrders();
+  syncOfferings();
+}
 
 function syncOrders() {
-  var orders = fetchAllOrders();
-  if (!orders || orders.length === 0) {
-    Logger.log('Keine Bestellungen gefunden.');
+  var url = CONFIG.BASE_URL + '/orders';
+  var params = { project: CONFIG.PROJECT };
+  var items = fetchAll(url, params, true);
+  syncToSheet('Bestellungen', ORDER_COLUMNS, items);
+}
+
+function syncOfferings() {
+  var url = CONFIG.BASE_URL + '/offerings';
+  var params = { project: CONFIG.PROJECT };
+  var items = fetchAll(url, params, false);
+  items.sort(function(a, b) { return (a.slug || '').localeCompare(b.slug || ''); });
+  syncToSheet('Angebote', OFFERING_COLUMNS, items);
+}
+
+// ─── Generische Sheet-Synchronisation ───────────────────────
+
+function syncToSheet(sheetName, columns, items) {
+  if (!items || items.length === 0) {
+    Logger.log(sheetName + ': Keine Daten gefunden.');
     return;
   }
 
-  var sheet = getOrCreateSheet(CONFIG.SHEET_NAME);
-  var headers = COLUMNS.map(function(c) { return c.header; });
+  var sheet = getOrCreateSheet(sheetName);
+  var headers = columns.map(function(c) { return c.header; });
 
   // Header-Zeile schreiben (fett)
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -57,9 +110,9 @@ function syncOrders() {
   sheet.setFrozenRows(1);
 
   // Datenzeilen aufbereiten
-  var rows = orders.map(function(order) {
-    return COLUMNS.map(function(col) {
-      var value = getNestedValue(order, col.path);
+  var rows = items.map(function(item) {
+    return columns.map(function(col) {
+      var value = getNestedValue(item, col.path);
       if (col.format === 'date' && value) return new Date(value);
       if (col.format === 'boolean') return value ? 'Ja' : 'Nein';
       return value != null ? value : '';
@@ -80,29 +133,30 @@ function syncOrders() {
     sheet.autoResizeColumn(i);
   }
 
-  Logger.log(rows.length + ' Bestellungen synchronisiert.');
+  Logger.log(sheetName + ': ' + rows.length + ' Einträge synchronisiert.');
 }
 
-// ─── API-Abruf (mit skip/limit Paginierung) ─────────────────
+// ─── API-Abruf (mit optionaler Paginierung) ─────────────────
 
-function fetchAllOrders() {
-  var allOrders = [];
+function fetchAll(baseUrl, params, paginated) {
+  var allItems = [];
   var skip = 0;
   var limit = 100;
 
   while (true) {
-    var url = CONFIG.API_URL + '?limit=' + limit + '&skip=' + skip;
-    if (CONFIG.PROJECT) {
-      url += '&project=' + encodeURIComponent(CONFIG.PROJECT);
+    var url = baseUrl + '?';
+    for (var key in params) {
+      if (params[key]) url += key + '=' + encodeURIComponent(params[key]) + '&';
+    }
+    if (paginated) {
+      url += 'limit=' + limit + '&skip=' + skip;
     }
 
     Logger.log('Lade: ' + url);
 
     var response = UrlFetchApp.fetch(url, {
       method: 'GET',
-      headers: {
-        'x-api-key': CONFIG.API_KEY
-      },
+      headers: { 'x-api-key': CONFIG.API_KEY },
       muteHttpExceptions: true
     });
 
@@ -113,25 +167,33 @@ function fetchAllOrders() {
 
     var data = JSON.parse(response.getContentText());
 
-    // API gibt { items: [...], total: N } zurück
-    var items = data.items || [];
-    var total = data.total || 0;
+    if (paginated) {
+      // Paginiertes Format: { items: [...], total: N }
+      var items = data.items || [];
+      var total = data.total || 0;
 
-    if (items.length === 0) break;
+      if (items.length === 0) break;
 
-    for (var i = 0; i < items.length; i++) {
-      allOrders.push(items[i]);
+      for (var i = 0; i < items.length; i++) {
+        allItems.push(items[i]);
+      }
+
+      Logger.log('Geladen: ' + allItems.length + ' / ' + total);
+      if (allItems.length >= total) break;
+
+      skip += limit;
+    } else {
+      // Nicht-paginiert: API gibt direkt ein Array zurück
+      if (Array.isArray(data)) {
+        for (var j = 0; j < data.length; j++) {
+          allItems.push(data[j]);
+        }
+      }
+      break;
     }
-
-    Logger.log('Geladen: ' + allOrders.length + ' / ' + total);
-
-    // Alle geladen?
-    if (allOrders.length >= total) break;
-
-    skip += limit;
   }
 
-  return allOrders;
+  return allItems;
 }
 
 // ─── Hilfsfunktionen ────────────────────────────────────────

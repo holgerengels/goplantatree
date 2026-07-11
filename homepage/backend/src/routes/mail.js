@@ -2,7 +2,9 @@ import express from 'express';
 import MailLog from '../models/MailLog.js';
 import Campaign from '../models/Campaign.js';
 import Subscriber from '../models/Subscriber.js';
-import { sendMail, verifyConnection, getAccountKeys, getRateLimitConfig, getTransporter, getAccountConfig } from '../utils/mailService.js';
+import Order from '../models/Order.js';
+import MailTemplate from '../models/MailTemplate.js';
+import { sendMail, verifyConnection, getAccountKeys, getRateLimitConfig, getTransporter, getAccountConfig, resolveMailAccount } from '../utils/mailService.js';
 import { checkBounces } from '../utils/bounceChecker.js';
 import { renderTemplate, hasUnsubscribeLink, buildSubscriberVariables } from '../utils/mailTemplateEngine.js';
 import { auth, requirePermission } from '../middleware/auth.js';
@@ -173,6 +175,96 @@ router.post('/check-bounces', requirePermission('mail', 'create'), async (req, r
         next(err);
     }
 });
+
+// ─── Resend failed order confirmations ───────────────────────────────────
+
+/**
+ * POST /api/v1/mail/resend-failed
+ * Re-render and resend all failed order confirmation mails.
+ * Query params: project (optional, filter by project slug)
+ *
+ * Responds immediately, processes in the background.
+ * Check results via GET /api/v1/mail/log?status=failed&template=order-confirm
+ */
+router.post('/resend-failed', requirePermission('mail', 'create'), async (req, res, next) => {
+    try {
+        const filter = { status: 'failed', template: 'order-confirm' };
+        if (req.query.project) filter.project = req.query.project;
+
+        const failedLogs = await MailLog.find(filter).lean();
+        if (failedLogs.length === 0) {
+            return res.json({ total: 0, message: 'Keine fehlgeschlagenen Bestellbestätigungen gefunden.' });
+        }
+
+        // Respond immediately
+        res.json({
+            total: failedLogs.length,
+            message: `${failedLogs.length} fehlgeschlagene Mails werden im Hintergrund erneut gesendet.`
+        });
+
+        // Process in background (fire-and-forget)
+        processResend(failedLogs).catch(err => {
+            console.error('[Mail] Background resend error:', err.message);
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+async function processResend(failedLogs) {
+    let resent = 0;
+    let errors = 0;
+
+    for (const log of failedLogs) {
+        try {
+            if (!log.referenceId) continue;
+
+            const order = await Order.findById(log.referenceId);
+            if (!order) {
+                console.warn(`[Mail] Resend: Order ${log.referenceId} nicht gefunden`);
+                continue;
+            }
+
+            const projectSlug = order.project || null;
+
+            let template = null;
+            if (projectSlug) {
+                template = await MailTemplate.findOne({ slug: 'order-confirm', project: projectSlug, active: true });
+            }
+            if (!template) {
+                template = await MailTemplate.findOne({ slug: 'order-confirm', project: null, active: true });
+            }
+            if (!template) continue;
+
+            const vars = { data: order.toObject ? order.toObject() : order };
+            const account = resolveMailAccount(projectSlug);
+            const renderedSubject = renderTemplate(template.subject, vars);
+            const renderedHtml = renderTemplate(template.html, vars);
+
+            const result = await sendMail(account, {
+                to: order.email,
+                subject: renderedSubject,
+                html: renderedHtml,
+                template: 'order-confirm',
+                referenceId: order._id,
+                referenceType: 'Order',
+                projectId: projectSlug
+            });
+
+            if (result.status === 'sent') {
+                await MailLog.updateOne({ _id: log._id }, { status: 'superseded' });
+                resent++;
+            } else {
+                errors++;
+            }
+        } catch (err) {
+            errors++;
+            console.error(`[Mail] Resend error for ${log.to}:`, err.message);
+        }
+    }
+
+    console.log(`[Mail] Resend complete: ${resent} sent, ${errors} failed of ${failedLogs.length} total`);
+}
 
 // ─── Campaign-based newsletter sending ───────────────────────────────────
 

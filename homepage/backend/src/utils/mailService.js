@@ -82,32 +82,49 @@ export async function sendMail(accountKey, options) {
         status: 'queued'
     });
 
-    try {
-        // 2. Send via SMTP
-        const transporter = getTransporter(accountKey);
-        const info = await transporter.sendMail({
-            from: config.from,
-            to: options.to,
-            subject: options.subject,
-            html: options.html,
-            text: options.text
-        });
+    const maxRetries = 3;
 
-        // 3. Update log: sent
-        logEntry.status = 'sent';
-        logEntry.sentAt = new Date();
-        logEntry.smtpResponse = info.response;
-        await logEntry.save();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Force fresh transporter on retries to get a new DNS resolution / TCP connection
+            if (attempt > 1) {
+                transporterCache.delete(accountKey);
+            }
 
-        return logEntry;
-    } catch (err) {
-        // 4. Update log: failed
-        logEntry.status = 'failed';
-        logEntry.error = err.message;
-        await logEntry.save();
+            const transporter = getTransporter(accountKey);
+            const info = await transporter.sendMail({
+                from: config.from,
+                to: options.to,
+                subject: options.subject,
+                html: options.html,
+                text: options.text
+            });
 
-        console.error(`[Mail] Failed to send to ${options.to}:`, err.message);
-        return logEntry;
+            logEntry.status = 'sent';
+            logEntry.sentAt = new Date();
+            logEntry.smtpResponse = info.response;
+            await logEntry.save();
+
+            return logEntry;
+        } catch (err) {
+            const isRetryable = /timeout|ETIMEDOUT|ECONNREFUSED|ECONNRESET|socket close|connection closed|greeting never received/i.test(err.message);
+
+            if (isRetryable && attempt < maxRetries) {
+                const delayMs = 2000 * attempt;
+                console.warn(`[Mail] Attempt ${attempt}/${maxRetries} to ${options.to} failed (${err.message}), retrying in ${delayMs}ms...`);
+                transporterCache.delete(accountKey);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                continue;
+            }
+
+            // Final attempt failed or non-timeout error
+            logEntry.status = 'failed';
+            logEntry.error = err.message;
+            await logEntry.save();
+
+            console.error(`[Mail] Failed to send to ${options.to} after ${attempt} attempt(s):`, err.message);
+            return logEntry;
+        }
     }
 }
 
