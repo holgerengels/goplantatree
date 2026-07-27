@@ -8,7 +8,7 @@
         </span>
         <div>
           <h1>{{ config.label.plural }}</h1>
-          <span class="editor-count">{{ items.length }} Einträge</span>
+          <span class="editor-count">{{ totalCount }} Einträge</span>
         </div>
       </div>
 
@@ -172,6 +172,17 @@
       <p v-else class="muted">
         {{ searchQuery ? 'Keine Treffer.' : `Noch keine ${config.label.plural} vorhanden.` }}
       </p>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination">
+        <wa-button variant="default" size="small" :disabled="currentPage <= 1 ? true : undefined" @click="goToPage(currentPage - 1)">
+          <wa-icon name="chevron-left" slot="prefix"></wa-icon> Zurück
+        </wa-button>
+        <span class="pagination-info">Seite {{ currentPage }} von {{ totalPages }}</span>
+        <wa-button variant="default" size="small" :disabled="currentPage >= totalPages ? true : undefined" @click="goToPage(currentPage + 1)">
+          Weiter <wa-icon name="chevron-right" slot="suffix"></wa-icon>
+        </wa-button>
+      </div>
     </div>
   </div>
   <div v-else class="loading"><p>Wird geladen…</p></div>
@@ -244,6 +255,9 @@ const projectsStore = useProjectsStore();
 
 const config = ref(null);
 const items = ref([]);
+const totalCount = ref(0);
+const currentPage = ref(1);
+const pageSize = 100;
 const editing = ref(false);
 const editingId = ref(null);
 const formData = reactive({});
@@ -394,6 +408,11 @@ const getVal = (item, key) => {
 };
 
 // Search + sort
+const totalPages = computed(() => {
+    if (!totalCount.value || !pageSize) return 1;
+    return Math.ceil(totalCount.value / pageSize);
+});
+
 const filteredItems = computed(() => {
     // Search, filters, and sorting are all done server-side
     return items.value;
@@ -406,6 +425,12 @@ const toggleSort = (key) => {
         sortField.value = key;
         sortAsc.value = true;
     }
+    currentPage.value = 1;
+    loadData();
+};
+
+const goToPage = (page) => {
+    currentPage.value = page;
     loadData();
 };
 
@@ -541,6 +566,11 @@ const loadData = async () => {
         let endpoint = config.value.api.replace('/api/v1', '');
         const queryParams = new URLSearchParams();
         
+        // Pagination
+        queryParams.append('limit', String(pageSize));
+        const skip = (currentPage.value - 1) * pageSize;
+        if (skip > 0) queryParams.append('skip', String(skip));
+        
         if (config.value.admin?.filters) {
             for (const f of config.value.admin.filters) {
                 if (activeFilters[f] !== undefined && activeFilters[f] !== '') {
@@ -563,6 +593,7 @@ const loadData = async () => {
         
         const data = await api.get(endpoint);
         items.value = Array.isArray(data) ? data : (data.items || data.orders || Object.values(data).find(v => Array.isArray(v)) || []);
+        totalCount.value = data.total != null ? data.total : items.value.length;
     } catch (err) {
         console.error('Load error:', err);
     }
@@ -678,7 +709,10 @@ const uploadFile = async () => {
 };
 
 watch(activeFilters, () => {
-    if (config.value) loadData();
+    if (config.value) {
+        currentPage.value = 1;
+        loadData();
+    }
 }, { deep: true });
 
 // Debounced server-side search
@@ -686,7 +720,10 @@ let searchTimeout = null;
 watch(searchQuery, () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        if (config.value) loadData();
+        if (config.value) {
+            currentPage.value = 1;
+            loadData();
+        }
     }, 300);
 });
 
@@ -1132,5 +1169,20 @@ watch(() => route.params.entity, async () => {
 
 .import-errors-list li {
     margin-bottom: 4px;
+}
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border-light);
+}
+
+.pagination-info {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
 }
 </style>

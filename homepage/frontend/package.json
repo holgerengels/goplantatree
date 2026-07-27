@@ -13,6 +13,9 @@
   "dependencies": {
     "@awesome.me/webawesome": "^3.6.0",
     "@guolao/vue-monaco-editor": "^1.6.0",
+    "@tiptap/pm": "^3.29.1",
+    "@tiptap/starter-kit": "^3.29.1",
+    "@tiptap/vue-3": "^3.29.1",
     "@vueup/vue-quill": "^1.2.0",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^2.3.1",

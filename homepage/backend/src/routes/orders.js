@@ -40,8 +40,8 @@ export default createCrudRouter(Order, 'orders', {
             const config = loadConfig(configName) || loadConfig('order');
             const allowedFields = getConfigFieldNames(config);
             if (allowedFields) {
-                // Always allow 'project' (set by frontend, not in form config)
-                const allowed = new Set([...allowedFields, 'project']);
+                // Always allow 'project' (set by frontend) and 'selectedAddons' (set by OfferingSelector)
+                const allowed = new Set([...allowedFields, 'project', 'selectedAddons']);
                 for (const key of Object.keys(data)) {
                     if (!allowed.has(key)) delete data[key];
                 }

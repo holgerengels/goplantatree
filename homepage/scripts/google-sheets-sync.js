@@ -39,6 +39,8 @@ var ORDER_COLUMNS = [
   { header: 'Kategorie',     path: 'offering.category' },
   { header: 'Botanisch',     path: 'offering.bezeichnungBotanisch' },
   { header: 'Preis (netto)', path: 'offering.priceNet' },
+  { header: 'Wühlmauskorb',  path: 'selectedAddons', format: 'arrayContains', match: 'Wühlmauskorb' },
+  { header: 'Addons',        path: 'selectedAddons', format: 'list' },
   { header: 'Zeitfenster',   path: 'timeSlot' },
   { header: 'Pflanzort',     path: 'gardenType' },
 ];
@@ -115,6 +117,8 @@ function syncToSheet(sheetName, columns, items) {
       var value = getNestedValue(item, col.path);
       if (col.format === 'date' && value) return new Date(value);
       if (col.format === 'boolean') return value ? 'Ja' : 'Nein';
+      if (col.format === 'arrayContains') return (Array.isArray(value) && value.indexOf(col.match) !== -1) ? 'Ja' : 'Nein';
+      if (col.format === 'list') return Array.isArray(value) ? value.join(', ') : (value || '');
       return value != null ? value : '';
     });
   });
