@@ -52,6 +52,9 @@ router.post('/', async (req, res, next) => {
         // Security: always force empty status on public creation (prevent Double-Opt-In bypass)
         payload.status = [];
 
+        // Resolve mail account BEFORE saving — subscriber must not exist without confirmation mail
+        const account = resolveMailAccount(projectSlug);
+
         const subscriber = new Subscriber(payload);
         await subscriber.save();
 
@@ -60,7 +63,6 @@ router.post('/', async (req, res, next) => {
         if (!subscriber.hasStatus('confirmed')) {
             const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
             const confirmUrl = `${siteUrl}/bestaetigen/${subscriber.confirmToken}`;
-            const account = resolveMailAccount(projectSlug);
 
             // Try to load template from DB (project-specific first, then without project)
             let template = null;
@@ -98,19 +100,15 @@ router.post('/', async (req, res, next) => {
                     </div>
                 `;
 
-            try {
-                await sendMail(account, {
-                    to: subscriber.email,
-                    subject: mailSubject,
-                    html: mailHtml,
-                    template: 'subscribe-confirm',
-                    referenceId: subscriber._id,
-                    referenceType: 'Subscriber',
-                    projectId: subscriber.project || null
-                });
-            } catch (mailErr) {
-                console.error('[Subscriber] Confirmation mail failed:', mailErr.message);
-            }
+            await sendMail(account, {
+                to: subscriber.email,
+                subject: mailSubject,
+                html: mailHtml,
+                template: 'subscribe-confirm',
+                referenceId: subscriber._id,
+                referenceType: 'Subscriber',
+                projectId: subscriber.project || null
+            });
         }
 
         const msg = subscriber.hasStatus('confirmed')

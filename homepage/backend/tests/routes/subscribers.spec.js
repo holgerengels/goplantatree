@@ -31,51 +31,50 @@ describe('Subscribers API (Soft Refs)', () => {
     });
 
     describe('POST /api/v1/subscribers', () => {
-        it('should store project as slug string directly', async () => {
+        it('should reject subscription when project has no mail account', async () => {
             const res = await request(app)
                 .post('/api/v1/subscribers')
                 .send({ email: 'slug@example.com', project: 'test-project' });
 
-            expect(res.statusCode).toBe(201);
+            expect(res.statusCode).toBe(400);
             const sub = await Subscriber.findOne({ email: 'slug@example.com' });
-            expect(sub.project).toBe('test-project');
-            expect(typeof sub.project).toBe('string');
+            expect(sub).toBeNull();
         });
 
-        it('should allow subscription without project', async () => {
+        it('should reject subscription without project', async () => {
             const res = await request(app)
                 .post('/api/v1/subscribers')
                 .send({ email: 'noproject@example.com', name: 'Test' });
 
-            expect(res.statusCode).toBe(201);
+            expect(res.statusCode).toBe(400);
             const sub = await Subscriber.findOne({ email: 'noproject@example.com' });
-            expect(sub).not.toBeNull();
-            expect(sub.confirmToken).toBeDefined();
+            expect(sub).toBeNull();
+        });
+
+        it('should send confirmation email when project has mail account', async () => {
+            await request(app)
+                .post('/api/v1/subscribers')
+                .send({ email: 'mail@example.com', name: 'Max', project: 'klimabaumaktion-ulm' });
+
+            expect(sendMail).toHaveBeenCalledTimes(1);
+            const call = sendMail.mock.calls[0];
+            expect(call[0]).toBe('klimabaumaktion-ulm');
+            expect(call[1].to).toBe('mail@example.com');
+            expect(call[1].subject).toContain('bestätige');
         });
 
         it('should reject duplicate email per project', async () => {
             await request(app)
                 .post('/api/v1/subscribers')
-                .send({ email: 'dup@example.com', project: 'test-project' });
+                .send({ email: 'dup@example.com', project: 'klimabaumaktion-ulm' });
 
             const res = await request(app)
                 .post('/api/v1/subscribers')
-                .send({ email: 'dup@example.com', project: 'test-project' });
+                .send({ email: 'dup@example.com', project: 'klimabaumaktion-ulm' });
 
             expect(res.statusCode).toBe(409);
         });
 
-        it('should send confirmation email after subscribe', async () => {
-            await request(app)
-                .post('/api/v1/subscribers')
-                .send({ email: 'mail@example.com', name: 'Max' });
-
-            expect(sendMail).toHaveBeenCalledTimes(1);
-            const call = sendMail.mock.calls[0];
-            expect(call[0]).toBe('info');
-            expect(call[1].to).toBe('mail@example.com');
-            expect(call[1].subject).toContain('bestätige');
-        });
     });
 
     describe('GET /api/v1/subscribers/confirm/:token', () => {

@@ -135,7 +135,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             expect(order.offering.name).toBe('Winterlinde');
         });
 
-        it('should handle non-existent offering slug gracefully', async () => {
+        it('should reject non-existent offering slug with validation error', async () => {
             const res = await request(app)
                 .post('/api/v1/orders')
                 .send({
@@ -147,12 +147,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
                     quantity: 1, agb: true
                 });
 
-            expect(res.statusCode).toBe(201);
-
-            // Order should be created with a fallback offering
-            const order = await Order.findOne({ email: 'ghost@test.de' });
-            expect(order.offering.slug).toBe('does-not-exist');
-            expect(order.offering.name).toBe('does-not-exist');
+            expect(res.statusCode).toBe(400);
         });
 
         it('should create order without offering', async () => {

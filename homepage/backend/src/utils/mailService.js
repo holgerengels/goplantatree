@@ -138,13 +138,16 @@ export async function verifyConnection(accountKey) {
 }
 
 /**
- * Pick the best mail account for a project.
- * Tries the project slug first, falls back to 'info'.
+ * Pick the mail account for a project.
+ * Requires an exact match in mail.json — no fallback.
  */
 export function resolveMailAccount(projectSlug) {
+    if (!projectSlug) {
+        throw new Error('[Mail] resolveMailAccount called without project slug. Every project must have a dedicated mail account in mail.json.');
+    }
     const accounts = getAccountKeys();
-    if (projectSlug && accounts.includes(projectSlug)) return projectSlug;
-    return 'info';
+    if (accounts.includes(projectSlug)) return projectSlug;
+    throw new Error(`[Mail] No mail account configured for project "${projectSlug}". Add an entry in config/mail.json.`);
 }
 
 /**

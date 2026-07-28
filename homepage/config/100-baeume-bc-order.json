@@ -1,6 +1,6 @@
 {
     "entity": "order",
-    "project": "klimabaumaktion-ulm",
+    "project": "100-baeume-bc",
     "fields": [
         {
             "name": "name",

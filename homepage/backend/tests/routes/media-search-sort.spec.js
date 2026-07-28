@@ -24,11 +24,11 @@ describe('Media API — Server-side Search & Sort', () => {
         process.env.JWT_SECRET = JWT_SECRET;
         token = generateToken({ media: { read: 'all' } });
 
-        await createMedia({ slug: 'eiche-herbst', title: 'Eiche im Herbst', originalName: 'eiche_foto.jpg', author: 'Max Müller' });
-        await createMedia({ slug: 'birke-fruehling', title: 'Birke im Frühling', originalName: 'birke.png', author: 'Anna Schmidt' });
-        await createMedia({ slug: 'saeulen-amberbaum-4', title: 'Säulen-Amberbaum', originalName: 'amberbaum.jpg', author: 'Max Müller' });
-        await createMedia({ slug: 'kornelkirsche', title: 'Kornelkirsche', originalName: 'kornelkirsche.jpg', author: 'Fritz König' });
-        await createMedia({ slug: 'fichte-winter', title: 'Fichte im Winter', originalName: 'fichte_schnee.jpg', author: 'Anna Schmidt' });
+        await createMedia({ slug: 'eiche-herbst', title: 'Eiche im Herbst', originalName: 'eiche_foto.jpg', author: 'Max Müller', createdAt: new Date('2026-01-01') });
+        await createMedia({ slug: 'birke-fruehling', title: 'Birke im Frühling', originalName: 'birke.png', author: 'Anna Schmidt', createdAt: new Date('2026-01-02') });
+        await createMedia({ slug: 'saeulen-amberbaum-4', title: 'Säulen-Amberbaum', originalName: 'amberbaum.jpg', author: 'Max Müller', createdAt: new Date('2026-01-03') });
+        await createMedia({ slug: 'kornelkirsche', title: 'Kornelkirsche', originalName: 'kornelkirsche.jpg', author: 'Fritz König', createdAt: new Date('2026-01-04') });
+        await createMedia({ slug: 'fichte-winter', title: 'Fichte im Winter', originalName: 'fichte_schnee.jpg', author: 'Anna Schmidt', createdAt: new Date('2026-01-05') });
     });
 
     describe('GET /api/v1/media?search= (search)', () => {
