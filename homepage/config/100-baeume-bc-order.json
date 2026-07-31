@@ -32,8 +32,8 @@
             "type": "Text",
             "required": true,
             "validation": {
-                "expression": "/^88400$/.test(zip)",
-                "message": "Die Klimabaumaktion beschränkt sich auf Biberach a. d. Riß."
+                "expression": "/^(88400||88441|88444|88447)$/.test(zip)",
+                "message": "Die Aktion beschränkt sich auf das Stadtgebiet von Biberach an der Riss."
             }
         },
         {
@@ -81,13 +81,13 @@
         },
         {
             "name": "confirmation",
-            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtkreis Biberach pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „Jeder Baum zählt!“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
+            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtgebiet von Biberach an der Riss pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „100 Bäume für Biberach“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
             "type": "Boolean",
             "required": true
         },
         {
             "name": "privacy",
-            "label": "Ich bin damit einverstanden, dass meine Daten zum Zwecke der Abwicklung der Klimabaumaktion gespeichert werden. Die Daten werden nicht an Dritte weitergegeben.",
+            "label": "Ich bin damit einverstanden, dass meine Daten zum Zwecke der Abwicklung der Aktion „100 Bäume für Biberach“ gespeichert werden. Die Daten werden nicht an Dritte weitergegeben.",
             "type": "Boolean",
             "required": true
         },
@@ -115,7 +115,7 @@
         {
             "name": "delivery_header",
             "type": "Content",
-            "content": "<h5>Wie kommt der Baum zu dir?</h5><p>Die Ausgabe der Bäume erfolgt am 7.11.26. Bitte wähle einen Zeitraum für die Abholung:</p>"
+            "content": "<h5>Wie kommt der Baum zu dir?</h5><p>Die Ausgabe der Bäume erfolgt am 14.11.26. Bitte wähle einen Zeitraum für die Abholung:</p>"
         },
         {
             "name": "delivery_description",
