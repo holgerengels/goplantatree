@@ -15,6 +15,7 @@
             "articleBody": "content",
             "image": "image",
             "datePublished": "publishedAt",
+            "dateModified": "updatedAt",
             "author": "author"
         }
     },

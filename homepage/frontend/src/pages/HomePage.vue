@@ -33,6 +33,7 @@ import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { api } from '../services/api.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
+import { useHead } from '../composables/useHead.js';
 
 const homePage = ref(null);
 
@@ -48,6 +49,12 @@ useJsonLd(() => ({
     "name": "Go Plant A Tree",
     "url": window.location.origin,
     "description": heroSubtitle.value
+}));
+
+useHead(() => ({
+    description: heroSubtitle.value,
+    image: heroImage.value || null,
+    canonicalPath: '/'
 }));
 
 onMounted(async () => {

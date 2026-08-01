@@ -99,6 +99,7 @@ import { getCategoryGradient } from '../utils/gradients.js';
 import { api } from '../services/api.js';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { useJsonLd } from '../composables/useJsonLd.js';
+import { useHead } from '../composables/useHead.js';
 
 const route = useRoute();
 const configStore = useConfigStore();
@@ -188,9 +189,16 @@ useJsonLd(() => {
         for (const [ldKey, itemPath] of Object.entries(config.value.jsonld.mapping)) {
             const val = resolvePath(item.value, itemPath);
             if (val) {
+                // author → Person object
+                if (ldKey === 'author' && typeof val === 'string') {
+                    ld[ldKey] = { "@type": "Person", "name": val };
                 // Media slug → full URL for image fields
-                if (ldKey === 'image' && typeof val === 'string' && !val.startsWith('http') && !val.startsWith('/')) {
+                } else if (ldKey === 'image' && typeof val === 'string' && !val.startsWith('http') && !val.startsWith('/')) {
                     ld[ldKey] = `${window.location.origin}/api/v1/media/by-slug/${val}/file`;
+                // articleBody → strip HTML tags, truncate
+                } else if (ldKey === 'articleBody' && typeof val === 'string') {
+                    const text = val.replace(/<[^>]*>/g, '').trim();
+                    ld[ldKey] = text.length > 500 ? text.slice(0, 500) + '…' : text;
                 } else if (typeof val === 'string' && val.startsWith('/')) {
                     ld[ldKey] = window.location.origin + val;
                 } else {
@@ -201,6 +209,24 @@ useJsonLd(() => {
     }
     
     return ld;
+});
+
+useHead(() => {
+    if (!config.value || !item.value) return null;
+    const titleField = config.value.detail?.titleField || 'title';
+    const subtitleField = config.value.detail?.subtitleField;
+    const title = item.value[titleField];
+    const description = (subtitleField && item.value[subtitleField])
+        || item.value.excerpt
+        || item.value.description
+        || title;
+    const imageSlug = item.value.image;
+    return {
+        title,
+        description,
+        image: imageSlug ? `/api/v1/media/by-slug/${imageSlug}/file` : null,
+        type: 'article'
+    };
 });
 
 const loadData = async () => {

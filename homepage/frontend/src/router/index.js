@@ -121,9 +121,4 @@ router.beforeEach((to, from, next) => {
     next();
 });
 
-// Reset page title on navigation; pages override once data loads
-router.afterEach(() => {
-    document.title = 'Go Plant A Tree';
-});
-
 export default router;

@@ -25,6 +25,7 @@ import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { useConfigStore } from '../stores/config.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
+import { useHead } from '../composables/useHead.js';
 import { api } from '../services/api.js';
 
 const route = useRoute();
@@ -53,6 +54,15 @@ useJsonLd(() => {
     };
 });
 
+useHead(() => {
+    if (!page.value) return null;
+    return {
+        title: page.value.title,
+        description: page.value.heroSubtitle || page.value.title,
+        image: page.value.image ? `/api/v1/media/by-slug/${page.value.image}/file` : null
+    };
+});
+
 const loadPage = async () => {
     if (!slug.value) return;
     loading.value = true;
@@ -60,9 +70,6 @@ const loadPage = async () => {
     try {
         page.value = await api.get(`/pages/${slug.value}`);
         configStore.pageHeroMode = !!page.value.heroSubtitle;
-        if (page.value.title) {
-            document.title = `${page.value.title} — Go Plant A Tree`;
-        }
     } catch (err) {
         error.value = err.message || 'Seite nicht gefunden';
         page.value = null;
