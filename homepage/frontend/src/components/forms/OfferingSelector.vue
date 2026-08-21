@@ -9,7 +9,7 @@
       @change="updateValue($event.target.value)"
     >
       <wa-option value="" disabled>{{ loading ? 'Wird geladen…' : 'Bitte wählen …' }}</wa-option>
-      <wa-option v-for="opt in options" :key="opt.slug || opt._id" :value="opt.slug || opt._id">
+      <wa-option v-for="opt in availableOptions" :key="opt.slug || opt._id" :value="opt.slug || opt._id" :disabled="opt.available === false">
         {{ opt.name }}{{ opt.category ? ` (${opt.category})` : '' }}
       </wa-option>
     </wa-select>
@@ -93,6 +93,10 @@ const options = ref([]);
 const treeMap = ref({});
 const addonMap = ref({});
 const loading = ref(false);
+
+const availableOptions = computed(() => {
+    return options.value.filter(opt => opt.available !== false || (opt.slug && opt.slug === normalizedValue.value) || (opt._id && opt._id === normalizedValue.value));
+});
 
 const updateValue = (val) => {
     emit('update:modelValue', val);

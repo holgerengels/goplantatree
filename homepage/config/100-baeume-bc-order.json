@@ -38,10 +38,9 @@
         },
         {
             "name": "city",
-            "label": "Stadt",
+            "label": "Stadt / Gemeinde",
             "type": "Text",
-            "required": true,
-            "default": "Ulm"
+            "required": true
         },
         {
             "name": "specialAddress",
@@ -62,7 +61,6 @@
             "description": "Bitte wähle einen Zeitraum für die Abholung",
             "type": "Radio",
             "options": [
-                "10:00 - 11:00 Uhr",
                 "11:00 - 12:00 Uhr",
                 "12:00 - 13:00 Uhr"
             ],

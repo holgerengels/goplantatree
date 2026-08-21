@@ -42,7 +42,7 @@ orderSchema.pre('save', async function (next) {
     if (!this.orderNumber) {
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
-            { _id: `order-${this.project}-${year}` },
+            { _id: `order-GPT-${year}` },
             { $inc: { seq: 1 } },
             { upsert: true, new: true }
         );
