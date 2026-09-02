@@ -24,6 +24,20 @@ const routes = [
     },
 
     {
+        path: '/mitmachen/:projectSlug',
+        name: 'action-mitmachen',
+        component: () => import('../pages/ActionPage.vue'),
+        meta: { hero: true }
+    },
+
+    {
+        path: '/anmelden/:projectSlug',
+        name: 'action-anmelden',
+        component: () => import('../pages/ActionPage.vue'),
+        meta: { hero: true }
+    },
+
+    {
         path: '/abmelden/:token',
         name: 'unsubscribe',
         component: () => import('../pages/UnsubscribePage.vue'),

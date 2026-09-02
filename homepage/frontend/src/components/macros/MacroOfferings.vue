@@ -1,9 +1,6 @@
 <template>
   <section class="macro-offerings" v-if="offerings.length">
-    <div class="section-title">
-      <h2>{{ title }}</h2>
-      <p>{{ offerings.length }} Baumarten stehen zur Auswahl</p>
-    </div>
+
     <div class="offerings-grid">
       <div v-for="offering in offerings" :key="offering._id" class="offering-card card">
         <div class="offering-image" :style="imageStyle(offering)">
@@ -48,8 +45,7 @@ import { getCategoryGradient } from '../../utils/gradients.js';
 import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
-    project: { type: String, required: true },
-    title: { type: String, default: 'Verfügbare Bäume' }
+    project: { type: String, required: true }
 });
 
 const offerings = ref([]);
@@ -83,8 +79,7 @@ watch(() => props.project, async (newVal) => {
 </script>
 
 <style scoped>
-.section-title { text-align: center; margin-bottom: var(--space-2xl); }
-.section-title p { color: var(--color-text-muted); }
+
 .offerings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

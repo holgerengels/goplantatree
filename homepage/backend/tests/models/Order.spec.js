@@ -93,7 +93,7 @@ describe('Order Model', () => {
         expect(uniqueNumbers.size).toBe(10);
     });
 
-    it('should use atomic Counter collection with slug key', async () => {
+    it('should use atomic Counter collection for order numbers', async () => {
         const order = new Order({
             project: 'test',
             name: 'Counter Check',
@@ -107,7 +107,7 @@ describe('Order Model', () => {
         await order.save();
 
         const year = new Date().getFullYear();
-        const counter = await Counter.findById(`order-test-${year}`);
+        const counter = await Counter.findById(`order-GPT-${year}`);
         expect(counter).not.toBeNull();
         expect(counter.seq).toBeGreaterThanOrEqual(1);
     });

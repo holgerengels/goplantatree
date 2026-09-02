@@ -2,7 +2,7 @@
   <header :class="['app-header', { scrolled: isScrolled, 'hero-mode': isHeroMode }]">
     <div class="header-container container">
       <router-link to="/" class="header-logo">
-        <img src="/images/logo-notext.svg" alt="Go Plant A Tree" class="logo-img" />
+        <img src="/images/logo-notext.svg" alt="Go Plant A Tree" class="logo-img" width="48" height="48" />
       </router-link>
 
       <nav class="header-nav" :class="{ open: menuOpen }">
@@ -43,7 +43,7 @@
       </nav>
 
       <button class="menu-toggle" @click="menuOpen = !menuOpen" aria-label="Menü">
-        <component :is="menuOpen ? icons.X : icons.Menu" />
+        <component :is="menuOpen ? X : Menu" />
       </button>
     </div>
     
@@ -55,7 +55,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import * as icons from 'lucide-vue-next';
+import { Menu, X } from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth.js';
 import { useConfigStore } from '../../stores/config.js';
 import { useProjectsStore } from '../../stores/projects.js';

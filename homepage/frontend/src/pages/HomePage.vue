@@ -9,10 +9,10 @@
     >
       <template #actions>
         <router-link to="/seite/baeume" class="btn btn-accent btn-lg">
-          <component :is="icons.TreePine" class="btn-icon" /> Baumwissen entdecken
+          <component :is="TreePine" class="btn-icon" /> Baumwissen entdecken
         </router-link>
         <router-link to="/seite/blog" class="btn btn-secondary btn-lg btn-white-glass">
-          Neuigkeiten lesen <component :is="icons.ArrowRight" class="btn-icon-right" />
+          Neuigkeiten lesen <component :is="ArrowRight" class="btn-icon-right" />
         </router-link>
       </template>
     </HeroSection>
@@ -28,7 +28,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import * as icons from 'lucide-vue-next';
+import { TreePine, ArrowRight } from 'lucide-vue-next';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { api } from '../services/api.js';
@@ -70,6 +70,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.home-page {
+    min-height: calc(100vh - var(--header-height));
+}
 .content-section {
     padding-top: var(--space-4xl);
     padding-bottom: var(--space-4xl);

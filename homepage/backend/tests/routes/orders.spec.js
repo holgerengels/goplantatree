@@ -5,6 +5,7 @@ import app from '../../server.js';
 import Order from '../../src/models/Order.js';
 import Offering from '../../src/models/Offering.js';
 import Project from '../../src/models/Project.js';
+import dns from 'dns';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 
@@ -22,6 +23,8 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             project: 'test-project', category: 'Laubbaum',
             bezeichnungBotanisch: 'Tilia cordata', available: true
         });
+
+        vi.spyOn(dns.promises, 'resolveMx').mockResolvedValue([{ exchange: 'mail.example.com', priority: 10 }]);
 
         originalFetch = global.fetch;
         global.fetch = vi.fn().mockImplementation(async (url) => {
@@ -80,6 +83,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
 
     afterEach(() => {
         global.fetch = originalFetch;
+        vi.restoreAllMocks();
     });
 
     describe('POST /api/v1/orders (public, with offering denormalization)', () => {
@@ -505,7 +509,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             expect(res.text.startsWith('\uFEFF')).toBe(true);
             
             // Header should contain fields configured in order.json's exportColumns
-            expect(res.text).toContain('Nr.;Projekt;Name;E-Mail;Telefon;Straße;PLZ;Stadt;Baum;Anzahl;Zusatzoptionen;Pflanzort;Anmerkungen;Status;Datum');
+            expect(res.text).toContain('Nr.;Projekt;Name;E-Mail;Telefon;Straße;PLZ;Stadt;Baum;Zusatzoptionen;Pflanzort;Anmerkungen;Status;Datum;Zeitfenster');
             expect(res.text).toContain('List Test;list@test.de');
         });
 

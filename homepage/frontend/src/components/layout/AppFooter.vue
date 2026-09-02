@@ -10,13 +10,13 @@
         <div class="footer-grid">
           <div class="footer-brand">
             <router-link to="/">
-              <img src="/images/logo-notext.svg" alt="Go Plant A Tree" class="footer-logo logo-tint" />
+              <img src="/images/logo-notext.svg" alt="Go Plant A Tree" class="footer-logo logo-tint" width="56" height="56" />
             </router-link>
             <p class="footer-mission">Es gibt so viele Stellen, an denen man noch Bäume pflanzen könnte … es müsste nur jemand tun!</p>
           </div>
           
           <div class="footer-links" v-if="footerNav.length">
-            <h4>Navigation</h4>
+            <h2>Navigation</h2>
             <template v-for="(item, idx) in footerNav" :key="idx">
               <a v-if="item.href" :href="item.href">{{ item.label }}</a>
               <router-link v-else :to="item.to">{{ item.label }}</router-link>
@@ -24,7 +24,7 @@
           </div>
           
           <div class="footer-links" v-if="footerLegal.length">
-            <h4>Rechtliches</h4>
+            <h2>Rechtliches</h2>
             <template v-for="(item, idx) in footerLegal" :key="idx">
               <a v-if="item.href" :href="item.href">{{ item.label }}</a>
               <router-link v-else :to="item.to">{{ item.label }}</router-link>
@@ -32,7 +32,7 @@
           </div>
           
           <div class="footer-links" v-if="footerMenu.projects && projects.length">
-            <h4>Projekte</h4>
+            <h2>Projekte</h2>
             <router-link
               v-for="project in projects"
               :key="project._id"
@@ -111,12 +111,13 @@ onMounted(() => {
     flex-direction: column;
     gap: var(--space-sm);
 }
-.footer-links h4 {
+.footer-links h2 {
     color: var(--color-accent);
     font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: var(--space-sm);
+    margin-top: 0;
 }
 .footer-links a {
     color: rgba(255, 255, 255, 0.8);

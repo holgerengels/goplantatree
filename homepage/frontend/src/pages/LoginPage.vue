@@ -3,7 +3,7 @@
     <div class="login-container">
       <div class="login-card card">
         <div class="login-header">
-          <img src="/images/logo-notext.svg" alt="Logo" class="login-logo" />
+          <img src="/images/logo-notext.svg" alt="Logo" class="login-logo" width="48" height="48" />
           <h2>Admin Login</h2>
         </div>
 

@@ -1,7 +1,7 @@
 import { watch, onMounted, onUnmounted } from 'vue';
 
 const SITE_NAME = 'Go Plant A Tree';
-const DEFAULT_DESCRIPTION = 'Go Plant A Tree - Wir verschenken klimaresiliente Bäume für eine grünere Zukunft.';
+const DEFAULT_DESCRIPTION = 'Es gibt noch so viel Platz für Bäume. Es muss sie nur jemand pflanzen!';
 
 /**
  * Reactive head tag management (title, meta, canonical).
