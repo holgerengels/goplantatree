@@ -158,7 +158,11 @@
       <div v-for="(item, index) in (modelValue || [])" :key="index" class="object-array-item card">
         <div class="object-array-header">
           <span class="object-array-title">Eintrag {{ index + 1 }}</span>
-          <wa-button size="small" variant="warning" @click="removeArrayItem(index)" :disabled="field.readonly === true ? true : undefined">Entfernen</wa-button>
+          <div class="object-array-actions">
+            <wa-button size="small" variant="neutral" @click="moveArrayItem(index, -1)" :disabled="index === 0 || field.readonly === true ? true : undefined">▲</wa-button>
+            <wa-button size="small" variant="neutral" @click="moveArrayItem(index, 1)" :disabled="index >= (modelValue || []).length - 1 || field.readonly === true ? true : undefined">▼</wa-button>
+            <wa-button size="small" variant="warning" @click="removeArrayItem(index)" :disabled="field.readonly === true ? true : undefined">Entfernen</wa-button>
+          </div>
         </div>
         <div class="object-array-fields" :style="getObjectArrayFieldsStyle(field)">
           <FormField
@@ -531,6 +535,15 @@ const updateArrayItemField = (index, fieldName, value) => {
     updateValue(arr);
 };
 
+const moveArrayItem = (index, direction) => {
+    if (!Array.isArray(props.modelValue)) return;
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= props.modelValue.length) return;
+    const arr = [...props.modelValue];
+    [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+    updateValue(arr);
+};
+
 const getObjectArrayFieldsStyle = (fieldDef) => {
     if (!fieldDef.grid || fieldDef.grid.length === 0) return {};
     
@@ -621,6 +634,11 @@ const moveStringArrayItem = (index, direction) => {
     margin-bottom: var(--space-md);
     padding: var(--space-md) !important;
     background: var(--color-bg);
+}
+
+.object-array-actions {
+    display: flex;
+    gap: var(--space-xs);
 }
 
 .object-array-header {

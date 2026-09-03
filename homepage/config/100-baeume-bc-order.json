@@ -38,10 +38,9 @@
         },
         {
             "name": "city",
-            "label": "Stadt",
+            "label": "Stadt / Gemeinde",
             "type": "Text",
-            "required": true,
-            "default": "Ulm"
+            "required": true
         },
         {
             "name": "specialAddress",
