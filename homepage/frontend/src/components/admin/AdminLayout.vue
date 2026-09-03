@@ -3,7 +3,7 @@
     <div class="admin-layout">
       <aside class="admin-sidebar" :class="{ 'is-open': isSidebarOpen }">
         <div class="sidebar-header">
-          <img src="/images/logo-notext.svg" alt="" class="sidebar-logo" />
+          <img src="/images/logo-notext.svg" alt="" class="sidebar-logo" width="48" height="48" />
           <span class="sidebar-title">Admin</span>
           <button class="sidebar-close-btn" @click="isSidebarOpen = false">
             <component :is="icons.X" />
@@ -82,6 +82,7 @@ import { useRouter } from 'vue-router';
 import * as icons from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth.js';
 import { useConfigStore } from '../../stores/config.js';
+import '../../webawesome.js';
 
 const isSidebarOpen = ref(false);
 

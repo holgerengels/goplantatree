@@ -1,8 +1,6 @@
 <template>
   <section class="macro-team" v-if="sortedMembers.length">
-    <div class="section-title">
-      <h2>{{ title }}</h2>
-    </div>
+
     <div class="team-grid">
       <div v-for="member in sortedMembers" :key="member.name" class="team-card card">
         <img v-if="member.avatar" :src="mediaUrl(member.avatar.slug || member.avatar, 'thumb')" :alt="member.name" class="team-avatar team-avatar-img" />
@@ -22,8 +20,7 @@ import { useProjectContent } from '../../composables/useProjectContent.js';
 import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
-    project: { type: String, required: true },
-    title: { type: String, default: 'Unser Team' }
+    project: { type: String, required: true }
 });
 
 const members = useProjectContent(() => props.project, 'team');
@@ -35,7 +32,6 @@ const sortedMembers = computed(() =>
 
 <style scoped>
 .macro-team { background: var(--color-bg-alt); padding: var(--space-2xl) 0; border-radius: var(--radius-lg); }
-.section-title { text-align: center; margin-bottom: var(--space-2xl); }
 .team-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

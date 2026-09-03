@@ -63,10 +63,22 @@
             "type": "Text"
         },
         {
-            "name": "actionPath",
-            "label": "Action-Pfad",
+            "name": "actionType",
+            "label": "Aktions-Typ",
+            "type": "Select",
+            "options": [
+                { "value": "bestellen", "label": "Bestellen (Bäume verschenken)" },
+                { "value": "mitmachen", "label": "Mitmachen (Aktion)" },
+                { "value": "anmelden", "label": "Anmelden" }
+            ],
+            "default": "bestellen",
+            "description": "Bestimmt den Basis-Pfad, z.B. /bestellen/projekt-slug"
+        },
+        {
+            "name": "actionIcon",
+            "label": "Aktions-Icon (Emoji)",
             "type": "Text",
-            "description": "Ziel-URL des CTA-Buttons, z.B. /bestellen/klimabaumaktion-ulm"
+            "description": "Optionales Emoji für den Button, z.B. 🌳 oder 💧"
         },
         {
             "name": "actionLabel",
@@ -189,7 +201,7 @@
     "grid": [
         "name name slug slug",
         "orderFormConfig orderFormConfig active sortOrder",
-        "actionPath actionPath actionLabel actionDisabledLabel",
+        "actionType actionType actionIcon actionLabel actionDisabledLabel",
         "text text text text",
         "content.timeline content.timeline content.team content.team",
         "content.sponsors content.sponsors . ."

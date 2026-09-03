@@ -75,10 +75,6 @@
                 "label": "Baum"
             },
             {
-                "key": "quantity",
-                "label": "Anzahl"
-            },
-            {
                 "key": "selectedAddons",
                 "label": "Zusatzoptionen"
             },
@@ -98,6 +94,10 @@
                 "key": "orderedAt",
                 "label": "Datum",
                 "type": "date"
+            },
+            {
+                "key": "timeSlot",
+                "label": "Zeitfenster"
             }
         ]
     },

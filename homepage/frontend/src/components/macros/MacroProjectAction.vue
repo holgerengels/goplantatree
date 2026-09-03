@@ -5,7 +5,7 @@
       :to="actionPath"
       class="btn btn-accent btn-lg"
     >
-      🌳 {{ activeLabel }}
+      <span v-if="projectData.actionIcon">{{ projectData.actionIcon }} </span>{{ activeLabel }}
     </router-link>
     <button
       v-else-if="actionPath"
@@ -28,8 +28,11 @@ const props = defineProps({
 const projectData = ref(null);
 
 // Everything comes from the project data
-const actionPath = computed(() => projectData.value?.actionPath || '');
-const activeLabel = computed(() => projectData.value?.actionLabel || 'Jetzt bestellen');
+const actionPath = computed(() => {
+    if (!projectData.value || !projectData.value.actionType) return '';
+    return `/${projectData.value.actionType}/${projectData.value.slug}`;
+});
+const activeLabel = computed(() => projectData.value?.actionLabel || '');
 const inactiveLabel = computed(() => projectData.value?.actionDisabledLabel || 'Derzeit nicht verfügbar');
 
 watch(() => props.project, async (slug) => {

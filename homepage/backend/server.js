@@ -26,6 +26,7 @@ import mailRoutes from './src/routes/mail.js';
 import mailTemplateRoutes from './src/routes/mailTemplates.js';
 import changelogRoutes from './src/routes/changelog.js';
 import sitemapRoutes from './src/routes/sitemap.js';
+import frontendRoutes from './src/routes/frontend.js';
 
 dotenv.config();
 
@@ -112,6 +113,9 @@ app.use('/api/v1', sitemapRoutes);
 app.get('/api/v1/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Catch-all Frontend (SPA) route for SEO rendering
+app.use('/', frontendRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

@@ -15,23 +15,7 @@
       </router-link>
     </div>
 
-    <div class="dashboard-recent card">
-      <h3>Letzte Bestellungen</h3>
-      <p v-if="!recentOrders.length" class="muted">Noch keine Bestellungen vorhanden.</p>
-      <table v-else class="data-table">
-        <thead>
-          <tr><th>Nr.</th><th>Name</th><th>Status</th><th>Datum</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="o in recentOrders" :key="o._id">
-            <td>{{ o.orderNumber }}</td>
-            <td>{{ o.name }}</td>
-            <td><span class="badge" :class="statusBadge(o.status)">{{ o.status }}</span></td>
-            <td>{{ formatDate(o.orderedAt) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+
   </AdminLayout>
 </template>
 
@@ -46,12 +30,7 @@ import { api } from '../../services/api.js';
 const configStore = useConfigStore();
 
 const stats = ref([]);
-const recentOrders = ref([]);
 
-const statusBadge = (s) => ({
-    neu: 'badge-primary', bestätigt: 'badge-accent',
-    ausgegeben: 'badge-success', storniert: 'badge-warning'
-}[s] || 'badge-primary');
 
 
 
@@ -73,12 +52,7 @@ onMounted(async () => {
     const results = await Promise.all(statPromises);
     stats.value = results.filter(Boolean);
 
-    // Load recent orders
-    try {
-        const data = await api.get('/orders?limit=10');
-        recentOrders.value = data.items || [];
-    } catch { /* skip */ }
-});
+
 </script>
 
 <style scoped>
@@ -128,10 +102,6 @@ onMounted(async () => {
 .stat-label {
     font-size: var(--text-sm);
     color: var(--color-text-muted);
-}
-
-.dashboard-recent h3 {
-    margin-bottom: var(--space-md);
 }
 
 

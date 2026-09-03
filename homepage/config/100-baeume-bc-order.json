@@ -61,7 +61,6 @@
             "description": "Bitte wähle einen Zeitraum für die Abholung",
             "type": "Radio",
             "options": [
-                "10:00 - 11:00 Uhr",
                 "11:00 - 12:00 Uhr",
                 "12:00 - 13:00 Uhr"
             ],
@@ -80,7 +79,7 @@
         },
         {
             "name": "confirmation",
-            "label": "Ich bestätige hiermit, dass ich meinen Baum im Stadtgebiet von Biberach an der Riss pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „100 Bäume für Biberach“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
+            "label": "Ich versichere hiermit, dass ich meinen Baum am angegebenen Ort pflanzen werde. Mir ist bewusst, dass PRO HAUSHALT NUR EIN BAUM bestellt werden darf. Zugelassen zur Aktion „100 Bäume für Biberach“ sind nur zusätzliche Baumpflanzungen. Pflanzungen, die als verpflichtende Ersatzpflanzung oder durch Bebauungsplanvorgaben vorgenommen werden müssen, sind von der Aktion ausgeschlossen. Wir bitten darum, das Nachbarrechtsgesetz Baden-Württemberg (NRG BW) bezüglich Grenzabständen, Baumhöhen etc. zu beachten.",
             "type": "Boolean",
             "required": true
         },
@@ -109,7 +108,7 @@
         {
             "name": "tree_header",
             "type": "Content",
-            "content": "<h5>Welcher Baum soll es sein?</h5><p>Wenn du nicht sicher bist, welcher Baum für deinen Pflanzort geeignet ist, kannst du dich vom BUND Biberach telefonisch beraten lassen: <a href=\"tel:+49???\">???</a></p>"
+            "content": "<h5>Welcher Baum soll es sein?</h5><p>Wenn du nicht sicher bist, welcher Baum für deinen Pflanzort geeignet ist, kannst du dich vom BUND Biberach telefonisch beraten lassen: <a href=\"tel:+49 1512 9676725\">+49 1512 9676725</a></p>"
         },
         {
             "name": "delivery_header",

@@ -19,20 +19,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { macroRegistry } from '../../utils/macroRegistry.js';
-import MacroPosts from '../macros/MacroPosts.vue';
-import MacroProjects from '../macros/MacroProjects.vue';
-import MacroTrees from '../macros/MacroTrees.vue';
-import MacroTimeline from '../macros/MacroTimeline.vue';
-import MacroTeam from '../macros/MacroTeam.vue';
-import MacroSponsors from '../macros/MacroSponsors.vue';
-import MacroOfferings from '../macros/MacroOfferings.vue';
-import MacroProjectAction from '../macros/MacroProjectAction.vue';
-import MacroMedia from '../macros/MacroMedia.vue';
-import MacroSubscribe from '../macros/MacroSubscribe.vue';
-import MacroConfirm from '../macros/MacroConfirm.vue';
+
+const MacroPosts = defineAsyncComponent(() => import('../macros/MacroPosts.vue'));
+const MacroProjects = defineAsyncComponent(() => import('../macros/MacroProjects.vue'));
+const MacroTrees = defineAsyncComponent(() => import('../macros/MacroTrees.vue'));
+const MacroTimeline = defineAsyncComponent(() => import('../macros/MacroTimeline.vue'));
+const MacroTeam = defineAsyncComponent(() => import('../macros/MacroTeam.vue'));
+const MacroSponsors = defineAsyncComponent(() => import('../macros/MacroSponsors.vue'));
+const MacroOfferings = defineAsyncComponent(() => import('../macros/MacroOfferings.vue'));
+const MacroProjectAction = defineAsyncComponent(() => import('../macros/MacroProjectAction.vue'));
+const MacroMedia = defineAsyncComponent(() => import('../macros/MacroMedia.vue'));
+const MacroSubscribe = defineAsyncComponent(() => import('../macros/MacroSubscribe.vue'));
+const MacroConfirm = defineAsyncComponent(() => import('../macros/MacroConfirm.vue'));
 
 // Map registry names to actual Vue components
 const macroComponents = {
