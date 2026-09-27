@@ -17,6 +17,12 @@
       </template>
     </HeroSection>
 
+    <SectionNav
+      v-if="homePage?.showSectionNav !== false"
+      :content-watch="homePage?.content"
+      target-selector=".content-html"
+    />
+
     <!-- Content from CMS Page -->
     <div class="content-section" v-if="homePage?.content">
       <div class="container content-wrapper wide">
@@ -32,6 +38,7 @@ import TreePine from 'lucide-vue-next/dist/esm/icons/tree-pine.js';
 import ArrowRight from 'lucide-vue-next/dist/esm/icons/arrow-right.js';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
+import SectionNav from '../components/common/SectionNav.vue';
 import { api } from '../services/api.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
 import { useHead } from '../composables/useHead.js';

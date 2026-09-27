@@ -191,6 +191,11 @@ textarea {
 section,
 .section {
     padding: var(--space-4xl) 0;
+    scroll-margin-top: calc(var(--header-height) + 54px);
+}
+
+[id] {
+    scroll-margin-top: calc(var(--header-height) + 54px);
 }
 
 .block-title {

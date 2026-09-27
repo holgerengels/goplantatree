@@ -82,6 +82,13 @@
             "hint": "Aktivieren für Seiten mit Karten-Grids (Bäume, Projekte, Beiträge)"
         },
         {
+            "name": "showSectionNav",
+            "label": "Sprungmarken-Leiste",
+            "type": "Boolean",
+            "default": true,
+            "hint": "Zeigt eine klebrige Sprungleiste an, wenn die Seite 2 oder mehr Abschnitte hat"
+        },
+        {
             "name": "content",
             "label": "Seiteninhalt (HTML)",
             "type": "Html"
@@ -91,7 +98,7 @@
         "image image image image",
         "project project title title",
         "slug slug heroSubtitle heroSubtitle",
-        "published wideLayout . .",
+        "published wideLayout showSectionNav .",
         "content content content content"
     ],
     "resource": "pages"

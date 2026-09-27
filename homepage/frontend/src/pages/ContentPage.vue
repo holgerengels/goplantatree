@@ -7,6 +7,8 @@
       height="40vh"
     />
 
+    <SectionNav v-if="page.showSectionNav !== false" :content-watch="page.content" target-selector=".content-html" />
+
     <div class="content-section" :style="page.heroSubtitle ? {} : { paddingTop: 'calc(var(--header-height) + var(--space-2xl))' }">
       <div class="container content-wrapper" :class="{ 'wide': hasWideMacro }">
         <h1 v-if="!page.heroSubtitle">{{ page.title }}</h1>
@@ -23,6 +25,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
+import SectionNav from '../components/common/SectionNav.vue';
 import { useConfigStore } from '../stores/config.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
 import { useHead } from '../composables/useHead.js';
