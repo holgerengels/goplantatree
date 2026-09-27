@@ -98,11 +98,11 @@ watch(slug, loadPage);
 }
 
 /* Entfernt den Abstand zum Hero, wenn der Content direkt mit einer farbigen Sektion beginnt */
-.content-section:not([style*="padding-top"]):has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50)) {
+.content-section:not([style*="padding-top"]):has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
     padding-top: 0;
 }
 /* Entfernt den Abstand zum Footer, wenn der Content mit einer farbigen Sektion endet */
-.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50)) {
+.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
     padding-bottom: 0;
 }
 
@@ -132,7 +132,8 @@ watch(slug, loadPage);
 .content-wrapper :deep(.section-surface),
 .content-wrapper :deep(.section-alt),
 .content-wrapper :deep(.section-primary),
-.content-wrapper :deep(.section-primary-50) {
+.content-wrapper :deep(.section-primary-50),
+.content-wrapper :deep(.section-secondary) {
     width: 100vw;
     position: relative;
     left: 50%;

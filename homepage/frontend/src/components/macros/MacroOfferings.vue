@@ -123,5 +123,6 @@ watch(() => props.project, async (newVal) => {
 .detail-row strong { color: var(--color-primary-dark); }
 .properties-text { margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--color-text-muted); }
 .size-specs { color: var(--color-text-muted); font-size: var(--text-xs); margin-left: 4px; }
+.section-actions,
 .section-more { text-align: center; margin-top: var(--space-2xl); }
 </style>

@@ -55,7 +55,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Menu, X } from 'lucide-vue-next';
+import Menu from 'lucide-vue-next/dist/esm/icons/menu.js';
+import X from 'lucide-vue-next/dist/esm/icons/x.js';
 import { useAuthStore } from '../../stores/auth.js';
 import { useConfigStore } from '../../stores/config.js';
 import { useProjectsStore } from '../../stores/projects.js';

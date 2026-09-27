@@ -28,7 +28,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { TreePine, ArrowRight } from 'lucide-vue-next';
+import TreePine from 'lucide-vue-next/dist/esm/icons/tree-pine.js';
+import ArrowRight from 'lucide-vue-next/dist/esm/icons/arrow-right.js';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import { api } from '../services/api.js';
@@ -103,7 +104,8 @@ onMounted(async () => {
 .content-wrapper :deep(.section-surface),
 .content-wrapper :deep(.section-alt),
 .content-wrapper :deep(.section-primary),
-.content-wrapper :deep(.section-primary-50) {
+.content-wrapper :deep(.section-primary-50),
+.content-wrapper :deep(.section-secondary) {
     width: 100vw;
     position: relative;
     left: 50%;
@@ -117,11 +119,11 @@ onMounted(async () => {
 }
 
 /* Entfernt den Abstand zum Hero, wenn der Content direkt mit einer farbigen Sektion beginnt */
-.content-section:has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50)) {
+.content-section:has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
     padding-top: 0;
 }
 /* Entfernt den Abstand zum Footer, wenn der Content mit einer farbigen Sektion endet */
-.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50)) {
+.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
     padding-bottom: 0;
 }
 

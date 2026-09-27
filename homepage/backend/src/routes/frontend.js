@@ -21,14 +21,28 @@ if (process.env.NODE_ENV === 'production' && process.platform === 'linux') {
     indexPath = path.join(__dirname, '../../../../frontend/dist/index.html');
 }
 
+// Cache index.html content in production
+let cachedIndexHtml = null;
+const getIndexHtml = async () => {
+    if (process.env.NODE_ENV === 'production' && cachedIndexHtml) {
+        return cachedIndexHtml;
+    }
+    const content = await fs.readFile(indexPath, 'utf-8');
+    if (process.env.NODE_ENV === 'production') {
+        cachedIndexHtml = content;
+    }
+    return content;
+};
+
 const SITE_NAME = 'Go Plant A Tree';
 const DEFAULT_DESC = 'Es gibt noch so viel Platz für Bäume. Es muss sie nur jemand pflanzen!';
 
 // Helper to resolve media URL
-const getMediaUrl = async (imageSlug) => {
+const getMediaUrl = async (imageSlug, variant = 'medium') => {
     if (!imageSlug) return null;
     if (imageSlug.startsWith('http')) return imageSlug;
-    return `/api/v1/media/by-slug/${imageSlug}/file`;
+    const vParam = variant ? `?v=${variant}` : '';
+    return `/api/v1/media/by-slug/${imageSlug}/file${vParam}`;
 };
 
 router.get('*', async (req, res, next) => {
@@ -41,7 +55,7 @@ router.get('*', async (req, res, next) => {
         // Try to read index.html
         let html;
         try {
-            html = await fs.readFile(indexPath, 'utf-8');
+            html = await getIndexHtml();
         } catch (err) {
             // Fallback if index.html is missing (e.g., local dev before build)
             return res.send(`<!DOCTYPE html><html><head><title>${SITE_NAME}</title></head><body><h1>Frontend not built yet. Please run npm run build in frontend.</h1></body></html>`);
@@ -54,7 +68,15 @@ router.get('*', async (req, res, next) => {
 
         // Route matching logic
         const parts = requestUrl.split('/').filter(Boolean);
-        if (parts.length >= 2) {
+        if (parts.length === 0) {
+            // Root page: home
+            const page = await Page.findOne({ slug: 'home' });
+            if (page) {
+                title = page.title ? `${page.title} — ${SITE_NAME}` : SITE_NAME;
+                description = page.heroSubtitle || page.description || description;
+                image = page.image;
+            }
+        } else if (parts.length >= 2) {
             const entityType = parts[0];
             const slug = parts[1];
 

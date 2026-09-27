@@ -516,7 +516,8 @@ section {
     color: var(--color-accent-light);
 }
 
-.section-primary-50 {
+.section-primary-50,
+.section-secondary {
     background: var(--color-primary-50);
     color: var(--color-text);
 }
@@ -533,6 +534,17 @@ section {
     /* Dynamically calculate padding to align content exactly with normal .container */
     padding-left: max(var(--space-xl), calc(50vw - (var(--max-width) / 2) + var(--space-xl)));
     padding-right: max(var(--space-xl), calc(50vw - (var(--max-width) / 2) + var(--space-xl)));
+}
+
+.section-actions,
+.section-more {
+    text-align: center;
+    margin-top: var(--space-2xl);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
 }
 
 /* Feature Cards */

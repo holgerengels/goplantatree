@@ -1,11 +1,95 @@
 <template>
   <div class="html-editor-container">
+    <!-- Toolbar (only for HTML mode) -->
+    <div v-if="language === 'html'" class="html-editor-toolbar">
+      <div class="toolbar-group">
+        <label for="section-insert-select" class="toolbar-label">
+          <span>➕</span> Sektion / Vorlage einfügen:
+        </label>
+        <select
+          id="section-insert-select"
+          class="toolbar-select"
+          @change="onInsertSelect($event)"
+          :disabled="disabled"
+        >
+          <option value="" disabled selected>Vorlage auswählen…</option>
+          <optgroup label="Sektionen">
+            <option value="section-title">Title (.section-title)</option>
+            <option value="section-primary">Primary (.section-primary)</option>
+            <option value="section-secondary">Secondary (.section-secondary)</option>
+            <option value="section-alt">Alt (.section-alt)</option>
+            <option value="section-surface">Surface (.section-surface)</option>
+            <option value="section-actions">Actions (.section-actions)</option>
+          </optgroup>
+          <optgroup label="Elemente">
+            <option value="elem-cta">CTA (Button)</option>
+            <option value="card">Card (.card)</option>
+          </optgroup>
+          <optgroup label="Makros">
+            <option v-for="[name, def] in macroList" :key="name" :value="'macro:' + name">
+              [[{{ name }}]] – {{ def.label }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Quick action buttons for the most common section styles -->
+      <div class="toolbar-actions">
+        <button
+          type="button"
+          class="toolbar-btn"
+          title="Titel & Untertitel (.section-title)"
+          :disabled="disabled"
+          @click="insertSnippetByKey('section-title')"
+        >
+          + Title
+        </button>
+        <button
+          type="button"
+          class="toolbar-btn"
+          title="Primary Sektion (.section-primary)"
+          :disabled="disabled"
+          @click="insertSnippetByKey('section-primary')"
+        >
+          + Primary
+        </button>
+        <button
+          type="button"
+          class="toolbar-btn"
+          title="Aktionen / Buttons (.section-actions)"
+          :disabled="disabled"
+          @click="insertSnippetByKey('section-actions')"
+        >
+          + Actions
+        </button>
+        <button
+          type="button"
+          class="toolbar-btn"
+          title="Call-to-Action Button"
+          :disabled="disabled"
+          @click="insertSnippetByKey('elem-cta')"
+        >
+          + CTA
+        </button>
+        <button
+          type="button"
+          class="toolbar-btn"
+          title="Card (.card)"
+          :disabled="disabled"
+          @click="insertSnippetByKey('card')"
+        >
+          + Card
+        </button>
+      </div>
+    </div>
+
     <VueMonacoEditor
       v-model:value="content"
       theme="vs-dark"
       :language="language"
       :options="editorOptions"
       @change="handleChange"
+      @mount="handleEditorMount"
       :height="height"
     />
 
@@ -34,40 +118,346 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
-import { getMacroList } from '../../utils/macroRegistry.js'
+import { ref, watch, computed } from 'vue';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import { getMacroList, macroRegistry } from '../../utils/macroRegistry.js';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   language: { type: String, default: 'html' },
   height: { type: String, default: '400px' }
-})
-const emit = defineEmits(['update:modelValue'])
+});
+const emit = defineEmits(['update:modelValue']);
 
-const content = ref(props.modelValue)
-const macroList = getMacroList()
+const content = ref(props.modelValue);
+const macroList = getMacroList();
+const editorInstance = ref(null);
+const monacoInstance = ref(null);
+
+const SNIPPETS = {
+  'section-title': [
+    '<div class="section-title">',
+    '  <h2>${1:Titel der Sektion}</h2>',
+    '  <p>${2:Untertitel der Sektion}</p>',
+    '</div>'
+  ].join('\n'),
+
+  'section-primary': [
+    '<div class="section-primary">',
+    '  <div class="section-title">',
+    '    <h2>${1:Titel der Sektion}</h2>',
+    '    <p>${2:Untertitel der Sektion}</p>',
+    '  </div>',
+    '  ${3:<p>Inhalt der Sektion hier eingeben...</p>}',
+    '</div>'
+  ].join('\n'),
+
+  'section-secondary': [
+    '<div class="section-secondary">',
+    '  <div class="section-title">',
+    '    <h2>${1:Titel der Sektion}</h2>',
+    '    <p>${2:Untertitel der Sektion}</p>',
+    '  </div>',
+    '  ${3:<p>Inhalt der Sektion hier eingeben...</p>}',
+    '</div>'
+  ].join('\n'),
+
+  'section-alt': [
+    '<div class="section-alt">',
+    '  <div class="section-title">',
+    '    <h2>${1:Titel der Sektion}</h2>',
+    '    <p>${2:Untertitel der Sektion}</p>',
+    '  </div>',
+    '  ${3:<p>Inhalt der Sektion hier eingeben...}</p>',
+    '</div>'
+  ].join('\n'),
+
+  'section-surface': [
+    '<div class="section-surface">',
+    '  <div class="section-title">',
+    '    <h2>${1:Titel der Sektion}</h2>',
+    '    <p>${2:Untertitel der Sektion}</p>',
+    '  </div>',
+    '  ${3:<p>Inhalt der Sektion hier eingeben...}</p>',
+    '</div>'
+  ].join('\n'),
+
+  'section-actions': [
+    '<div class="section-actions">',
+    '  <a href="${1:/seite/ziel}" class="btn btn-primary">${2:Aktionsbutton}</a>',
+    '</div>'
+  ].join('\n'),
+
+  'section-more': [
+    '<div class="section-actions">',
+    '  <a href="${1:/seite/ziel}" class="btn btn-primary">${2:Aktionsbutton}</a>',
+    '</div>'
+  ].join('\n'),
+
+  'elem-cta': '<a href="${1:/seite/ziel}" class="btn btn-primary">${2:Aktionsbutton}</a>',
+
+  'card': [
+    '<div class="card">',
+    '  <h3>${1:Karten-Titel}</h3>',
+    '  <p>${2:Karten-Inhalt...}</p>',
+    '</div>'
+  ].join('\n')
+};
 
 const copyText = async (text, event) => {
     try {
-        await navigator.clipboard.writeText(text)
-        const btn = event.currentTarget
-        const orig = btn.textContent
-        btn.textContent = '✓'
-        setTimeout(() => { btn.textContent = orig }, 1500)
+        await navigator.clipboard.writeText(text);
+        const btn = event.currentTarget;
+        const orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
     } catch { /* ignore */ }
-}
+};
 
 watch(() => props.modelValue, (newVal) => {
     if (newVal !== content.value) {
-        content.value = newVal
+        content.value = newVal;
     }
-})
+});
 
 const handleChange = (value) => {
-    emit('update:modelValue', value)
-}
+    emit('update:modelValue', value);
+};
+
+const insertSnippetByText = (snippetText) => {
+    if (!editorInstance.value) {
+        const clean = snippetText.replace(/\$\{\d+:?([^}]*)\}/g, '$1');
+        content.value = (content.value ? content.value + '\n\n' : '') + clean;
+        emit('update:modelValue', content.value);
+        return;
+    }
+
+    const editor = editorInstance.value;
+    editor.focus();
+
+    const snippetController = editor.getContribution('snippetController2');
+    if (snippetController && typeof snippetController.insert === 'function') {
+        snippetController.insert(snippetText);
+    } else {
+        const clean = snippetText.replace(/\$\{\d+:?([^}]*)\}/g, '$1');
+        const selection = editor.getSelection();
+        editor.executeEdits('toolbar-insert', [{
+            range: selection,
+            text: clean,
+            forceMoveMarkers: true
+        }]);
+    }
+};
+
+const insertSnippetByKey = (key) => {
+    const snippet = SNIPPETS[key];
+    if (snippet) {
+        insertSnippetByText(snippet);
+    }
+};
+
+const onInsertSelect = (event) => {
+    const val = event.target.value;
+    if (!val) return;
+
+    if (val.startsWith('macro:')) {
+        const macroName = val.replace('macro:', '');
+        const macroDef = macroRegistry[macroName];
+        if (macroDef && macroDef.example) {
+            insertSnippetByText(macroDef.example);
+        } else {
+            insertSnippetByText(`[[${macroName}]]`);
+        }
+    } else if (SNIPPETS[val]) {
+        insertSnippetByKey(val);
+    }
+
+    // Reset dropdown
+    event.target.value = '';
+};
+
+// Monaco Autocompletions (Register once)
+let isRegistered = false;
+
+const registerMonacoCompletions = (monaco) => {
+    if (isRegistered || !monaco) return;
+    isRegistered = true;
+
+    monaco.languages.registerCompletionItemProvider('html', {
+        triggerCharacters: ['<', '.', '[', '-', '"', ' '],
+        provideCompletionItems: (model, position) => {
+            const word = model.getWordUntilPosition(position);
+            const range = {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn: word.startColumn,
+                endColumn: word.endColumn
+            };
+
+            const lineUntilPosition = model.getValueInRange({
+                startLineNumber: position.lineNumber,
+                startColumn: 1,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column
+            });
+
+            const suggestions = [];
+
+            // 1. Sektionen & Vorlagen (Snippets)
+            const sectionSnippets = [
+                {
+                    label: 'section-title',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-title'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Title (.section-title)',
+                    documentation: 'Zentrierter Titelblock (H2 + Untertitel)'
+                },
+                {
+                    label: 'section-primary',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-primary'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Primary (.section-primary)',
+                    documentation: 'Breite Sektion im Primary-Stil mit Titelblock und Inhalt'
+                },
+                {
+                    label: 'section-secondary',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-secondary'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Secondary (.section-secondary)',
+                    documentation: 'Breite Sektion im Secondary-Stil mit Titelblock und Inhalt'
+                },
+                {
+                    label: 'section-alt',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-alt'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Alt (.section-alt)',
+                    documentation: 'Breite Sektion im Alt-Stil mit Titelblock und Inhalt'
+                },
+                {
+                    label: 'section-surface',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-surface'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Surface (.section-surface)',
+                    documentation: 'Breite Sektion im Surface-Stil mit Titelblock und Inhalt'
+                },
+                {
+                    label: 'section-actions',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-actions'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Actions (.section-actions)',
+                    documentation: 'Zentrierter Aktionsbereich für Buttons / Links'
+                },
+                {
+                    label: 'section-more',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['section-more'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'More (.section-more / Alias)',
+                    documentation: 'Zentrierter Aktionsbereich (Alias für section-actions)'
+                },
+                {
+                    label: 'cta',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['elem-cta'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'CTA (Button)',
+                    documentation: 'Call-to-Action Link-Button (.btn.btn-primary)'
+                },
+                {
+                    label: 'card',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: SNIPPETS['card'],
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: 'Card (.card)',
+                    documentation: 'Karten-Container für hervorhebbare Inhalte'
+                }
+            ];
+
+            sectionSnippets.forEach(s => {
+                suggestions.push({ ...s, range });
+            });
+
+            // 2. CSS-Klassen innerhalb class="..."
+            const isInsideClass = /class\s*=\s*["'][^"']*$/.test(lineUntilPosition);
+            if (isInsideClass) {
+                const classes = [
+                    { name: 'section-title', desc: 'Title Sektion' },
+                    { name: 'section-primary', desc: 'Primary Sektion' },
+                    { name: 'section-secondary', desc: 'Secondary Sektion' },
+                    { name: 'section-alt', desc: 'Alt Sektion' },
+                    { name: 'section-surface', desc: 'Surface Sektion' },
+                    { name: 'section-actions', desc: 'Actions / Button Sektion' },
+                    { name: 'section-more', desc: 'Actions / More (Alias)' },
+                    { name: 'full-width', desc: 'Volle Viewport-Breite Breakout' },
+                    { name: 'card', desc: 'Card Container' },
+                    { name: 'container', desc: 'Container' },
+                    { name: 'btn', desc: 'Basis Button' },
+                    { name: 'btn-primary', desc: 'Primary Button' },
+                    { name: 'btn-secondary', desc: 'Secondary Button' },
+                    { name: 'btn-accent', desc: 'Accent Button' },
+                    { name: 'btn-lg', desc: 'Large Button' }
+                ];
+
+                classes.forEach(c => {
+                    suggestions.push({
+                        label: c.name,
+                        kind: monaco.languages.CompletionItemKind.Value,
+                        insertText: c.name,
+                        detail: c.desc,
+                        range
+                    });
+                });
+            }
+
+            // 3. Makro-Vervollständigungen ([[...]])
+            const isDoubleBracket = lineUntilPosition.endsWith('[[');
+            const isSingleBracket = !isDoubleBracket && lineUntilPosition.endsWith('[');
+            let macroRange = range;
+            if (isDoubleBracket) {
+                macroRange = {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column - 2,
+                    endColumn: position.column
+                };
+            } else if (isSingleBracket) {
+                macroRange = {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column - 1,
+                    endColumn: position.column
+                };
+            }
+
+            const macroEntries = getMacroList();
+            macroEntries.forEach(([name, def]) => {
+                suggestions.push({
+                    label: `[[${name}]]`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: def.example,
+                    detail: `Makro: ${def.label}`,
+                    documentation: `Beispiel: ${def.example}`,
+                    range: macroRange
+                });
+            });
+
+            return { suggestions };
+        }
+    });
+};
+
+const handleEditorMount = (editor, monaco) => {
+    editorInstance.value = editor;
+    monacoInstance.value = monaco;
+    registerMonacoCompletions(monaco);
+};
 
 const editorOptions = computed(() => ({
   automaticLayout: true,
@@ -77,7 +467,7 @@ const editorOptions = computed(() => ({
   minimap: { enabled: false },
   wordWrap: 'on',
   suggestOnTriggerCharacters: true
-}))
+}));
 </script>
 
 <style scoped>
@@ -86,6 +476,80 @@ const editorOptions = computed(() => ({
     border-radius: var(--radius-md, 8px);
     overflow: hidden;
     background-color: #1e1e1e; /* Match monaco dark theme background */
+}
+
+/* Toolbar */
+.html-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm, 0.5rem);
+    padding: var(--space-xs, 0.5rem) var(--space-sm, 0.75rem);
+    background: #252526;
+    border-bottom: 1px solid #333333;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 0.5rem);
+}
+
+.toolbar-label {
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: 600;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.toolbar-select {
+    background: #1e1e1e;
+    color: #eeeeee;
+    border: 1px solid #444444;
+    border-radius: var(--radius-sm, 4px);
+    padding: 4px 10px;
+    font-size: var(--text-xs, 0.75rem);
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition-fast, 0.15s);
+}
+
+.toolbar-select:focus {
+    border-color: var(--color-primary, #4caf50);
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toolbar-btn {
+    background: #2d2d2d;
+    color: #eeeeee;
+    border: 1px solid #444444;
+    border-radius: var(--radius-sm, 4px);
+    padding: 3px 10px;
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+    background: var(--color-primary, #2e7d32);
+    border-color: var(--color-primary, #2e7d32);
+    color: #ffffff;
+}
+
+.toolbar-btn:disabled, .toolbar-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Macro reference panel */

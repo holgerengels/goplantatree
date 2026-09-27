@@ -51,8 +51,7 @@ onMounted(async () => {
     
     const results = await Promise.all(statPromises);
     stats.value = results.filter(Boolean);
-
-
+});
 </script>
 
 <style scoped>

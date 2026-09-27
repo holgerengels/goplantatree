@@ -8,15 +8,23 @@ export const useProjectsStore = defineStore('projects', () => {
     const loading = ref(false);
     const loaded = ref(false);
 
+    let projectsPromise = null;
+
     const fetchProjects = async () => {
-        if (loaded.value) return;
+        if (loaded.value) return projects.value;
+        if (projectsPromise) return projectsPromise;
         loading.value = true;
-        try {
-            projects.value = await api.get('/projects');
-            loaded.value = true;
-        } finally {
-            loading.value = false;
-        }
+        projectsPromise = (async () => {
+            try {
+                projects.value = await api.get('/projects');
+                loaded.value = true;
+                return projects.value;
+            } finally {
+                loading.value = false;
+                projectsPromise = null;
+            }
+        })();
+        return projectsPromise;
     };
 
     const fetchProject = async (slug) => {

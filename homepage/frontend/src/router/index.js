@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { getToken } from '../services/tokenStorage.js';
+import HomePage from '../pages/HomePage.vue';
 
 const routes = [
     {
         path: '/',
         name: 'home',
-        component: () => import('../pages/HomePage.vue'),
+        component: HomePage,
         meta: { hero: true }
     },
 

@@ -9,8 +9,6 @@ export const macroRegistry = {
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
             { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" },
-            { name: 'title', type: 'String', default: '', desc: 'Überschrift' },
-            { name: 'subtitle', type: 'String', default: '', desc: 'Unterzeile' },
             { name: 'theme', type: 'String', default: '', desc: "z.B. 'alt', 'surface', 'primary'" }
         ],
         example: '[[posts limit=3 type="news"]]'
@@ -20,8 +18,6 @@ export const macroRegistry = {
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
             { name: 'activeOnly', type: 'Boolean', default: false, desc: 'Nur aktive Projekte' },
-            { name: 'title', type: 'String', default: '', desc: 'Überschrift' },
-            { name: 'subtitle', type: 'String', default: '', desc: 'Unterzeile' },
             { name: 'theme', type: 'String', default: '', desc: "z.B. 'alt', 'surface'" }
         ],
         example: '[[projects limit=3 activeOnly=true]]'
@@ -37,33 +33,28 @@ export const macroRegistry = {
     timeline: {
         label: 'Zeitstrahl',
         props: [
-            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' },
-            { name: 'title', type: 'String', default: 'Zeitstrahl', desc: 'Überschrift' },
-            { name: 'subtitle', type: 'String', default: '', desc: 'Unterzeile' }
+            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' }
         ],
         example: '[[timeline project="mein-projekt"]]'
     },
     team: {
         label: 'Team-Anzeige',
         props: [
-            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' },
-            { name: 'title', type: 'String', default: 'Unser Team', desc: 'Überschrift' }
+            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' }
         ],
         example: '[[team project="mein-projekt"]]'
     },
     sponsors: {
         label: 'Sponsoren',
         props: [
-            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' },
-            { name: 'title', type: 'String', default: 'Partner & Sponsoren', desc: 'Überschrift' }
+            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' }
         ],
         example: '[[sponsors project="mein-projekt"]]'
     },
     offerings: {
         label: 'Angebote / Bäume bestellen',
         props: [
-            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' },
-            { name: 'title', type: 'String', default: 'Verfügbare Bäume', desc: 'Überschrift' }
+            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' }
         ],
         example: '[[offerings project="mein-projekt"]]'
     },

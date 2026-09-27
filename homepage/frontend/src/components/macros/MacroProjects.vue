@@ -1,10 +1,5 @@
 <template>
   <div :class="['macro-projects', theme ? `section-${theme}` : '']">
-    <div class="section-title" v-if="title || subtitle">
-      <h2 v-if="title">{{ title }}</h2>
-      <p v-if="subtitle">{{ subtitle }}</p>
-    </div>
-
     <div class="projects-grid" v-if="loadedProjects.length">
       <router-link
         v-for="project in loadedProjects"
@@ -49,14 +44,6 @@ const props = defineProps({
     activeOnly: {
         type: Boolean,
         default: false
-    },
-    title: {
-        type: String,
-        default: ''
-    },
-    subtitle: {
-        type: String,
-        default: ''
     },
     theme: {
         type: String,
