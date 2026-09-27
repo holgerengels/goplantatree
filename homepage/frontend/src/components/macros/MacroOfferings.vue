@@ -1,5 +1,5 @@
 <template>
-  <section class="macro-offerings" v-if="offerings.length">
+  <div class="macro-offerings" v-if="offerings.length">
 
     <div class="offerings-grid">
       <div v-for="offering in offerings" :key="offering._id" class="offering-card card">
@@ -35,7 +35,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>

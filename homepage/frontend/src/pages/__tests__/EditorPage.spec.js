@@ -198,8 +198,8 @@ describe('EditorPage.vue', () => {
         wrapper.vm.formData.name = 'Valid Name';
         await wrapper.vm.$nextTick();
 
-        // Save
-        await wrapper.vm.save();
+        // Save (default stays in editor)
+        await wrapper.vm.save(false);
         await wrapper.vm.$nextTick();
 
         // api.post calls go through the api service which uses fetch internally
@@ -209,6 +209,32 @@ describe('EditorPage.vue', () => {
         
         const body = JSON.parse(postCalls[0][1].body);
         expect(body.name).toBe('Valid Name');
+        // Still in editor view
+        expect(wrapper.vm.editing).toBe(true);
+    });
+
+    it('saves and closes when andClose is true', async () => {
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select']
+            }
+        });
+
+        await flushPromises();
+
+        wrapper.vm.startCreate();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.formData.name = 'Valid Name';
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.save(true);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.editing).toBe(false);
     });
 
     it('pre-fills project on create when permission is scoped to own', async () => {

@@ -14,7 +14,6 @@
         >
           <option value="" disabled selected>Vorlage auswählen…</option>
           <optgroup label="Sektionen">
-            <option value="section-title">Title (.section-title)</option>
             <option value="section-primary">Primary (.section-primary)</option>
             <option value="section-secondary">Secondary (.section-secondary)</option>
             <option value="section-alt">Alt (.section-alt)</option>
@@ -22,6 +21,7 @@
             <option value="section-actions">Actions (.section-actions)</option>
           </optgroup>
           <optgroup label="Elemente">
+            <option value="block-title">Block Title (.block-title)</option>
             <option value="elem-cta">CTA (Button)</option>
             <option value="card">Card (.card)</option>
           </optgroup>
@@ -38,9 +38,9 @@
         <button
           type="button"
           class="toolbar-btn"
-          title="Titel & Untertitel (.section-title)"
+          title="Titel & Untertitel (.block-title)"
           :disabled="disabled"
-          @click="insertSnippetByKey('section-title')"
+          @click="insertSnippetByKey('block-title')"
         >
           + Title
         </button>
@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, shallowRef, markRaw, watch, computed } from 'vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { getMacroList, macroRegistry } from '../../utils/macroRegistry.js';
 
@@ -132,55 +132,55 @@ const emit = defineEmits(['update:modelValue']);
 
 const content = ref(props.modelValue);
 const macroList = getMacroList();
-const editorInstance = ref(null);
-const monacoInstance = ref(null);
+const editorInstance = shallowRef(null);
+const monacoInstance = shallowRef(null);
 
 const SNIPPETS = {
-  'section-title': [
-    '<div class="section-title">',
-    '  <h2>${1:Titel der Sektion}</h2>',
-    '  <p>${2:Untertitel der Sektion}</p>',
+  'block-title': [
+    '<div class="block-title">',
+    '  <h2>${1:Titel}</h2>',
+    '  <p>${2:Untertitel}</p>',
     '</div>'
   ].join('\n'),
 
   'section-primary': [
-    '<div class="section-primary">',
-    '  <div class="section-title">',
+    '<section class="section-primary">',
+    '  <div class="block-title">',
     '    <h2>${1:Titel der Sektion}</h2>',
     '    <p>${2:Untertitel der Sektion}</p>',
     '  </div>',
-    '  ${3:<p>Inhalt der Sektion hier eingeben...</p>}',
-    '</div>'
+    '  <p>${3:Inhalt der Sektion hier eingeben...}</p>',
+    '</section>'
   ].join('\n'),
 
   'section-secondary': [
-    '<div class="section-secondary">',
-    '  <div class="section-title">',
+    '<section class="section-secondary">',
+    '  <div class="block-title">',
     '    <h2>${1:Titel der Sektion}</h2>',
     '    <p>${2:Untertitel der Sektion}</p>',
     '  </div>',
-    '  ${3:<p>Inhalt der Sektion hier eingeben...</p>}',
-    '</div>'
+    '  <p>${3:Inhalt der Sektion hier eingeben...}</p>',
+    '</section>'
   ].join('\n'),
 
   'section-alt': [
-    '<div class="section-alt">',
-    '  <div class="section-title">',
+    '<section class="section-alt">',
+    '  <div class="block-title">',
     '    <h2>${1:Titel der Sektion}</h2>',
     '    <p>${2:Untertitel der Sektion}</p>',
     '  </div>',
-    '  ${3:<p>Inhalt der Sektion hier eingeben...}</p>',
-    '</div>'
+    '  <p>${3:Inhalt der Sektion hier eingeben...}</p>',
+    '</section>'
   ].join('\n'),
 
   'section-surface': [
-    '<div class="section-surface">',
-    '  <div class="section-title">',
+    '<section class="section-surface">',
+    '  <div class="block-title">',
     '    <h2>${1:Titel der Sektion}</h2>',
     '    <p>${2:Untertitel der Sektion}</p>',
     '  </div>',
-    '  ${3:<p>Inhalt der Sektion hier eingeben...}</p>',
-    '</div>'
+    '  <p>${3:Inhalt der Sektion hier eingeben...}</p>',
+    '</section>'
   ].join('\n'),
 
   'section-actions': [
@@ -216,38 +216,51 @@ const copyText = async (text, event) => {
 };
 
 watch(() => props.modelValue, (newVal) => {
-    if (newVal !== content.value) {
+    const currentVal = editorInstance.value ? editorInstance.value.getValue() : content.value;
+    if (newVal !== currentVal) {
         content.value = newVal;
     }
 });
 
 const handleChange = (value) => {
-    emit('update:modelValue', value);
+    if (value !== props.modelValue) {
+        emit('update:modelValue', value);
+    }
 };
 
 const insertSnippetByText = (snippetText) => {
+    // Strip snippet placeholder syntax (e.g. ${1:Titel} -> Titel)
+    const cleanText = snippetText.replace(/\$\{\d+:?([^}]*)\}/g, '$1');
+
     if (!editorInstance.value) {
-        const clean = snippetText.replace(/\$\{\d+:?([^}]*)\}/g, '$1');
-        content.value = (content.value ? content.value + '\n\n' : '') + clean;
+        content.value = (content.value ? content.value + '\n\n' : '') + cleanText;
         emit('update:modelValue', content.value);
         return;
     }
 
     const editor = editorInstance.value;
+    const model = editor.getModel();
+    if (!model) return;
+
     editor.focus();
 
-    const snippetController = editor.getContribution('snippetController2');
-    if (snippetController && typeof snippetController.insert === 'function') {
-        snippetController.insert(snippetText);
-    } else {
-        const clean = snippetText.replace(/\$\{\d+:?([^}]*)\}/g, '$1');
-        const selection = editor.getSelection();
-        editor.executeEdits('toolbar-insert', [{
-            range: selection,
-            text: clean,
-            forceMoveMarkers: true
-        }]);
+    let selection = editor.getSelection();
+    if (!selection) {
+        const lastLine = model.getLineCount();
+        const lastCol = model.getLineMaxColumn(lastLine);
+        selection = monacoInstance.value
+            ? new monacoInstance.value.Range(lastLine, lastCol, lastLine, lastCol)
+            : { startLineNumber: lastLine, startColumn: lastCol, endLineNumber: lastLine, endColumn: lastCol };
     }
+
+    // Insert clean text safely via standard Monaco edit operation
+    editor.pushUndoStop();
+    editor.executeEdits('toolbar-insert', [{
+        range: selection,
+        text: cleanText,
+        forceMoveMarkers: true
+    }]);
+    editor.pushUndoStop();
 };
 
 const insertSnippetByKey = (key) => {
@@ -273,8 +286,8 @@ const onInsertSelect = (event) => {
         insertSnippetByKey(val);
     }
 
-    // Reset dropdown
-    event.target.value = '';
+    // Reset dropdown cleanly
+    event.target.selectedIndex = 0;
 };
 
 // Monaco Autocompletions (Register once)
@@ -307,11 +320,11 @@ const registerMonacoCompletions = (monaco) => {
             // 1. Sektionen & Vorlagen (Snippets)
             const sectionSnippets = [
                 {
-                    label: 'section-title',
+                    label: 'block-title',
                     kind: monaco.languages.CompletionItemKind.Snippet,
-                    insertText: SNIPPETS['section-title'],
+                    insertText: SNIPPETS['block-title'],
                     insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                    detail: 'Title (.section-title)',
+                    detail: 'Block Title (.block-title)',
                     documentation: 'Zentrierter Titelblock (H2 + Untertitel)'
                 },
                 {
@@ -388,7 +401,7 @@ const registerMonacoCompletions = (monaco) => {
             const isInsideClass = /class\s*=\s*["'][^"']*$/.test(lineUntilPosition);
             if (isInsideClass) {
                 const classes = [
-                    { name: 'section-title', desc: 'Title Sektion' },
+                    { name: 'block-title', desc: 'Block Title (H2 + Untertitel)' },
                     { name: 'section-primary', desc: 'Primary Sektion' },
                     { name: 'section-secondary', desc: 'Secondary Sektion' },
                     { name: 'section-alt', desc: 'Alt Sektion' },
@@ -454,15 +467,15 @@ const registerMonacoCompletions = (monaco) => {
 };
 
 const handleEditorMount = (editor, monaco) => {
-    editorInstance.value = editor;
-    monacoInstance.value = monaco;
+    editorInstance.value = markRaw(editor);
+    monacoInstance.value = markRaw(monaco);
     registerMonacoCompletions(monaco);
 };
 
 const editorOptions = computed(() => ({
   automaticLayout: true,
-  formatOnType: true,
-  formatOnPaste: true,
+  formatOnType: false,
+  formatOnPaste: false,
   readOnly: props.disabled,
   minimap: { enabled: false },
   wordWrap: 'on',

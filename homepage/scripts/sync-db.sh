@@ -26,6 +26,7 @@ REMOTE_CONTAINER="${REMOTE_CONTAINER:-goplantatree-mongo}"
 REMOTE_DB="${REMOTE_DB:-goplantatree}"
 REMOTE_AUTH="${REMOTE_AUTH:-}"
 DUMP_DIR="/tmp/mongodump-goplantatree"
+TAR_FILE="/tmp/mongodump-goplantatree.tar.gz"
 
 # --- Argument handling ---
 COLLECTIONS=()
@@ -52,7 +53,7 @@ echo ""
 echo "📦 Step 1: Dumping remote database..."
 
 # Clean up previous dump inside remote container
-ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR 2>/dev/null || true"
+ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR $TAR_FILE 2>/dev/null || true"
 
 if [[ ${#COLLECTIONS[@]} -gt 0 ]]; then
     echo "   Collections: ${COLLECTIONS[*]}"
@@ -75,6 +76,14 @@ fi
 
 echo "   ✅ Remote dump complete"
 
+echo "   Compressing remote dump archive..."
+TOTAL_BYTES=$(ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER tar -czf $TAR_FILE -C $DUMP_DIR $REMOTE_DB && docker exec $REMOTE_CONTAINER stat -c %s $TAR_FILE" 2>/dev/null || echo "0")
+TOTAL_BYTES=$(echo "$TOTAL_BYTES" | tr -dc '0-9')
+if [[ -n "$TOTAL_BYTES" && "$TOTAL_BYTES" -gt 0 ]]; then
+    TOTAL_MB=$(awk "BEGIN {printf \"%.1f\", $TOTAL_BYTES/1048576}")
+    echo "   ✅ Archive created (${TOTAL_MB} MB)"
+fi
+
 # --- Step 2: Stream dump from remote container to local container ---
 echo ""
 echo "📥 Step 2: Streaming dump to local container..."
@@ -83,9 +92,20 @@ echo "📥 Step 2: Streaming dump to local container..."
 docker exec "$LOCAL_CONTAINER" rm -rf /tmp/mongorestore-data 2>/dev/null || true
 docker exec "$LOCAL_CONTAINER" mkdir -p /tmp/mongorestore-data
 
+PV_ARGS=""
+if [[ -n "$TOTAL_BYTES" && "$TOTAL_BYTES" -gt 0 ]]; then
+    PV_ARGS="-s $TOTAL_BYTES"
+fi
+
 # Stream over SSH and extract directly inside the local container
-ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER tar -czf - -C $DUMP_DIR $REMOTE_DB" \
-    | docker exec -i "$LOCAL_CONTAINER" tar -xzf - -C /tmp/mongorestore-data
+if command -v pv >/dev/null 2>&1; then
+    ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER cat $TAR_FILE" \
+        | pv $PV_ARGS -N "   Streaming" \
+        | docker exec -i "$LOCAL_CONTAINER" tar -xzf - -C /tmp/mongorestore-data
+else
+    ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER cat $TAR_FILE" \
+        | docker exec -i "$LOCAL_CONTAINER" tar -xzf - -C /tmp/mongorestore-data
+fi
 
 echo "   ✅ Transferred and unpacked in local container"
 
@@ -104,7 +124,7 @@ echo "   ✅ Local restore complete"
 # --- Step 4: Cleanup ---
 echo ""
 echo "🧹 Step 4: Cleaning up temp files..."
-ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR 2>/dev/null || true"
+ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER rm -rf $DUMP_DIR $TAR_FILE 2>/dev/null || true"
 docker exec "$LOCAL_CONTAINER" rm -rf /tmp/mongorestore-data 2>/dev/null || true
 
 echo ""

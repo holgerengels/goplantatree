@@ -4,14 +4,14 @@
 
     <div class="dashboard-stats">
       <router-link v-for="stat in stats" :key="stat.label" :to="`/admin/${stat.slug}`" class="stat-card card">
-        <span class="stat-icon">
-          <component :is="icons[stat.icon]" v-if="icons[stat.icon]" />
-          <span v-else>{{ stat.icon }}</span>
-        </span>
-        <div class="stat-info">
+        <div class="stat-header">
+          <span class="stat-icon">
+            <component :is="icons[stat.icon]" v-if="icons[stat.icon]" />
+            <span v-else>{{ stat.icon }}</span>
+          </span>
           <span class="stat-value">{{ stat.value }}</span>
-          <span class="stat-label">{{ stat.label }}</span>
         </div>
+        <span class="stat-label">{{ stat.label }}</span>
       </router-link>
     </div>
 
@@ -69,8 +69,8 @@ onMounted(async () => {
 
 .stat-card {
     display: flex;
-    align-items: center;
-    gap: var(--space-lg);
+    flex-direction: column;
+    gap: var(--space-xs);
     text-decoration: none;
     color: inherit;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -78,6 +78,12 @@ onMounted(async () => {
 .stat-card:hover { 
     transform: translateY(-2px); 
     box-shadow: var(--shadow-md);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
 }
 
 .stat-icon { 
@@ -96,11 +102,13 @@ onMounted(async () => {
     font-size: var(--text-3xl);
     font-weight: 800;
     color: var(--color-primary-dark);
+    line-height: 1.1;
 }
 
 .stat-label {
     font-size: var(--text-sm);
     color: var(--color-text-muted);
+    line-height: 1.3;
 }
 
 

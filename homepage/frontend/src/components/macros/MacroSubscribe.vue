@@ -56,10 +56,7 @@ const subscribe = async () => {
 
 <style scoped>
 .macro-subscribe {
-    background: linear-gradient(135deg, var(--color-primary-50), var(--color-bg));
-    padding: var(--space-2xl) var(--space-md);
-    border-radius: var(--radius-xl);
-    margin: var(--space-2xl) 0;
+    width: 100%;
 }
 
 .subscribe-box {

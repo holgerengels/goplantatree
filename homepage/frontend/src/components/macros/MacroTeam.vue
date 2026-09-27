@@ -1,5 +1,5 @@
 <template>
-  <section class="macro-team" v-if="sortedMembers.length">
+  <div class="macro-team" v-if="sortedMembers.length">
 
     <div class="team-grid">
       <div v-for="member in sortedMembers" :key="member.name" class="team-card card">
@@ -11,7 +11,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
@@ -31,13 +31,13 @@ const sortedMembers = computed(() =>
 </script>
 
 <style scoped>
-.macro-team { background: var(--color-bg-alt); padding: var(--space-2xl) 0; border-radius: var(--radius-lg); }
+.macro-team {
+    width: 100%;
+}
 .team-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--space-md);
-    margin: 0 auto;
-    padding: 0 var(--space-lg);
 }
 .team-card {
     display: flex;

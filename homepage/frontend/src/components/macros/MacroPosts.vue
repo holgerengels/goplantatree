@@ -1,5 +1,5 @@
 <template>
-  <div :class="['macro-posts', theme ? `section-${theme}` : '']">
+  <div class="macro-posts">
     <div class="posts-grid" v-if="loadedPosts.length">
       <PostCard v-for="post in loadedPosts" :key="post._id" :post="post" />
     </div>
@@ -31,10 +31,6 @@ const props = defineProps({
     type: {
         type: String,
         default: '' // 'news' or 'pflanzung' or empty for all
-    },
-    theme: {
-        type: String,
-        default: '' // e.g. 'alt', 'surface', 'primary'
     },
     actionLabel: {
         type: String,

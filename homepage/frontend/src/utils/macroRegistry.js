@@ -8,8 +8,7 @@ export const macroRegistry = {
         label: 'Blog-Beiträge',
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
-            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" },
-            { name: 'theme', type: 'String', default: '', desc: "z.B. 'alt', 'surface', 'primary'" }
+            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" }
         ],
         example: '[[posts limit=3 type="news"]]'
     },
@@ -17,8 +16,7 @@ export const macroRegistry = {
         label: 'Projekte',
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
-            { name: 'activeOnly', type: 'Boolean', default: false, desc: 'Nur aktive Projekte' },
-            { name: 'theme', type: 'String', default: '', desc: "z.B. 'alt', 'surface'" }
+            { name: 'activeOnly', type: 'Boolean', default: false, desc: 'Nur aktive Projekte' }
         ],
         example: '[[projects limit=3 activeOnly=true]]'
     },

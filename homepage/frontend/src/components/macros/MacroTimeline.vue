@@ -1,8 +1,8 @@
 <template>
-  <section class="macro-timeline" v-if="timelineItems.length">
+  <div class="macro-timeline" v-if="timelineItems.length">
 
     <Timeline :items="timelineItems" />
-  </section>
+  </div>
 </template>
 
 <script setup>

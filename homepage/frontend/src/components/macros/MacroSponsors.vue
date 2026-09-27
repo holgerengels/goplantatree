@@ -1,5 +1,5 @@
 <template>
-  <section class="macro-sponsors" v-if="sponsors.length">
+  <div class="macro-sponsors" v-if="sponsors.length">
 
     <div class="sponsors-grid">
       <a
@@ -14,7 +14,7 @@
         <span class="sponsor-name">{{ sponsor.name }}</span>
       </a>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>

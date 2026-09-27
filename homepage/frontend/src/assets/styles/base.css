@@ -188,20 +188,21 @@ textarea {
     padding-right: var(--space-lg);
 }
 
+section,
 .section {
     padding: var(--space-4xl) 0;
 }
 
-.section-title {
+.block-title {
     text-align: center;
     margin-bottom: var(--space-3xl);
 }
 
-.section-title h2 {
+.block-title h2 {
     margin-bottom: var(--space-sm);
 }
 
-.section-title p {
+.block-title p {
     font-size: var(--text-lg);
     color: var(--color-text-muted);
     max-width: 600px;
@@ -221,6 +222,15 @@ textarea {
     line-height: 1.5;
     transition: all var(--transition-base);
     white-space: nowrap;
+}
+
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 .btn-primary {
@@ -504,7 +514,7 @@ section {
 }
 
 .section-primary p,
-.section-primary .section-title p {
+.section-primary .block-title p {
     color: rgba(255, 255, 255, 0.85);
 }
 

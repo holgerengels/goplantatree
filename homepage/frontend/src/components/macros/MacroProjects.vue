@@ -1,5 +1,5 @@
 <template>
-  <div :class="['macro-projects', theme ? `section-${theme}` : '']">
+  <div class="macro-projects">
     <div class="projects-grid" v-if="loadedProjects.length">
       <router-link
         v-for="project in loadedProjects"
@@ -44,10 +44,6 @@ const props = defineProps({
     activeOnly: {
         type: Boolean,
         default: false
-    },
-    theme: {
-        type: String,
-        default: '' // e.g. 'alt', 'surface', 'primary'
     }
 });
 

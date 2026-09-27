@@ -34,10 +34,21 @@
     <!-- FORM VIEW -->
     <div v-if="editing" class="editor-form card">
       <div class="form-header">
-        <button class="btn-back" @click="cancelEdit" title="Zurück zur Liste">
-          <component :is="icons.ArrowLeft" :size="20" />
-        </button>
-        <h2>{{ editingId ? 'Bearbeiten' : 'Neu anlegen' }}</h2>
+        <div class="form-header-left">
+          <button class="btn-back" @click="cancelEdit" title="Zurück zur Liste">
+            <component :is="icons.ArrowLeft" :size="20" />
+          </button>
+          <h2>{{ editingId ? 'Bearbeiten' : 'Neu anlegen' }}</h2>
+        </div>
+        <a
+          v-if="previewUrl"
+          :href="previewUrl"
+          target="_blank"
+          class="btn-preview"
+          title="Seite auf der Website ansehen (öffnet in neuem Tab)"
+        >
+          <wa-icon name="arrow-up-right-from-square"></wa-icon> Auf Website ansehen ↗
+        </a>
       </div>
       <DynamicForm
         ref="formRef"
@@ -49,8 +60,22 @@
       />
       <div class="form-actions">
         <div class="form-actions-left">
-          <wa-button v-if="editingId ? auth.hasItemPermission(resourceName, 'update', formData) : auth.hasPermission(resourceName, 'create')" variant="primary" @click="save" :disabled="saving ? true : undefined" :loading="saving ? true : undefined">
+          <wa-button
+            v-if="editingId ? auth.hasItemPermission(resourceName, 'update', formData) : auth.hasPermission(resourceName, 'create')"
+            variant="primary"
+            @click="save(false)"
+            :disabled="saving ? true : undefined"
+            :loading="saving ? true : undefined"
+          >
             <wa-icon name="check" slot="prefix"></wa-icon> Speichern
+          </wa-button>
+          <wa-button
+            v-if="editingId ? auth.hasItemPermission(resourceName, 'update', formData) : auth.hasPermission(resourceName, 'create')"
+            variant="default"
+            @click="save(true)"
+            :disabled="saving ? true : undefined"
+          >
+            Speichern & Zurück
           </wa-button>
           <wa-button variant="default" @click="cancelEdit">
             Abbrechen
@@ -281,6 +306,17 @@ const resourceName = computed(() => {
     return config.value?.resource || currentEntityInfo.value?.resource || '';
 });
 
+const previewUrl = computed(() => {
+    if (!formData || !formData.slug) return null;
+    if (resourceName.value === 'pages') {
+        return formData.slug === 'home' ? '/' : `/seite/${formData.slug}`;
+    }
+    if (resourceName.value === 'projects') {
+        return `/projekt/${formData.slug}`;
+    }
+    return null;
+});
+
 
 const columns = computed(() => {
     const cols = [...(config.value?.admin?.columns || [])];
@@ -480,7 +516,7 @@ const cancelEdit = () => {
     editingId.value = null;
 };
 
-const save = async () => {
+const save = async (andClose = false) => {
     if (formRef.value && !formRef.value.validate()) return;
     saving.value = true;
     try {
@@ -490,6 +526,7 @@ const save = async () => {
             : endpoint;
         const method = editingId.value ? 'put' : 'post';
         
+        let result;
         // Check if there is a File object in formData (needs FormData/multipart)
         const hasFile = Object.values(formData).some(val => val instanceof File);
         
@@ -500,13 +537,24 @@ const save = async () => {
                     body.append(k, v);
                 }
             });
-            await api.upload(url, body, method.toUpperCase());
+            result = await api.upload(url, body, method.toUpperCase());
         } else {
-            await api[method](url, formData);
+            result = await api[method](url, formData);
         }
 
-        cancelEdit();
-        await loadData();
+        toast.success(`${config.value.label.singular} gespeichert.`);
+
+        if (andClose) {
+            cancelEdit();
+            await loadData();
+        } else {
+            if (result && result._id) {
+                editingId.value = result._id;
+                editingItem.value = result;
+                Object.assign(formData, JSON.parse(JSON.stringify(result)));
+            }
+            await loadData();
+        }
     } catch (err) {
         toast.error('Fehler: ' + err.message);
     } finally {
@@ -799,12 +847,40 @@ watch(() => route.params.entity, async () => {
 .form-header {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    justify-content: space-between;
+    gap: var(--space-md);
     margin-bottom: var(--space-xl);
+}
+
+.form-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
 .form-header h2 {
     margin: 0;
+}
+
+.btn-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
+    background: var(--color-bg);
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.btn-preview:hover {
+    background: var(--color-bg-alt);
+    border-color: var(--color-primary);
+    color: var(--color-primary-dark);
 }
 
 .btn-back {
