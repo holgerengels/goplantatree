@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import EditorPage from '../EditorPage.vue';
 import { createPinia, setActivePinia } from 'pinia';
 import * as vueRouter from 'vue-router';
+import { toast } from '../../composables/useToast.js';
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -199,8 +200,19 @@ describe('EditorPage.vue', () => {
         await wrapper.vm.$nextTick();
 
         // Save (default stays in editor)
+        const baseFetch = global.fetch;
+        global.fetch = vi.fn((url, opts) => {
+            if (opts?.method === 'POST' && url === '/api/v1/orders') {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ _id: 'new123', name: 'Valid Name' })
+                });
+            }
+            return baseFetch(url, opts);
+        });
+
         await wrapper.vm.save(false);
-        await wrapper.vm.$nextTick();
+        await flushPromises();
 
         // api.post calls go through the api service which uses fetch internally
         const postCalls = fetch.mock.calls.filter(c => c[1]?.method === 'POST');
@@ -209,8 +221,11 @@ describe('EditorPage.vue', () => {
         
         const body = JSON.parse(postCalls[0][1].body);
         expect(body.name).toBe('Valid Name');
-        // Still in editor view
+        // Still in editor view, now editing the created document
         expect(wrapper.vm.editing).toBe(true);
+        expect(wrapper.vm.editingId).toBe('new123');
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(toast.success).toHaveBeenCalled();
     });
 
     it('saves and closes when andClose is true', async () => {

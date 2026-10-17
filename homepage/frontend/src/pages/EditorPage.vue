@@ -720,7 +720,6 @@ const save = async (andClose = false) => {
         } else {
             if (result && result._id) {
                 editingId.value = result._id;
-                editingItem.value = result;
                 Object.assign(formData, JSON.parse(JSON.stringify(result)));
             }
             await loadData();
