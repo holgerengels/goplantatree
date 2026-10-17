@@ -11,6 +11,17 @@
     "adminOnly": true,
     "admin": {
         "allowImport": true,
+        "unique": [
+            "email"
+        ],
+        "onDuplicate": {
+            "strategy": "merge",
+            "fields": {
+                "topics": "union",
+                "data": "merge",
+                "name": "overwrite"
+            }
+        },
         "filters": [
             "project",
             "topics",
@@ -84,7 +95,8 @@
             "name": "email",
             "label": "E-Mail-Adresse",
             "type": "Text",
-            "required": true
+            "required": true,
+            "unique": true
         },
         {
             "name": "name",
@@ -99,7 +111,9 @@
             "options": [
                 "general"
             ],
-            "default": ["general"],
+            "default": [
+                "general"
+            ],
             "hint": "Frei wählbar, z.B. general, klimabaumaktion, pflanzung"
         },
         {
@@ -111,6 +125,9 @@
                 "bounced",
                 "unsubscribed",
                 "imported"
+            ],
+            "default": [
+                "confirmed"
             ],
             "hint": "z.B. confirmed, bounced, unsubscribed, imported"
         },

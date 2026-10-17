@@ -461,7 +461,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
         it('should list orders with denormalized offering data', async () => {
             const token = generateToken({ orders: { read: 'all' } });
             const res = await request(app)
-                .get('/api/v1/orders')
+                .get('/api/v1/orders?paged=true')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
@@ -482,7 +482,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
 
             const token = generateToken({ orders: { read: 'all' } });
             const res = await request(app)
-                .get('/api/v1/orders?project=test-project')
+                .get('/api/v1/orders?project=test-project&paged=true')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
@@ -509,7 +509,7 @@ describe('Orders API (Soft Refs + Denormalization)', () => {
             expect(res.text.startsWith('\uFEFF')).toBe(true);
             
             // Header should contain fields configured in order.json's exportColumns
-            expect(res.text).toContain('Nr.;Projekt;Name;E-Mail;Telefon;Straße;PLZ;Stadt;Baum;Zusatzoptionen;Pflanzort;Anmerkungen;Status;Datum;Zeitfenster');
+            expect(res.text).toContain('orderNumber;project;name;email;phone;street;zip;city;offering.name;selectedAddons;gardenType;notes;status;orderedAt;timeSlot');
             expect(res.text).toContain('List Test;list@test.de');
         });
 

@@ -23,7 +23,7 @@
           <wa-icon name="download" slot="prefix"></wa-icon> ODS Export
         </wa-button>
         <wa-button v-if="!editing && config.admin?.allowImport && auth.hasPermission(resourceName, 'create')" variant="default" @click="openImportDialog">
-          <wa-icon name="upload" slot="prefix"></wa-icon> Importieren
+          <wa-icon name="upload" slot="prefix"></wa-icon> Import
         </wa-button>
         <wa-button v-if="!editing && auth.hasPermission(resourceName, 'create')" variant="primary" @click="startCreate">
           <wa-icon name="plus" slot="prefix"></wa-icon> Neu
@@ -213,11 +213,39 @@
   <div v-else class="loading"><p>Wird geladen…</p></div>
 
   <!-- Import Dialog -->
-  <wa-dialog v-if="config?.admin?.allowImport" :open="showImportDialog ? true : undefined" label="Daten importieren" @wa-request-close.prevent="closeImportDialog">
+  <wa-dialog v-if="config?.admin?.allowImport" :open="showImportDialog ? true : undefined" label="Daten importieren" style="--width: 760px;" @wa-request-close.prevent="closeImportDialog">
     <div class="import-dialog-content">
-      <p class="import-instructions">
-        Wähle eine CSV- oder ODS-Datei zum Importieren aus. Die erste Zeile muss Spaltenüberschriften enthalten (z. B. E-Mail, Name, Thema, Projekt).
-      </p>
+      <!-- File Requirements / Info Box -->
+      <div class="import-requirements">
+        <div class="req-title">
+          <wa-icon name="info-circle"></wa-icon>
+          <strong>Anforderungen an die Datei:</strong>
+        </div>
+        <ul class="req-list">
+          <li><strong>Formate:</strong> <code>.csv</code> (komma- oder semikolongetrennt) oder <code>.ods</code>.</li>
+          <li>
+            <strong>1. Zeile (Spaltenüberschriften / Keys):</strong>
+            <span class="field-keys-list">
+              <template v-for="(f, idx) in importableFields" :key="f.name">
+                <strong v-if="f.required"><code>{{ f.name }}</code>*</strong>
+                <code v-else>{{ f.name }}</code>
+                <span v-if="idx < importableFields.length - 1">, </span>
+              </template>
+            </span>
+            <span v-if="hasRequiredFields" class="required-hint"> (* = Pflichtfeld)</span>
+          </li>
+          <li v-if="uniqueFields.length">
+            <strong>Eindeutige Felder:</strong>
+            <span v-for="(u, idx) in uniqueFields" :key="u">
+              <code>{{ u }}</code><span v-if="idx < uniqueFields.length - 1">, </span>
+            </span>.
+            Datensätze mit bereits vorhandenen Werten für diese Felder werden übersprungen.
+          </li>
+          <li v-if="supportsData">
+            <strong>Zusatzdaten (data.*):</strong> Beliebige Spalten mit dem Präfix <code>data.</code> (z. B. <code>data.tree</code>) werden im <code>data</code>-Payload gespeichert.
+          </li>
+        </ul>
+      </div>
       
       <div class="file-upload-zone" :class="{ dragging: isDragging }" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="handleFileDrop" @click="triggerFileSelect">
         <input type="file" ref="fileInputRef" accept=".csv,.ods" @change="handleFileSelect" style="display: none;" />
@@ -229,7 +257,55 @@
         <div v-else class="selected-file-info" @click.stop>
           <wa-icon name="file-earmark-check" class="file-icon"></wa-icon>
           <span class="file-name">{{ selectedFile.name }}</span>
-          <wa-button variant="default" size="small" @click="clearSelectedFile">Entfernen</wa-button>
+          <wa-button variant="default" size="small" @click="clearSelectedFile" :disabled="importing ? true : undefined">Entfernen</wa-button>
+        </div>
+      </div>
+
+      <!-- Preview Loading -->
+      <div v-if="loadingPreview" class="preview-loading">
+        <wa-spinner></wa-spinner>
+        <span>Datei wird analysiert und Vorschau erstellt…</span>
+      </div>
+
+      <!-- Preview of first 3 rows -->
+      <div v-if="previewData && !importResult && !loadingPreview" class="import-preview-box">
+        <div class="preview-header">
+          <h4>Vorschau (erste {{ previewData.preview.length }} von {{ previewData.totalRows }} Zeilen):</h4>
+          <span class="preview-count-badge">{{ previewData.totalRows }} Zeilen erkannt</span>
+        </div>
+        <div class="preview-table-wrapper">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Zeile</th>
+                <th v-for="f in previewFields" :key="f.name">
+                  <strong v-if="f.required">{{ f.name }}*</strong>
+                  <span v-else>{{ f.name }}</span>
+                </th>
+                <th v-if="supportsData">Zusatzdaten (data.*)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in previewData.preview" :key="item.rowNum">
+                <td class="cell-row">#{{ item.rowNum }}</td>
+                <td v-for="f in previewFields" :key="f.name">
+                  <div v-if="f.type === 'Tags' || Array.isArray(item.data[f.name])" class="chips-container">
+                    <span v-for="t in (item.data[f.name] || [])" :key="t" class="chip chip-topic">{{ t }}</span>
+                    <span v-if="!item.data[f.name]?.length" class="text-muted">—</span>
+                  </div>
+                  <span v-else>{{ item.data[f.name] !== undefined && item.data[f.name] !== '' ? item.data[f.name] : '—' }}</span>
+                </td>
+                <td v-if="supportsData">
+                  <div v-if="item.data.data && Object.keys(item.data.data).length" class="payload-list">
+                    <span v-for="(v, k) in item.data.data" :key="k" class="payload-tag">
+                      <strong>{{ k }}:</strong> {{ typeof v === 'object' ? JSON.stringify(v) : v }}
+                    </span>
+                  </div>
+                  <span v-else class="text-muted">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -238,9 +314,55 @@
         <h3>Import-Ergebnis:</h3>
         <div class="results-summary">
           <wa-badge variant="success">{{ importResult.imported }} importiert</wa-badge>
+          <wa-badge v-if="importResult.updated" variant="brand">{{ importResult.updated }} aktualisiert</wa-badge>
           <wa-badge variant="neutral">{{ importResult.skipped }} übersprungen</wa-badge>
           <wa-badge v-if="importResult.errors?.length" variant="danger">{{ importResult.errors.length }} Fehler</wa-badge>
         </div>
+
+        <!-- Updated items list -->
+        <div v-if="importResult.updatedItems?.length" class="import-skipped-list import-updated-list">
+          <h4>Aktualisierte Datensätze (z.B. neue Themen ergänzt):</h4>
+          <div class="skipped-table-wrapper">
+            <table class="skipped-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">Zeile</th>
+                  <th>Eintrag / Bezeichner</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in importResult.updatedItems" :key="idx">
+                  <td>#{{ item.row }}</td>
+                  <td>{{ item.identifier || item.email || item.name || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Skipped items list -->
+        <div v-if="importResult.skippedItems?.length" class="import-skipped-list">
+          <h4>Übersprungene Datensätze (bereits vorhanden):</h4>
+          <div class="skipped-table-wrapper">
+            <table class="skipped-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">Zeile</th>
+                  <th>Eintrag / Bezeichner</th>
+                  <th>Grund</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in importResult.skippedItems" :key="idx">
+                  <td>#{{ item.row }}</td>
+                  <td>{{ item.identifier || item.email || item.name || '—' }}</td>
+                  <td class="text-muted">{{ item.reason }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div v-if="importResult.errors?.length" class="import-errors-list">
           <h4>Details zu Fehlern:</h4>
           <ul>
@@ -253,9 +375,18 @@
     </div>
 
     <div slot="footer">
-      <wa-button variant="default" @click="closeImportDialog" :disabled="importing ? true : undefined">Schließen</wa-button>
-      <wa-button v-if="selectedFile && !importResult" variant="primary" @click="uploadFile" :loading="importing ? true : undefined" :disabled="importing ? true : undefined">
-        Import starten
+      <wa-button variant="default" @click="closeImportDialog" :disabled="importing ? true : undefined">
+        {{ importResult ? 'Fertig' : 'Abbrechen' }}
+      </wa-button>
+      <wa-button
+        v-if="selectedFile && !importResult"
+        variant="primary"
+        @click="uploadFile"
+        :loading="importing ? true : undefined"
+        :disabled="importing || loadingPreview ? true : undefined"
+      >
+        <wa-icon name="upload" slot="prefix"></wa-icon>
+        {{ previewData ? `Jetzt ${previewData.totalRows} Zeilen importieren` : 'Import starten' }}
       </wa-button>
     </div>
   </wa-dialog>
@@ -317,6 +448,45 @@ const previewUrl = computed(() => {
     return null;
 });
 
+const importableFields = computed(() => {
+    return (config.value?.fields || []).filter(f => !f.name.startsWith('_') && f.name !== 'data');
+});
+
+const hasRequiredFields = computed(() => {
+    return importableFields.value.some(f => f.required);
+});
+
+const supportsData = computed(() => {
+    return (config.value?.fields || []).some(f => f.name === 'data') || !!config.value?.admin?.supportsData;
+});
+
+const uniqueFields = computed(() => {
+    const list = [];
+    const cfgUnique = config.value?.admin?.unique || config.value?.unique;
+    if (Array.isArray(cfgUnique)) {
+        list.push(...cfgUnique);
+    } else if (typeof cfgUnique === 'string') {
+        list.push(cfgUnique);
+    }
+    (config.value?.fields || []).forEach(f => {
+        if (f.unique && !list.includes(f.name)) {
+            list.push(f.name);
+        }
+    });
+    return list;
+});
+
+const previewFields = computed(() => {
+    if (!previewData.value?.preview?.length) return importableFields.value;
+    const presentKeys = new Set();
+    previewData.value.preview.forEach(p => {
+        Object.keys(p.data || {}).forEach(k => {
+            if (k !== 'data') presentKeys.add(k);
+        });
+    });
+    const relevant = importableFields.value.filter(f => f.required || presentKeys.has(f.name));
+    return relevant.length > 0 ? relevant : importableFields.value;
+});
 
 const columns = computed(() => {
     const cols = [...(config.value?.admin?.columns || [])];
@@ -614,7 +784,8 @@ const loadData = async () => {
         let endpoint = config.value.api.replace('/api/v1', '');
         const queryParams = new URLSearchParams();
         
-        // Pagination
+        // Pagination — request { items, total } format explicitly
+        queryParams.append('paged', 'true');
         queryParams.append('limit', String(pageSize));
         const skip = (currentPage.value - 1) * pageSize;
         if (skip > 0) queryParams.append('skip', String(skip));
@@ -688,11 +859,16 @@ const triggerExport = async (format) => {
     }
 };
 
+const previewData = ref(null);
+const loadingPreview = ref(false);
+
 const openImportDialog = () => {
     showImportDialog.value = true;
     selectedFile.value = null;
     importResult.value = null;
+    previewData.value = null;
     importing.value = false;
+    loadingPreview.value = false;
 };
 
 const closeImportDialog = () => {
@@ -708,6 +884,7 @@ const handleFileSelect = (event) => {
     if (files && files.length) {
         selectedFile.value = files[0];
         importResult.value = null;
+        loadPreview();
     }
 };
 
@@ -720,6 +897,7 @@ const handleFileDrop = (event) => {
         if (ext === 'csv' || ext === 'ods') {
             selectedFile.value = file;
             importResult.value = null;
+            loadPreview();
         } else {
             toast.error('Bitte lade nur .csv- oder .ods-Dateien hoch.');
         }
@@ -729,8 +907,32 @@ const handleFileDrop = (event) => {
 const clearSelectedFile = () => {
     selectedFile.value = null;
     importResult.value = null;
+    previewData.value = null;
     if (fileInputRef.value) {
         fileInputRef.value.value = '';
+    }
+};
+
+const loadPreview = async () => {
+    if (!selectedFile.value) {
+        previewData.value = null;
+        return;
+    }
+    loadingPreview.value = true;
+    previewData.value = null;
+    try {
+        const formData = new FormData();
+        formData.append('file', selectedFile.value);
+        let endpoint = `${config.value.api.replace('/api/v1', '')}/import?preview=true`;
+        if (activeFilters.project) {
+            endpoint += `&project=${encodeURIComponent(activeFilters.project)}`;
+        }
+        const result = await api.upload(endpoint, formData, 'POST');
+        previewData.value = result;
+    } catch (err) {
+        toast.error('Vorschau-Fehler: ' + err.message);
+    } finally {
+        loadingPreview.value = false;
     }
 };
 
@@ -743,11 +945,18 @@ const uploadFile = async () => {
         const formData = new FormData();
         formData.append('file', selectedFile.value);
 
-        const endpoint = `${config.value.api.replace('/api/v1', '')}/import`;
+        let endpoint = `${config.value.api.replace('/api/v1', '')}/import`;
+        if (activeFilters.project) {
+            endpoint += `?project=${encodeURIComponent(activeFilters.project)}`;
+        }
         const result = await api.upload(endpoint, formData, 'POST');
 
         importResult.value = result;
-        toast.success(`Import abgeschlossen: ${result.imported} importiert.`);
+        const summaryParts = [];
+        if (result.imported) summaryParts.push(`${result.imported} importiert`);
+        if (result.updated) summaryParts.push(`${result.updated} aktualisiert`);
+        if (result.skipped) summaryParts.push(`${result.skipped} übersprungen`);
+        toast.success(`Import abgeschlossen: ${summaryParts.join(', ') || 'Keine Änderungen'}.`);
         await loadData();
     } catch (err) {
         toast.error('Import-Fehler: ' + err.message);
@@ -1245,6 +1454,194 @@ watch(() => route.params.entity, async () => {
 
 .import-errors-list li {
     margin-bottom: 4px;
+}
+
+.import-requirements {
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.req-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--text-sm);
+    color: var(--color-primary-dark);
+}
+
+.req-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: var(--text-xs);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+.req-list li {
+    margin-bottom: 4px;
+}
+
+.req-list code {
+    background: var(--color-bg);
+    padding: 1px 4px;
+    border-radius: var(--radius-xs);
+    font-size: 0.9em;
+    border: 1px solid var(--color-border-light);
+}
+
+.preview-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.import-preview-box {
+    margin-top: var(--space-xs);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--color-bg);
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-bg-alt);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.preview-header h4 {
+    margin: 0;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+}
+
+.preview-count-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.preview-table-wrapper,
+.skipped-table-wrapper {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.preview-table,
+.skipped-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-xs);
+    text-align: left;
+}
+
+.preview-table th,
+.skipped-table th {
+    background: var(--color-bg-alt);
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 11px;
+    border-bottom: 1px solid var(--color-border-light);
+    color: var(--color-text-muted);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.preview-table td,
+.skipped-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border-light);
+    vertical-align: top;
+}
+
+.preview-table tr:last-child td,
+.skipped-table tr:last-child td {
+    border-bottom: none;
+}
+
+.cell-row {
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.cell-email {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.chip {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.chip-topic {
+    background: rgba(2, 136, 209, 0.1);
+    color: #0288D1;
+}
+
+.chip-status {
+    background: rgba(46, 125, 50, 0.1);
+    color: var(--color-primary);
+}
+
+.payload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.payload-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border-light);
+    font-size: 11px;
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.import-skipped-list {
+    margin-top: var(--space-xs);
+    border-top: 1px solid var(--color-border-light);
+    padding-top: var(--space-sm);
+}
+
+.import-skipped-list h4 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--text-xs);
+    color: var(--color-warning, #ed6c02);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.import-updated-list h4 {
+    color: var(--color-primary, #2e7d32);
 }
 /* Pagination */
 .pagination {

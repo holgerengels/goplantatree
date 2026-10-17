@@ -367,9 +367,9 @@ const loadRecipientCount = async () => {
         if (form.topic) params.append('topic', form.topic);
         if (form.excludeTopic) params.append('excludeTopic', form.excludeTopic);
 
+        params.append('count', 'true');
         const data = await api.get(`/subscribers?${params.toString()}`);
-        const items = Array.isArray(data) ? data : (data.items || []);
-        recipientCount.value = items.length;
+        recipientCount.value = data.total ?? null;
     } catch {
         recipientCount.value = null;
     } finally {

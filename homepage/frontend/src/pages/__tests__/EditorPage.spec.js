@@ -457,4 +457,128 @@ describe('EditorPage.vue', () => {
         expect(deleteCalls[0][0]).toBe('/api/v1/orders');
         expect(JSON.parse(deleteCalls[0][1].body)).toEqual({ ids: ['item1', 'item2'] });
     });
+
+    it('handles import file preview and result with skippedItems', async () => {
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select', 'wa-spinner', 'wa-badge', 'wa-button']
+            }
+        });
+
+        await flushPromises();
+
+        // Enable allowImport on config
+        wrapper.vm.config = {
+            ...wrapper.vm.config,
+            admin: { ...wrapper.vm.config?.admin, allowImport: true }
+        };
+
+        // Open import dialog
+        wrapper.vm.openImportDialog();
+        expect(wrapper.vm.showImportDialog).toBe(true);
+
+        // Mock file selection and preview fetch
+        const file = new File(['E-Mail,Name\ntest@example.com,Test'], 'subscribers.csv', { type: 'text/csv' });
+        wrapper.vm.selectedFile = file;
+
+        global.fetch = vi.fn((url) => {
+            if (url.includes('/import?preview=true')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        totalRows: 2,
+                        headers: ['E-Mail', 'Name', 'data.tree'],
+                        preview: [
+                            { rowNum: 2, data: { email: 'test@example.com', name: 'Test', data: { tree: 'Eiche' } } }
+                        ]
+                    })
+                });
+            }
+            if (url.includes('/import')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        imported: 1,
+                        skipped: 1,
+                        skippedItems: [
+                            { row: 3, email: 'dup@example.com', name: 'Dup User', reason: 'E-Mail existiert bereits in diesem Projekt' }
+                        ],
+                        errors: []
+                    })
+                });
+            }
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        });
+
+        // Trigger loadPreview
+        await wrapper.vm.loadPreview();
+        await flushPromises();
+
+        expect(wrapper.vm.previewData).not.toBeNull();
+        expect(wrapper.vm.previewData.totalRows).toBe(2);
+        expect(wrapper.vm.previewData.preview[0].data.data.tree).toBe('Eiche');
+
+        // Trigger uploadFile
+        await wrapper.vm.uploadFile();
+        await flushPromises();
+
+        expect(wrapper.vm.importResult).not.toBeNull();
+        expect(wrapper.vm.importResult.imported).toBe(1);
+        expect(wrapper.vm.importResult.skipped).toBe(1);
+        expect(wrapper.vm.importResult.skippedItems).toHaveLength(1);
+        expect(wrapper.vm.importResult.skippedItems[0].email).toBe('dup@example.com');
+    });
+
+    it('requests paged list format and paginates by total', async () => {
+        const listUrls = [];
+        const baseFetch = global.fetch;
+        global.fetch = vi.fn((url, opts) => {
+            if (url.includes('/api/v1/orders') && !url.includes('/config/')) {
+                listUrls.push(url);
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        items: Array.from({ length: 100 }, (_, i) => ({ _id: `o${i}`, name: `Order ${i}` })),
+                        total: 366
+                    })
+                });
+            }
+            return baseFetch(url, opts);
+        });
+
+        const pinia = createPinia();
+        setActivePinia(pinia);
+
+        const wrapper = mount(EditorPage, {
+            global: {
+                plugins: [pinia],
+                stubs: ['wa-icon', 'wa-dialog', 'wa-input', 'wa-select', 'wa-spinner', 'wa-badge', 'wa-button', 'DynamicForm']
+            }
+        });
+        await flushPromises();
+
+        // Contract with backend: without paged=true the API returns a plain array without total
+        expect(listUrls.length).toBeGreaterThan(0);
+        const firstParams = new URL(listUrls.at(-1), 'http://x').searchParams;
+        expect(firstParams.get('paged')).toBe('true');
+        expect(firstParams.get('limit')).toBe('100');
+        expect(firstParams.has('skip')).toBe(false);
+
+        expect(wrapper.vm.totalCount).toBe(366);
+        expect(wrapper.vm.totalPages).toBe(4);
+        expect(wrapper.find('.pagination').exists()).toBe(true);
+        expect(wrapper.find('.pagination-info').text()).toContain('Seite 1 von 4');
+
+        // Next page requests skip=100
+        wrapper.vm.goToPage(2);
+        await flushPromises();
+        const nextParams = new URL(listUrls.at(-1), 'http://x').searchParams;
+        expect(nextParams.get('paged')).toBe('true');
+        expect(nextParams.get('skip')).toBe('100');
+    });
 });
+

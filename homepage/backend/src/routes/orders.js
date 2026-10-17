@@ -24,7 +24,6 @@ function normalizeString(str) {
 
 export default createCrudRouter(Order, 'orders', {
     publicCreate: true,
-    pagination: true,
     sort: { orderedAt: -1 },
     buildFilter: (req) => {
         const filter = {};

@@ -161,13 +161,19 @@ const gridStyle = computed(() => {
         return true;
     });
     
+    const colCounts = areas.map(r => r.trim().split(/\s+/).length);
+    const numCols = colCounts.length > 0 ? colCounts[0] : 4;
+
     const allGridTokens = new Set(props.grid.join(' ').split(/\s+/));
     const missingFields = visibleFields.value.filter(f => !allGridTokens.has(f.name));
     missingFields.forEach(f => {
-        areas.push(`${f.name} ${f.name} ${f.name} ${f.name}`);
+        areas.push(Array(numCols).fill(f.name).join(' '));
     });
     const safeAreas = areas.map(row => {
-        return row.split(/\s+/).map(token => {
+        const tokens = row.trim().split(/\s+/);
+        while (tokens.length < numCols) tokens.push('.');
+        if (tokens.length > numCols) tokens.length = numCols;
+        return tokens.map(token => {
             if (token === '.') return '.';
             return token.replace(/\./g, '_');
         }).join(' ');
@@ -175,7 +181,7 @@ const gridStyle = computed(() => {
     
     return {
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gridTemplateColumns: `repeat(${numCols}, minmax(0, 1fr))`,
         gridTemplateRows: 'auto',
         gridTemplateAreas: safeAreas.map(row => `"${row}"`).join(' '),
         gap: '1rem'

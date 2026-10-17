@@ -127,6 +127,71 @@ const logChange = (entry) => {
     });
 };
 
+const isBlank = (v) => v === undefined || v === null || v === '';
+
+/**
+ * Apply declarative per-field merge strategies (config: admin.onDuplicate.fields)
+ * from imported row data onto an existing document. Mutates `target`.
+ *
+ * Strategies:
+ *   union      — add new array values not yet present
+ *   setIfEmpty — set only if the existing value is empty (alias: fill)
+ *   overwrite  — replace with non-empty new value (alias: replace)
+ *   merge      — shallow-merge object keys (e.g. data.*)
+ *
+ * @returns {Boolean} true if anything changed
+ */
+export const applyMergeStrategies = (target, data, fieldStrategies = {}) => {
+    let modified = false;
+    const markModified = (key) => {
+        if (typeof target.markModified === 'function') target.markModified(key);
+    };
+
+    for (const [fieldKey, strategy] of Object.entries(fieldStrategies)) {
+        const newVal = data[fieldKey];
+        if (newVal === undefined) continue;
+
+        if (strategy === 'union') {
+            const curArr = Array.isArray(target[fieldKey]) ? target[fieldKey] : [];
+            const toAdd = Array.isArray(newVal) ? newVal : [newVal];
+            for (const item of toAdd) {
+                if (!isBlank(item) && !curArr.includes(item)) {
+                    curArr.push(item);
+                    modified = true;
+                }
+            }
+            target[fieldKey] = curArr;
+            markModified(fieldKey);
+        } else if (strategy === 'setIfEmpty' || strategy === 'fill') {
+            const cur = target[fieldKey];
+            const isEmpty = isBlank(cur) || (Array.isArray(cur) && cur.length === 0);
+            if (isEmpty && !isBlank(newVal)) {
+                target[fieldKey] = newVal;
+                modified = true;
+            }
+        } else if (strategy === 'overwrite' || strategy === 'replace') {
+            if (!isBlank(newVal) && JSON.stringify(target[fieldKey]) !== JSON.stringify(newVal)) {
+                target[fieldKey] = newVal;
+                modified = true;
+            }
+        } else if (strategy === 'merge') {
+            if (typeof newVal === 'object' && newVal !== null) {
+                if (!target[fieldKey] || typeof target[fieldKey] !== 'object') {
+                    target[fieldKey] = {};
+                }
+                for (const [subK, subV] of Object.entries(newVal)) {
+                    if (JSON.stringify(target[fieldKey][subK]) !== JSON.stringify(subV)) {
+                        target[fieldKey][subK] = subV;
+                        modified = true;
+                    }
+                }
+                markModified(fieldKey);
+            }
+        }
+    }
+    return modified;
+};
+
 /**
  * Creates a generic CRUD router for a Mongoose Model.
  * 
@@ -139,7 +204,6 @@ const logChange = (entry) => {
  * @param {Function} options.buildFilter - Function to build filter query from req
  * @param {String} options.publishedField - Field name for published/active filtering
  * @param {Object} options.sort - Default sort object
- * @param {Boolean} options.pagination - If true, return { items, total } with skip/limit support
  * @param {Function} options.preCreate - Async hook called before saving: (item, req) => {}
  * @param {Function} options.postCreate - Async hook after saving: (item, req) => response override
  * @param {Array} options.disableRoutes - Routes to disable: ['list', 'detail', 'create', 'update', 'delete']
@@ -155,9 +219,9 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
         buildFilter = () => ({}), 
         publishedField = null,
         sort = { _id: 1 }, 
-        pagination = false,
         preCreate,
         postCreate,
+        onImportDuplicate = null,
         disableRoutes = [],
         refIntegrityModel = null
     } = options;
@@ -214,7 +278,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 // Apply query params directly as slug-based filters
                 // e.g. ?project=my-project-slug filters by project slug string
                 for (const [key, val] of Object.entries(req.query)) {
-                    if (['limit', 'skip', 'all', 'type', 'status', 'available', 'search'].includes(key)) continue;
+                    if (['limit', 'skip', 'paged', 'count', 'sort', 'sortDir', 'all', 'type', 'status', 'available', 'search'].includes(key)) continue;
                     if (Model.schema.paths[key] && Model.schema.paths[key].instance === 'String') {
                         filter[key] = val;
                     }
@@ -266,7 +330,11 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
                 let query = Model.find(filter).sort(effectiveSort).collation({ locale: 'de', numericOrdering: true });
                 
-                const limit = parseInt(req.query.limit) || (pagination ? 100 : 0);
+                // Response format is chosen by the caller, not the entity:
+                //   ?paged=true → { items, total }  (admin editor, default page size 100)
+                //   otherwise   → plain array        (public pages, stores, selectors)
+                const paged = req.query.paged === 'true';
+                const limit = parseInt(req.query.limit) || (paged ? 100 : 0);
                 const skip = parseInt(req.query.skip) || 0;
 
                 if (skip) query = query.skip(skip);
@@ -274,7 +342,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
                 const items = await query;
 
-                if (pagination) {
+                if (paged) {
                     const total = await Model.countDocuments(filter);
                     res.json({ items, total });
                 } else {
@@ -334,7 +402,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                     const row = {};
                     for (const col of columns) {
                         const val = getVal(item, col.key);
-                        row[col.label] = formatExportValue(val, col.type);
+                        row[col.key] = formatExportValue(val, col.type);
                     }
                     return row;
                 });
@@ -350,7 +418,7 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 return res.send(buffer);
             } else {
                 // CSV export (default)
-                const header = columns.map(c => escapeCSV(c.label)).join(';');
+                const header = columns.map(c => escapeCSV(c.key)).join(';');
                 const rows = items.map(item => {
                     return columns.map(col => {
                         const val = getVal(item, col.key);
@@ -388,6 +456,24 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
 
             const columns = cfg.admin?.columns || [];
             const fields = cfg.fields || [];
+            const uniqueFieldNames = cfg.admin?.unique || cfg.unique || fields.filter(f => f.unique).map(f => f.name);
+            const supportsDataPayload = fields.some(f => f.name === 'data') || !!Model.schema.paths['data'];
+
+            // Duplicate merge strategy from config (e.g. { strategy: 'merge', fields: { topics: 'union', data: 'merge' } })
+            const onDuplicateConfig = cfg.admin?.onDuplicate || cfg.onDuplicate;
+            let duplicateStrategy = 'skip';
+            let fieldStrategies = {};
+            if (typeof onDuplicateConfig === 'string') {
+                duplicateStrategy = onDuplicateConfig;
+            } else if (onDuplicateConfig && typeof onDuplicateConfig === 'object') {
+                if (onDuplicateConfig.strategy) {
+                    duplicateStrategy = onDuplicateConfig.strategy;
+                    fieldStrategies = onDuplicateConfig.fields || {};
+                } else {
+                    duplicateStrategy = 'merge';
+                    fieldStrategies = onDuplicateConfig;
+                }
+            }
 
             // Build a header map: lowercase(label) -> key, lowercase(key) -> key
             const headerMap = {};
@@ -436,59 +522,119 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
             const sheet = workbook.Sheets[sheetName];
             const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-            const stats = { imported: 0, skipped: 0, errors: [] };
+            // Parse row data helper
+            const parseRowData = (row) => {
+                const data = {};
+
+                // Map row keys to model fields
+                for (const [key, val] of Object.entries(row)) {
+                    const trimmedKey = key.trim();
+                    const cleanKey = trimmedKey.toLowerCase();
+
+                    // Check for payload fields starting with 'data.' (only if entity supports data payload)
+                    if (cleanKey.startsWith('data.')) {
+                        if (supportsDataPayload) {
+                            const subKey = trimmedKey.slice(5).trim();
+                            if (subKey) {
+                                if (!data.data || typeof data.data !== 'object') {
+                                    data.data = {};
+                                }
+                                let cleanVal = typeof val === 'string' ? val.trim() : val;
+                                if (typeof cleanVal === 'string' && (cleanVal.startsWith('{') || cleanVal.startsWith('['))) {
+                                    try { cleanVal = JSON.parse(cleanVal); } catch {}
+                                }
+                                data.data[subKey] = cleanVal;
+                            }
+                        }
+                        continue;
+                    }
+
+                    const mappedKey = headerMap[cleanKey];
+                    if (mappedKey) {
+                        let cleanVal = typeof val === 'string' ? val.trim() : val;
+
+                        const fieldDef = fields.find(f => f.name === mappedKey) || columns.find(c => c.key === mappedKey);
+                        const isBool = fieldDef?.type === 'boolean' || fieldDef?.type === 'Boolean' || Model.schema.paths[mappedKey]?.instance === 'Boolean';
+                        const isDate = fieldDef?.type === 'date' || fieldDef?.type === 'Date' || Model.schema.paths[mappedKey]?.instance === 'Date';
+                        const isArray = fieldDef?.type === 'Tags' || Model.schema.paths[mappedKey]?.instance === 'Array';
+                        const isMixed = fieldDef?.type === 'Json' || Model.schema.paths[mappedKey]?.instance === 'Mixed';
+                        
+                        if (isBool && cleanVal !== '') {
+                            data[mappedKey] = ['ja', 'yes', 'true', '1', 'wahr', 'y', 'j', 'x'].includes(String(cleanVal).toLowerCase());
+                        } else if (isDate && cleanVal !== '') {
+                            const parsedDate = parseDate(cleanVal);
+                            if (!isNaN(parsedDate.getTime())) {
+                                data[mappedKey] = parsedDate;
+                            } else {
+                                data[mappedKey] = cleanVal;
+                            }
+                        } else if (isArray && cleanVal !== '') {
+                            // Split comma-separated values into array
+                            if (Array.isArray(cleanVal)) {
+                                data[mappedKey] = cleanVal;
+                            } else {
+                                data[mappedKey] = String(cleanVal).split(',').map(s => s.trim()).filter(Boolean);
+                            }
+                        } else if (isMixed && cleanVal !== '') {
+                            // Parse JSON string into object
+                            try {
+                                const parsed = typeof cleanVal === 'object' ? cleanVal : JSON.parse(cleanVal);
+                                if (data[mappedKey] && typeof data[mappedKey] === 'object') {
+                                    data[mappedKey] = { ...data[mappedKey], ...parsed };
+                                } else {
+                                    data[mappedKey] = parsed;
+                                }
+                            } catch {
+                                data[mappedKey] = cleanVal;
+                            }
+                        } else if (cleanVal !== '') {
+                            data[mappedKey] = cleanVal;
+                        }
+                    }
+                }
+
+                // Apply defaults from field definitions if not specified
+                for (const field of fields) {
+                    if (field.default !== undefined) {
+                        if (data[field.name] === undefined || data[field.name] === '' || (Array.isArray(data[field.name]) && data[field.name].length === 0)) {
+                            data[field.name] = Array.isArray(field.default) ? [...field.default] : field.default;
+                        }
+                    }
+                }
+
+                // Set project from query param if not set in row
+                if (!data.project && req.query.project) {
+                    data.project = req.query.project;
+                }
+
+                // Enforce permission scope 'own'
+                if (req.permissionScope === 'own' && req.user?.project) {
+                    data.project = req.user.project;
+                }
+
+                return data;
+            };
+
+            // Preview mode: return first 3 rows parsed without saving to DB
+            if (req.query.preview === 'true') {
+                const previewRows = rawData.slice(0, 3).map((row, idx) => ({
+                    rowNum: idx + 2,
+                    data: parseRowData(row)
+                }));
+                return res.json({
+                    preview: previewRows,
+                    totalRows: rawData.length,
+                    headers: Object.keys(rawData[0] || {})
+                });
+            }
+
+            const stats = { imported: 0, updated: 0, skipped: 0, skippedItems: [], updatedItems: [], errors: [] };
 
             for (const [index, row] of rawData.entries()) {
                 const rowNum = index + 2; // Row 1 is header
+                let data = {};
                 try {
-                    const data = {};
-
-                    // Map row keys to model fields
-                    for (const [key, val] of Object.entries(row)) {
-                        const cleanKey = key.trim().toLowerCase();
-                        const mappedKey = headerMap[cleanKey];
-                        if (mappedKey) {
-                            let cleanVal = typeof val === 'string' ? val.trim() : val;
-
-                            const fieldDef = fields.find(f => f.name === mappedKey) || columns.find(c => c.key === mappedKey);
-                            const isBool = fieldDef?.type === 'boolean' || fieldDef?.type === 'Boolean' || Model.schema.paths[mappedKey]?.instance === 'Boolean';
-                            const isDate = fieldDef?.type === 'date' || fieldDef?.type === 'Date' || Model.schema.paths[mappedKey]?.instance === 'Date';
-                            const isArray = fieldDef?.type === 'Tags' || Model.schema.paths[mappedKey]?.instance === 'Array';
-                            const isMixed = fieldDef?.type === 'Json' || Model.schema.paths[mappedKey]?.instance === 'Mixed';
-                            
-                            if (isBool && cleanVal !== '') {
-                                data[mappedKey] = ['ja', 'yes', 'true', '1', 'wahr', 'y', 'j', 'x'].includes(String(cleanVal).toLowerCase());
-                            } else if (isDate && cleanVal !== '') {
-                                const parsedDate = parseDate(cleanVal);
-                                if (!isNaN(parsedDate.getTime())) {
-                                    data[mappedKey] = parsedDate;
-                                } else {
-                                    data[mappedKey] = cleanVal;
-                                }
-                            } else if (isArray && cleanVal !== '') {
-                                // Split comma-separated values into array
-                                if (Array.isArray(cleanVal)) {
-                                    data[mappedKey] = cleanVal;
-                                } else {
-                                    data[mappedKey] = String(cleanVal).split(',').map(s => s.trim()).filter(Boolean);
-                                }
-                            } else if (isMixed && cleanVal !== '') {
-                                // Parse JSON string into object
-                                try {
-                                    data[mappedKey] = typeof cleanVal === 'object' ? cleanVal : JSON.parse(cleanVal);
-                                } catch {
-                                    data[mappedKey] = cleanVal; // Keep as string if not valid JSON
-                                }
-                            } else if (cleanVal !== '') {
-                                data[mappedKey] = cleanVal;
-                            }
-                        }
-                    }
-
-                    // Enforce permission scope 'own'
-                    if (req.permissionScope === 'own' && req.user?.project) {
-                        data.project = req.user.project;
-                    }
+                    data = parseRowData(row);
 
                     // Run preCreate hook if present
                     if (preCreate) {
@@ -512,7 +658,104 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                     });
                 } catch (err) {
                     if (err.code === 11000) {
-                        stats.skipped++;
+                        const uniqueDesc = Array.isArray(uniqueFieldNames) && uniqueFieldNames.length ? uniqueFieldNames.join(', ') : 'Eintrag';
+                        const identifierValues = Array.isArray(uniqueFieldNames)
+                            ? uniqueFieldNames.map(k => data[k] || row[k]).filter(Boolean)
+                            : [];
+                        const identifier = identifierValues.join(', ') || data.name || data.title || data.email || row['name'] || row['email'] || '';
+
+                        let handled = false;
+                        let updateSuccess = false;
+
+                        if (onImportDuplicate || duplicateStrategy === 'merge') {
+                            try {
+                                let lookupQuery = err.keyValue ? { ...err.keyValue } : null;
+                                if (!lookupQuery || Object.keys(lookupQuery).length === 0) {
+                                    lookupQuery = {};
+                                    for (const key of uniqueFieldNames) {
+                                        if (data[key] !== undefined) lookupQuery[key] = data[key];
+                                    }
+                                    if (Model.schema.paths['project'] && data.project !== undefined) {
+                                        lookupQuery.project = data.project;
+                                    }
+                                }
+
+                                if (lookupQuery && Object.keys(lookupQuery).length > 0) {
+                                    const existingDoc = await Model.findOne(lookupQuery);
+                                    if (existingDoc) {
+                                        // 1. Pluggable custom hook if provided
+                                        if (onImportDuplicate) {
+                                            const hookRes = await onImportDuplicate({
+                                                existing: existingDoc,
+                                                data,
+                                                req,
+                                                row,
+                                                rowNum,
+                                                Model
+                                            });
+                                            if (hookRes?.action === 'updated') {
+                                                handled = true;
+                                                updateSuccess = true;
+                                            } else if (hookRes?.action === 'skipped') {
+                                                handled = true;
+                                                updateSuccess = false;
+                                            }
+                                        }
+
+                                        // 2. Declarative merge strategies from config
+                                        if (!handled && duplicateStrategy === 'merge') {
+                                            const beforeSnapshot = typeof existingDoc.toObject === 'function' ? existingDoc.toObject() : { ...existingDoc };
+                                            const modified = applyMergeStrategies(existingDoc, data, fieldStrategies);
+
+                                            if (modified) {
+                                                await existingDoc.save();
+                                                handled = true;
+                                                updateSuccess = true;
+
+                                                logChange({
+                                                    user: req.user?.username || 'system',
+                                                    resource: resourceName,
+                                                    action: 'update',
+                                                    documentId: existingDoc._id.toString(),
+                                                    documentSlug: existingDoc.slug || null,
+                                                    before: sanitizeForLog(beforeSnapshot),
+                                                    after: sanitizeForLog(existingDoc),
+                                                    metadata: { source: 'import', filename: req.file?.originalname || null }
+                                                });
+                                            } else {
+                                                handled = true;
+                                                updateSuccess = false;
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (mergeErr) {
+                                stats.errors.push({
+                                    row: rowNum,
+                                    error: `Fehler beim Zusammenführen von Duplikat: ${mergeErr.message}`
+                                });
+                                continue;
+                            }
+                        }
+
+                        if (updateSuccess) {
+                            stats.updated++;
+                            stats.updatedItems.push({
+                                row: rowNum,
+                                identifier,
+                                name: data.name || row['Name'] || row['name'] || '',
+                                email: data.email || row['E-Mail'] || row['email'] || row['e-mail'] || ''
+                            });
+                        } else {
+                            stats.skipped++;
+                            stats.skippedItems.push({
+                                row: rowNum,
+                                identifier,
+                                name: data.name || row['Name'] || row['name'] || '',
+                                email: data.email || row['E-Mail'] || row['email'] || row['e-mail'] || '',
+                                reason: `${uniqueDesc} existiert bereits in diesem Projekt`
+                            });
+                        }
                     } else {
                         stats.errors.push({
                             row: rowNum,

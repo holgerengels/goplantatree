@@ -201,7 +201,7 @@
     "grid": [
         "name name slug slug",
         "orderFormConfig orderFormConfig active sortOrder",
-        "actionType actionType actionIcon actionLabel actionDisabledLabel",
+        "actionType actionIcon actionLabel actionDisabledLabel",
         "text text text text",
         "content.timeline content.timeline content.team content.team",
         "content.sponsors content.sponsors . ."
