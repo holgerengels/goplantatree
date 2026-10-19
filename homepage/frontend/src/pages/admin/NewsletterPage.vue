@@ -133,8 +133,8 @@
         <span v-if="!form.account" class="send-hint">⚠ Bitte Mail-Konto auswählen</span>
         <span v-else-if="!form.subject" class="send-hint">⚠ Betreff eingeben</span>
         <span v-else-if="!form.html" class="send-hint">⚠ Body eingeben</span>
-        <span v-else-if="!hasUnsubscribeLink" class="send-hint">⚠ Abmelde-Link fehlt</span>
         <span v-else-if="recipientCount === 0" class="send-hint">⚠ Keine Empfänger:innen</span>
+        <span v-else-if="!hasUnsubscribeLink" class="send-hint">⚠ Abmelde-Link fehlt</span>
       </div>
 
       <!-- Campaign Progress -->
@@ -291,7 +291,7 @@ const hasUnsubscribeLink = computed(() => {
 });
 
 const canSend = computed(() => {
-    return form.account && form.subject && form.html && hasUnsubscribeLink.value && recipientCount.value > 0;
+    return form.account && form.subject && form.html && recipientCount.value > 0;
 });
 
 // Campaign computed
@@ -417,7 +417,10 @@ onUnmounted(() => stopPolling());
 const sendNewsletter = async () => {
     if (!canSend.value) return;
 
-    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger:innen senden?\n\nDer Versand läuft im Hintergrund. Du kannst den Fortschritt hier verfolgen.`);
+    const unsubscribeWarning = hasUnsubscribeLink.value
+        ? ''
+        : '\n\n⚠ Achtung: Der Mail-Body enthält keinen Abmelde-Link ({{unsubscribe_url}}).';
+    const ok = await confirm(`Newsletter an ${recipientCount.value} Empfänger:innen senden?${unsubscribeWarning}\n\nDer Versand läuft im Hintergrund. Du kannst den Fortschritt hier verfolgen.`);
     if (!ok) return;
 
     sending.value = true;

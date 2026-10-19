@@ -232,21 +232,29 @@ useHead(() => {
 const loadData = async () => {
     const slug = route.params.entity;
     const id = route.params.id;
+    const scope = route.params.scope;
+    item.value = null;
     await configStore.fetchEntities();
     const entityInfo = configStore.findBySlug(slug);
     if (!entityInfo) return;
 
     config.value = await configStore.fetchConfig(entityInfo.configName);
 
+    // Scoped entities (slug only unique within a parent, e.g. offerings per project)
+    // require the scope segment: /:entity/:scope/:id — and vice versa.
+    const scopeField = config.value.detail?.scopeField;
+    if (!!scopeField !== !!scope) return;
+    const query = scopeField ? `?${scopeField}=${encodeURIComponent(scope)}` : '';
+
     // Load single item
     try {
-        item.value = await api.get(`${config.value.api.replace('/api/v1', '')}/${id}`);
+        item.value = await api.get(`${config.value.api.replace('/api/v1', '')}/${id}${query}`);
     } catch { /* 404 or error */ }
 };
 
 onMounted(loadData);
 
-watch(() => [route.params.entity, route.params.id], loadData);
+watch(() => [route.params.entity, route.params.scope, route.params.id], loadData);
 </script>
 
 <style scoped>

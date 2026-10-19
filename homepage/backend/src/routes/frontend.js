@@ -7,6 +7,7 @@ import Project from '../models/Project.js';
 import Page from '../models/Page.js';
 import Post from '../models/Post.js';
 import Media from '../models/Media.js';
+import Offering from '../models/Offering.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -80,7 +81,15 @@ router.get('*', async (req, res, next) => {
             const entityType = parts[0];
             const slug = parts[1];
 
-            if (entityType === 'baeume') {
+            if (entityType === 'angebote' && parts.length >= 3) {
+                // Offerings: slug only unique per project → /angebote/:project/:slug
+                const offering = await Offering.findOne({ project: parts[1], slug: parts[2] });
+                if (offering) {
+                    title = `${offering.name} — ${SITE_NAME}`;
+                    description = offering.bezeichnungBotanisch || offering.bemerkung || description;
+                    image = offering.image;
+                }
+            } else if (entityType === 'baeume') {
                 const tree = await Tree.findOne({ slug });
                 if (tree) {
                     title = `${tree.name} — ${SITE_NAME}`;

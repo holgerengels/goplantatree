@@ -9,6 +9,56 @@
     },
     "icon": "ShoppingCart",
     "adminOnly": true,
+    "sitemap": false,
+    "detail": {
+        "titleField": "name",
+        "subtitleField": "bezeichnungBotanisch",
+        "scopeField": "project",
+        "sections": [
+            {
+                "label": "Steckbrief",
+                "layout": "specs",
+                "fields": [
+                    {
+                        "key": "pflanzgroesseHoehe",
+                        "label": "🌱 Pflanzgröße Höhe"
+                    },
+                    {
+                        "key": "pflanzgroesseStammumfang",
+                        "label": "◯ Pflanzgröße Stammumfang"
+                    },
+                    {
+                        "key": "endgroesseHoehe",
+                        "label": "↕️ Endgröße Höhe"
+                    },
+                    {
+                        "key": "endgroesseBreite",
+                        "label": "↔️ Endgröße Breite"
+                    }
+                ]
+            },
+            {
+                "label": "Verwendung / Sonstiges",
+                "field": "bemerkung",
+                "layout": "text"
+            }
+        ],
+        "badges": [
+            {
+                "field": "category",
+                "class": "badge-accent"
+            },
+            {
+                "field": "available",
+                "map": {
+                    "false": {
+                        "label": "Vergriffen",
+                        "class": "badge-warning"
+                    }
+                }
+            }
+        ]
+    },
     "admin": {
         "filters": [
             "project"

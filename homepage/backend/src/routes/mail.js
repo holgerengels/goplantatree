@@ -6,7 +6,7 @@ import Order from '../models/Order.js';
 import MailTemplate from '../models/MailTemplate.js';
 import { sendMail, verifyConnection, getAccountKeys, getRateLimitConfig, getTransporter, getAccountConfig, resolveMailAccount } from '../utils/mailService.js';
 import { checkBounces } from '../utils/bounceChecker.js';
-import { renderTemplate, hasUnsubscribeLink, buildSubscriberVariables } from '../utils/mailTemplateEngine.js';
+import { renderTemplate, buildSubscriberVariables } from '../utils/mailTemplateEngine.js';
 import { auth, requirePermission } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -417,7 +417,7 @@ function sendMailDirect(accountKey, options) {
  *   project  — (optional) Filter by project slug
  *   topic    — (optional) Filter by topic
  *   subject  — Subject line template
- *   html     — HTML body template (must contain {{unsubscribe_url}})
+ *   html     — HTML body template (should contain {{unsubscribe_url}}; UI warns if missing)
  *   text     — (optional) Plain text fallback template
  *
  * Returns immediately with { campaignId, total, queued }.
@@ -430,13 +430,6 @@ router.post('/send-newsletter', requirePermission('mail', 'create'), async (req,
         // Validate required fields
         if (!account || !subject || !html) {
             return res.status(400).json({ error: 'account, subject und html sind Pflichtfelder.' });
-        }
-
-        // Check for unsubscribe link placeholder
-        if (!hasUnsubscribeLink(html)) {
-            return res.status(400).json({
-                error: 'Der Mail-Body muss den Platzhalter {{unsubscribe_url}} enthalten, damit Empfänger sich abmelden können.'
-            });
         }
 
         // Build subscriber query: confirmed AND NOT bounced/unsubscribed

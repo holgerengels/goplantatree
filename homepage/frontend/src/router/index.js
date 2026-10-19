@@ -107,6 +107,13 @@ const routes = [
         component: () => import('../pages/DetailPage.vue')
     },
 
+    // Generic scoped entity detail (slug only unique within scope, e.g. offerings per project)
+    {
+        path: '/:entity/:scope/:id',
+        name: 'entity-detail-scoped',
+        component: () => import('../pages/DetailPage.vue')
+    },
+
     // 404 catch-all (must be last)
     {
         path: '/:pathMatch(.*)*',

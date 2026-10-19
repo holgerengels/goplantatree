@@ -142,5 +142,21 @@ describe('Offerings API (Soft Refs)', () => {
             expect(res.body.name).toBe('Findable');
             expect(res.body.project).toBe('test-project');
         });
+
+        it('should resolve same slug per project via ?project=', async () => {
+            await Offering.create({ name: 'Feldahorn A', slug: 'feldahorn', project: 'test-project', category: 'Laubbaum' });
+            await Offering.create({ name: 'Feldahorn B', slug: 'feldahorn', project: 'other-project', category: 'Laubbaum' });
+
+            const resA = await request(app).get('/api/v1/offerings/feldahorn?project=test-project');
+            expect(resA.statusCode).toBe(200);
+            expect(resA.body.name).toBe('Feldahorn A');
+
+            const resB = await request(app).get('/api/v1/offerings/feldahorn?project=other-project');
+            expect(resB.statusCode).toBe(200);
+            expect(resB.body.name).toBe('Feldahorn B');
+
+            const resNone = await request(app).get('/api/v1/offerings/feldahorn?project=unknown');
+            expect(resNone.statusCode).toBe(404);
+        });
     });
 });

@@ -19,6 +19,8 @@ const loadSitemapEntities = () => {
             const config = JSON.parse(readFileSync(join(CONFIG_DIR, file), 'utf-8'));
             // Only include entities with a public detail page
             if (config.slug && config.detail?.slugField !== undefined || config.detail?.titleField) {
+                // Explicit opt-out (e.g. offerings)
+                if (config.sitemap === false) continue;
                 // Derive mongoose model name from resource (e.g. 'posts' → 'Post', 'trees' → 'Tree')
                 const resource = config.resource;
                 if (!resource) continue;
@@ -28,6 +30,7 @@ const loadSitemapEntities = () => {
                     entities.push({
                         urlPrefix: config.slug,
                         lookupField: config.detail?.slugField || 'slug',
+                        scopeField: config.detail?.scopeField || null,
                         publishedField: config.fields?.find(f => f.name === 'published') ? 'published' : null,
                         model
                     });
@@ -90,14 +93,21 @@ router.get('/sitemap.xml', async (req, res) => {
             const filter = entity.publishedField ? { [entity.publishedField]: true } : {};
             const items = await entity.model
                 .find(filter)
-                .select(`${entity.lookupField} updatedAt`)
+                .select(`${entity.lookupField} ${entity.scopeField || ''} updatedAt`)
                 .lean();
 
             for (const item of items) {
                 const slug = item[entity.lookupField];
                 if (!slug) continue;
+                // Scoped entities (slug only unique per parent): /prefix/scope/slug
+                let path = slug;
+                if (entity.scopeField) {
+                    const scope = item[entity.scopeField];
+                    if (!scope) continue;
+                    path = `${scope}/${slug}`;
+                }
                 urls.push({
-                    loc: `${baseUrl}/${entity.urlPrefix}/${slug}`,
+                    loc: `${baseUrl}/${entity.urlPrefix}/${path}`,
                     lastmod: item.updatedAt?.toISOString(),
                     priority: '0.5',
                     changefreq: 'monthly'

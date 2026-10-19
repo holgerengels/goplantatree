@@ -783,6 +783,15 @@ export const createCrudRouter = (Model, resourceName, options = {}) => {
                 } else {
                     queryObj = { [lookupField]: paramVal };
                 }
+
+                // Optional scope via query params (e.g. ?project=slug) for slugs
+                // that are only unique within a parent (offerings per project)
+                for (const [key, val] of Object.entries(req.query)) {
+                    if (key === lookupField || typeof val !== 'string') continue;
+                    if (Model.schema.paths[key]?.instance === 'String') {
+                        queryObj[key] = val;
+                    }
+                }
                 
                 queryObj = scopeQuery(req, queryObj);
 
