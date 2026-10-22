@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, provide } from 'vue';
 import { useRoute } from 'vue-router';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
@@ -30,25 +30,78 @@ import { useConfigStore } from '../stores/config.js';
 import { useJsonLd } from '../composables/useJsonLd.js';
 import { useHead } from '../composables/useHead.js';
 import { api } from '../services/api.js';
+import { fillTemplate, getPath } from '../utils/fillTemplate.js';
+
+/**
+ * Renders CMS pages. Three modes:
+ *   - /seite/:slug                 → Page by slug
+ *   - pageSlugOverride             → fixed Page (projekt-<slug>, 404, …)
+ *   - entity + id (+ scope)        → entity detail: Page "detail-<entity-slug>" used as
+ *                                    template, filled with the item ({{field}}, {{field|fmt}})
+ */
+const DETAIL_PAGE_PREFIX = 'detail-';
 
 const route = useRoute();
 const configStore = useConfigStore();
 
 const props = defineProps({
-    pageSlugOverride: { type: String, default: '' }
+    pageSlugOverride: { type: String, default: '' },
+    entity: { type: String, default: '' },   // entity slug, e.g. "baeume"
+    scope: { type: String, default: '' },    // scope value, e.g. project slug for offerings
+    id: { type: String, default: '' }        // item slug / id
 });
 
 const page = ref(null);
 const loading = ref(false);
 const error = ref(null);
 
+// Entity detail mode: current item + its config (provided to macros like [[fields]])
+const entityContext = ref(null);
+provide('entityContext', entityContext);
+
+const isEntityMode = computed(() => !!(props.entity && props.id));
 const slug = computed(() => props.pageSlugOverride || route.params.slug || route.meta.pageSlug);
 
 // Use the wideLayout flag from the page data for wider container
 const hasWideMacro = computed(() => !!page.value?.wideLayout);
 
+const mediaFile = (imageSlug) => imageSlug ? `/api/v1/media/by-slug/${imageSlug}/file` : null;
+
+/** SEO values of the current item, mapped via config.public.seo */
+const entitySeo = computed(() => {
+    const ctx = entityContext.value;
+    if (!ctx) return null;
+    const seo = ctx.config.public?.seo || {};
+    const get = (key) => (seo[key] ? getPath(ctx.item, seo[key]) : null);
+    return { title: get('title'), description: get('description'), image: get('image') };
+});
+
+/** JSON-LD from config.public.jsonld = { "@type": …, mapping: { ldKey: itemPath } } */
+const buildEntityJsonLd = () => {
+    const { item, config } = entityContext.value;
+    const def = config.public?.jsonld;
+    if (!def) return null;
+    const ld = { "@type": def["@type"] || def.type, "url": window.location.href };
+    for (const [ldKey, itemPath] of Object.entries(def.mapping || {})) {
+        const val = getPath(item, itemPath);
+        if (!val) continue;
+        if (ldKey === 'author' && typeof val === 'string') {
+            ld[ldKey] = { "@type": "Person", "name": val };
+        } else if (ldKey === 'image' && typeof val === 'string' && !val.startsWith('http') && !val.startsWith('/')) {
+            ld[ldKey] = window.location.origin + mediaFile(val);
+        } else if (ldKey === 'articleBody' && typeof val === 'string') {
+            const text = val.replace(/<[^>]*>/g, '').trim();
+            ld[ldKey] = text.length > 500 ? text.slice(0, 500) + '…' : text;
+        } else {
+            ld[ldKey] = val;
+        }
+    }
+    return ld;
+};
+
 useJsonLd(() => {
     if (!page.value) return null;
+    if (entityContext.value) return buildEntityJsonLd();
     return {
         "@type": "WebPage",
         "name": page.value.title,
@@ -59,23 +112,67 @@ useJsonLd(() => {
 
 useHead(() => {
     if (!page.value) return null;
+    if (entitySeo.value) {
+        return {
+            title: entitySeo.value.title || page.value.title,
+            description: entitySeo.value.description || page.value.heroSubtitle || page.value.title,
+            image: mediaFile(entitySeo.value.image) || mediaFile(page.value.image),
+            type: 'article'
+        };
+    }
     return {
         title: page.value.title,
         description: page.value.heroSubtitle || page.value.title,
-        image: page.value.image ? `/api/v1/media/by-slug/${page.value.image}/file` : null
+        image: mediaFile(page.value.image)
     };
 });
 
+/**
+ * Load item + template page for entity detail mode.
+ * Returns the filled page object, or throws if not found / not public.
+ */
+const loadEntityPage = async () => {
+    await configStore.fetchEntities();
+    const entityInfo = configStore.findBySlug(props.entity);
+    if (!entityInfo) throw new Error('Seite nicht gefunden');
+    const config = await configStore.fetchConfig(entityInfo.configName);
+    if (!config.public) throw new Error('Seite nicht gefunden');
+
+    // Scoped entities (slug only unique within scope) need the scope segment — and vice versa
+    const scopeField = config.public.scopeField;
+    if (!!scopeField !== !!props.scope) throw new Error('Seite nicht gefunden');
+    const query = scopeField ? `?${scopeField}=${encodeURIComponent(props.scope)}` : '';
+
+    const [template, item] = await Promise.all([
+        api.get(`/pages/${DETAIL_PAGE_PREFIX}${props.entity}`),
+        api.get(`${config.api.replace('/api/v1', '')}/${encodeURIComponent(props.id)}${query}`)
+    ]);
+    if (template.published === false) throw new Error('Seite nicht gefunden');
+
+    const rawFields = (config.fields || []).filter(f => f.type === 'RichText').map(f => f.name);
+    entityContext.value = { item, config };
+    return {
+        ...template,
+        title: fillTemplate(template.title, item, { escape: false }),
+        heroSubtitle: fillTemplate(template.heroSubtitle, item, { escape: false }),
+        content: fillTemplate(template.content, item, { rawFields })
+    };
+};
+
 const loadPage = async () => {
-    if (!slug.value) return;
+    if (!isEntityMode.value && !slug.value) return;
     loading.value = true;
     error.value = null;
+    entityContext.value = null;
     try {
-        page.value = await api.get(`/pages/${slug.value}`);
+        page.value = isEntityMode.value
+            ? await loadEntityPage()
+            : await api.get(`/pages/${slug.value}`);
         configStore.pageHeroMode = !!page.value.heroSubtitle;
     } catch (err) {
         error.value = err.message || 'Seite nicht gefunden';
         page.value = null;
+        entityContext.value = null;
         configStore.pageHeroMode = false;
     } finally {
         loading.value = false;
@@ -87,7 +184,7 @@ onUnmounted(() => {
 });
 
 onMounted(loadPage);
-watch(slug, loadPage);
+watch(() => [slug.value, props.entity, props.scope, props.id], loadPage);
 </script>
 
 <style scoped>

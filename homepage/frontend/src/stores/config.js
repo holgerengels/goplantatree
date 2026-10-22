@@ -100,13 +100,6 @@ export const useConfigStore = defineStore('config', () => {
     const footerMenu = computed(() => menu.value?.footer || {});
 
     /**
-     * Entities that have public list pages.
-     */
-    const publicEntities = computed(() =>
-        entities.value.filter(e => e.hasPublicList && !e.adminOnly)
-    );
-
-    /**
      * All entities for admin sidebar.
      */
     const adminEntities = computed(() => entities.value);
@@ -116,6 +109,6 @@ export const useConfigStore = defineStore('config', () => {
         menu, menuLoaded, pageHeroMode,
         fetchEntities, fetchConfig, findBySlug, fetchMenu,
         headerMenu, footerMenu,
-        publicEntities, adminEntities
+        adminEntities
     };
 });

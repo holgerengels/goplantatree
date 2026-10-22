@@ -34,6 +34,7 @@ const MacroProjectAction = defineAsyncComponent(() => import('../macros/MacroPro
 const MacroMedia = defineAsyncComponent(() => import('../macros/MacroMedia.vue'));
 const MacroSubscribe = defineAsyncComponent(() => import('../macros/MacroSubscribe.vue'));
 const MacroConfirm = defineAsyncComponent(() => import('../macros/MacroConfirm.vue'));
+const MacroFields = defineAsyncComponent(() => import('../macros/MacroFields.vue'));
 
 // Map registry names to actual Vue components
 const macroComponents = {
@@ -47,7 +48,8 @@ const macroComponents = {
     'project-action': MacroProjectAction,
     'media': MacroMedia,
     'subscribe': MacroSubscribe,
-    'confirm': MacroConfirm
+    'confirm': MacroConfirm,
+    'fields': MacroFields
 };
 
 const props = defineProps({

@@ -7,57 +7,26 @@
         "singular": "Beitrag",
         "plural": "Beiträge"
     },
-    "jsonld": {
-        "@type": "BlogPosting",
-        "mapping": {
-            "headline": "title",
+    "public": {
+        "seo": {
+            "title": "title",
             "description": "excerpt",
-            "articleBody": "content",
-            "image": "image",
-            "datePublished": "publishedAt",
-            "dateModified": "updatedAt",
-            "author": "author"
+            "image": "image"
+        },
+        "jsonld": {
+            "@type": "BlogPosting",
+            "mapping": {
+                "headline": "title",
+                "description": "excerpt",
+                "articleBody": "content",
+                "image": "image",
+                "datePublished": "publishedAt",
+                "dateModified": "updatedAt",
+                "author": "author"
+            }
         }
     },
     "icon": "FileText",
-    "detail": {
-        "titleField": "title",
-        "subtitleField": "excerpt",
-        "slugField": "slug",
-        "sections": [
-            {
-                "label": "Inhalt",
-                "field": "content",
-                "layout": "html"
-            }
-        ],
-        "meta": [
-            {
-                "key": "publishedAt",
-                "label": "Datum",
-                "type": "date"
-            },
-            {
-                "key": "author",
-                "label": "Autor"
-            }
-        ],
-        "badges": [
-            {
-                "field": "type",
-                "map": {
-                    "news": {
-                        "label": "📰 News",
-                        "class": "badge-primary"
-                    },
-                    "pflanzung": {
-                        "label": "🌱 Pflanzung",
-                        "class": "badge-accent"
-                    }
-                }
-            }
-        ]
-    },
     "admin": {
         "filters": [
             "project",
@@ -171,6 +140,5 @@
         "content content content content",
         "published published . ."
     ],
-    "resource": "posts",
-    "listPage": "/seite/blog"
+    "resource": "posts"
 }

@@ -2,12 +2,10 @@ import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Tree from '../models/Tree.js';
 import Project from '../models/Project.js';
 import Page from '../models/Page.js';
-import Post from '../models/Post.js';
 import Media from '../models/Media.js';
-import Offering from '../models/Offering.js';
+import { loadPublicEntities } from '../utils/configLoader.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,6 +44,31 @@ const getMediaUrl = async (imageSlug, variant = 'medium') => {
     return `/api/v1/media/by-slug/${imageSlug}/file${vParam}`;
 };
 
+const getPath = (obj, path) => path?.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+
+/**
+ * Meta data for entity detail URLs (/:entity/:id or /:entity/:scope/:id),
+ * driven by config.public ({ scopeField, seo: { title, description, image } }).
+ */
+const resolveEntityMeta = async (parts) => {
+    const entity = loadPublicEntities().find(e => e.urlPrefix === parts[0]);
+    if (!entity) return null;
+    const expectedParts = entity.scopeField ? 3 : 2;
+    if (parts.length !== expectedParts) return null;
+
+    const query = { slug: parts[expectedParts - 1] };
+    if (entity.scopeField) query[entity.scopeField] = parts[1];
+    if (entity.publishedField) query[entity.publishedField] = true;
+
+    const item = await entity.model.findOne(query).lean();
+    if (!item) return null;
+    return {
+        title: getPath(item, entity.seo.title),
+        description: getPath(item, entity.seo.description),
+        image: getPath(item, entity.seo.image)
+    };
+};
+
 router.get('*', async (req, res, next) => {
     try {
         // Only process GET requests that accept HTML
@@ -81,22 +104,7 @@ router.get('*', async (req, res, next) => {
             const entityType = parts[0];
             const slug = parts[1];
 
-            if (entityType === 'angebote' && parts.length >= 3) {
-                // Offerings: slug only unique per project → /angebote/:project/:slug
-                const offering = await Offering.findOne({ project: parts[1], slug: parts[2] });
-                if (offering) {
-                    title = `${offering.name} — ${SITE_NAME}`;
-                    description = offering.bezeichnungBotanisch || offering.bemerkung || description;
-                    image = offering.image;
-                }
-            } else if (entityType === 'baeume') {
-                const tree = await Tree.findOne({ slug });
-                if (tree) {
-                    title = `${tree.name} — ${SITE_NAME}`;
-                    description = tree.summary || description;
-                    image = tree.image;
-                }
-            } else if (entityType === 'projekt' || entityType === 'bestellen') {
+            if (entityType === 'projekt' || entityType === 'bestellen') {
                 const project = await Project.findOne({ slug });
                 if (project) {
                     title = `${project.name} — ${SITE_NAME}`;
@@ -110,12 +118,13 @@ router.get('*', async (req, res, next) => {
                     description = page.description || description;
                     image = page.image;
                 }
-            } else if (entityType === 'beitraege') {
-                const post = await Post.findOne({ slug });
-                if (post) {
-                    title = `${post.title} — ${SITE_NAME}`;
-                    description = post.excerpt || description;
-                    image = post.image;
+            } else {
+                // Generic entity detail (posts, trees, offerings, …)
+                const meta = await resolveEntityMeta(parts);
+                if (meta) {
+                    if (meta.title) title = `${meta.title} — ${SITE_NAME}`;
+                    description = meta.description || description;
+                    image = meta.image || null;
                 }
             }
         } else if (parts.length === 1 && parts[0] === 'login') {

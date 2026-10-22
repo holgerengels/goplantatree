@@ -35,13 +35,6 @@ describe('Config API', () => {
             expect(order.resource).toBe('orders');
         });
 
-        it('should include listPage field for trees', async () => {
-            const res = await request(app).get('/api/v1/config/entities');
-            const tree = res.body.find(e => e.entity === 'tree');
-            expect(tree).toBeDefined();
-            expect(tree.listPage).toBe('/seite/baeume');
-        });
-
         it('should be sorted by menuOrder', async () => {
             const res = await request(app).get('/api/v1/config/entities');
             for (let i = 1; i < res.body.length; i++) {

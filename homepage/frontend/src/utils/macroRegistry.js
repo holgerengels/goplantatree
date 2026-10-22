@@ -52,9 +52,18 @@ export const macroRegistry = {
     offerings: {
         label: 'Angebote / Bäume bestellen',
         props: [
-            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' }
+            { name: 'project', type: 'String', required: true, desc: 'Projekt-Slug' },
+            { name: 'slug', type: 'String', default: '', desc: 'Nur dieses eine Angebot (z.B. auf Detailseite)' }
         ],
         example: '[[offerings project="mein-projekt"]]'
+    },
+    fields: {
+        label: 'Felder des Eintrags (nur auf Detail-Vorlagen)',
+        props: [
+            { name: 'keys', type: 'String', required: true, desc: "Kommagetrennte Feldnamen, optional mit Formatierer: 'height,publishedAt|date'" },
+            { name: 'title', type: 'String', default: '', desc: 'Überschrift' }
+        ],
+        example: '[[fields keys="height,width,location" title="Steckbrief"]]'
     },
     'project-action': {
         label: 'Projekt-Aktionsbutton',

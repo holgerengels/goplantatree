@@ -1,49 +1,8 @@
 import { Router } from 'express';
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
-import mongoose from 'mongoose';
-import { CONFIG_DIR } from '../utils/configLoader.js';
+import { loadPublicEntities, DETAIL_PAGE_PREFIX } from '../utils/configLoader.js';
 import Page from '../models/Page.js';
 
 const router = Router();
-
-/**
- * Loads all entity configs that have a public detail page (slug + detail config).
- * Returns an array of { slug, api, lookupField, publishedField, model }.
- */
-const loadSitemapEntities = () => {
-    const entities = [];
-    try {
-        const files = readdirSync(CONFIG_DIR).filter(f => f.endsWith('.json'));
-        for (const file of files) {
-            const config = JSON.parse(readFileSync(join(CONFIG_DIR, file), 'utf-8'));
-            // Only include entities with a public detail page
-            if (config.slug && config.detail?.slugField !== undefined || config.detail?.titleField) {
-                // Explicit opt-out (e.g. offerings)
-                if (config.sitemap === false) continue;
-                // Derive mongoose model name from resource (e.g. 'posts' → 'Post', 'trees' → 'Tree')
-                const resource = config.resource;
-                if (!resource) continue;
-                const modelName = resource.charAt(0).toUpperCase() + resource.slice(1).replace(/s$/, '');
-                try {
-                    const model = mongoose.model(modelName);
-                    entities.push({
-                        urlPrefix: config.slug,
-                        lookupField: config.detail?.slugField || 'slug',
-                        scopeField: config.detail?.scopeField || null,
-                        publishedField: config.fields?.find(f => f.name === 'published') ? 'published' : null,
-                        model
-                    });
-                } catch {
-                    // Model not registered — skip silently
-                }
-            }
-        }
-    } catch (err) {
-        console.error('[Sitemap] Error loading entity configs:', err.message);
-    }
-    return entities;
-};
 
 /**
  * GET /sitemap.xml — Dynamic XML sitemap
@@ -51,7 +10,8 @@ const loadSitemapEntities = () => {
  * Includes:
  * - Static pages (/, /seite/:slug)
  * - Projekt pages (/projekt/:slug)  
- * - All published entities with detail pages (posts, trees, etc.)
+ * - All published entities with a public detail view (config.public)
+ *   whose template page "detail-<entity>" is published
  */
 router.get('/sitemap.xml', async (req, res) => {
     try {
@@ -67,6 +27,8 @@ router.get('/sitemap.xml', async (req, res) => {
 
         for (const page of pages) {
             if (skipSlugs.has(page.slug)) continue;
+            // Detail templates are not pages of their own
+            if (page.slug.startsWith(DETAIL_PAGE_PREFIX)) continue;
 
             // Project pages use /projekt/:slug pattern
             if (page.slug.startsWith('projekt-')) {
@@ -87,17 +49,19 @@ router.get('/sitemap.xml', async (req, res) => {
             }
         }
 
-        // 3. Published entities (posts, trees, and any future entities)
-        const entities = loadSitemapEntities();
+        // 3. Published entities with public detail view (posts, trees, …)
+        const publishedSlugs = new Set(pages.map(p => p.slug));
+        const entities = loadPublicEntities().filter(e =>
+            e.sitemap && publishedSlugs.has(`${DETAIL_PAGE_PREFIX}${e.urlPrefix}`));
         for (const entity of entities) {
             const filter = entity.publishedField ? { [entity.publishedField]: true } : {};
             const items = await entity.model
                 .find(filter)
-                .select(`${entity.lookupField} ${entity.scopeField || ''} updatedAt`)
+                .select(`slug ${entity.scopeField || ''} updatedAt`)
                 .lean();
 
             for (const item of items) {
-                const slug = item[entity.lookupField];
+                const slug = item.slug;
                 if (!slug) continue;
                 // Scoped entities (slug only unique per parent): /prefix/scope/slug
                 let path = slug;

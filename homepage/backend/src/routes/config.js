@@ -53,12 +53,9 @@ router.get('/entities', (req, res) => {
                         label: content.label,
                         icon: content.icon || '📄',
                         adminOnly: content.adminOnly || false,
-                        hasPublicList: !!content.list,
-                        hasPublicDetail: !!content.detail,
                         configName: file.replace('.json', ''),
                         menuOrder: content.menuOrder !== undefined ? content.menuOrder : 999,
-                        resource: content.resource || null,
-                        listPage: content.listPage || null
+                        resource: content.resource || null
                     });
                 }
             } catch {

@@ -45,7 +45,8 @@ import { getCategoryGradient } from '../../utils/gradients.js';
 import { mediaUrl } from '../../utils/media.js';
 
 const props = defineProps({
-    project: { type: String, required: true }
+    project: { type: String, required: true },
+    slug: { type: String, default: '' }   // single offering (detail page)
 });
 
 const offerings = ref([]);
@@ -59,12 +60,16 @@ const imageStyle = (offering) => {
     return { background: getCategoryGradient(offering.category) };
 };
 
-watch(() => props.project, async (newVal) => {
+watch(() => [props.project, props.slug], async ([newVal, slug]) => {
     if (!newVal) return;
     projectSlug.value = newVal;
+    // Single offering: also show if sold out (card shows "Vergriffen")
+    const offeringsUrl = slug
+        ? `/offerings?project=${newVal}&slug=${encodeURIComponent(slug)}`
+        : `/offerings?project=${newVal}&available=true`;
     try {
         const [offerData, treeData] = await Promise.all([
-            api.get(`/offerings?project=${newVal}&available=true`),
+            api.get(offeringsUrl),
             api.get('/trees')
         ]);
         offerings.value = offerData;

@@ -100,18 +100,20 @@ const routes = [
         meta: { requiresAuth: true }
     },
 
-    // Generic entity detail (public)
+    // Generic entity detail (public) — rendered from template Page "detail-<entity>"
     {
         path: '/:entity/:id',
         name: 'entity-detail',
-        component: () => import('../pages/DetailPage.vue')
+        component: () => import('../pages/ContentPage.vue'),
+        props: true
     },
 
     // Generic scoped entity detail (slug only unique within scope, e.g. offerings per project)
     {
         path: '/:entity/:scope/:id',
         name: 'entity-detail-scoped',
-        component: () => import('../pages/DetailPage.vue')
+        component: () => import('../pages/ContentPage.vue'),
+        props: true
     },
 
     // 404 catch-all (must be last)

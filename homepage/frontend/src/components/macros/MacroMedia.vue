@@ -7,7 +7,7 @@
   <div v-else-if="error" class="macro-media-error">
     Media nicht gefunden ({{ id }})
   </div>
-  <div v-else class="macro-media-loading">
+  <div v-else-if="id" class="macro-media-loading">
     Lade Bild...
   </div>
 </template>
