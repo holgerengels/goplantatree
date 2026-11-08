@@ -12,6 +12,15 @@ export const macroRegistry = {
         ],
         example: '[[posts limit=3 type="news"]]'
     },
+    'post-submit': {
+        label: 'Beitrag einreichen (Gäste, ohne Login)',
+        props: [
+            { name: 'type', type: 'String', default: 'pflanzung', desc: "Beitragstyp: 'pflanzung', 'artikel' oder 'news'" },
+            { name: 'project', type: 'String', default: '', desc: 'Projekt-Slug (leer = Auswahl im Formular)' },
+            { name: 'buttonLabel', type: 'String', default: '', desc: 'Beschriftung des Buttons' }
+        ],
+        example: '[[post-submit type="pflanzung" project="mein-projekt"]]'
+    },
     projects: {
         label: 'Projekte',
         props: [

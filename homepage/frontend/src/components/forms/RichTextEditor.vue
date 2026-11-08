@@ -90,6 +90,7 @@
 
       <!-- Toggle Button -->
       <wa-button 
+        v-if="allowSource"
         size="small"
         appearance="plain"
         class="btn-toggle-source" 
@@ -126,7 +127,8 @@ import StarterKit from '@tiptap/starter-kit';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  allowSource: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['update:modelValue']);

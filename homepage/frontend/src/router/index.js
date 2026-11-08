@@ -53,6 +53,14 @@ const routes = [
         props: { pageSlugOverride: 'bestaetigen' }
     },
 
+    // Guest edit (magic link from confirmation mail: confirm + edit)
+    {
+        path: '/bearbeiten/:token',
+        name: 'guest-edit',
+        component: () => import('../pages/GuestEditPage.vue'),
+        meta: { hero: true }
+    },
+
     // Static content pages
     {
         path: '/seite/:slug',

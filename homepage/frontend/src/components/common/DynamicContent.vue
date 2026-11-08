@@ -24,6 +24,7 @@ import { useRouter } from 'vue-router';
 import { macroRegistry } from '../../utils/macroRegistry.js';
 
 const MacroPosts = defineAsyncComponent(() => import('../macros/MacroPosts.vue'));
+const MacroPostSubmit = defineAsyncComponent(() => import('../macros/MacroPostSubmit.vue'));
 const MacroProjects = defineAsyncComponent(() => import('../macros/MacroProjects.vue'));
 const MacroTrees = defineAsyncComponent(() => import('../macros/MacroTrees.vue'));
 const MacroTimeline = defineAsyncComponent(() => import('../macros/MacroTimeline.vue'));
@@ -39,6 +40,7 @@ const MacroFields = defineAsyncComponent(() => import('../macros/MacroFields.vue
 // Map registry names to actual Vue components
 const macroComponents = {
     'posts': MacroPosts,
+    'post-submit': MacroPostSubmit,
     'projects': MacroProjects,
     'trees': MacroTrees,
     'timeline': MacroTimeline,

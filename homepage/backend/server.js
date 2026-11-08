@@ -3,7 +3,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import connectDB from './src/config/db.js';
 import { logger, errorHandler } from './src/middleware/logger.js';
 import Media from './src/models/Media.js';
@@ -25,6 +25,7 @@ import mediaRoutes from './src/routes/media.js';
 import mailRoutes from './src/routes/mail.js';
 import mailTemplateRoutes from './src/routes/mailTemplates.js';
 import changelogRoutes from './src/routes/changelog.js';
+import guestEditRoutes from './src/routes/guestEdit.js';
 import sitemapRoutes from './src/routes/sitemap.js';
 import frontendRoutes from './src/routes/frontend.js';
 
@@ -60,8 +61,17 @@ const orderLimiter = rateLimit({
     legacyHeaders: false,
     skip: () => isTest
 });
+const guestSubmitLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { error: 'Zu viele Einreichungen. Bitte versuche es später erneut.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => isTest
+});
 app.post('/api/v1/subscribers', subscribeLimiter);
 app.post('/api/v1/orders', orderLimiter);
+app.post('/api/v1/guest-edit/submit/:resource', guestSubmitLimiter);
 
 // Serve uploaded files from MongoDB (with optional variant via ?v=thumb|small|medium)
 app.get('/uploads/:filename', async (req, res, next) => {
@@ -107,6 +117,7 @@ app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/mail', mailRoutes);
 app.use('/api/v1/mail-templates', mailTemplateRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
+app.use('/api/v1/guest-edit', guestEditRoutes);
 app.use('/api/v1', sitemapRoutes);
 
 // Health check
