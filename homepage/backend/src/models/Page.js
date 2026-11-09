@@ -10,6 +10,7 @@ const pageSchema = new mongoose.Schema({
     image: { type: String, default: null },                       // Media slug
     slug: { type: String, required: true, unique: true, index: true },
     heroSubtitle: { type: String },
+    heroContent: { type: String },
     content: { type: String },
     published: { type: Boolean, default: true },
     template: { type: Boolean, default: false }                   // If true: page is a template (not directly viewable via /seite/:slug)

@@ -7,13 +7,8 @@
       :background-image="heroImage"
       height="85vh"
     >
-      <template #actions>
-        <router-link to="/baumwissen" class="btn btn-accent btn-lg">
-          <component :is="TreePine" class="btn-icon" /> Baumwissen entdecken
-        </router-link>
-        <router-link to="/blog" class="btn btn-secondary btn-lg btn-white-glass">
-          Neuigkeiten lesen <component :is="ArrowRight" class="btn-icon-right" />
-        </router-link>
+      <template #actions v-if="homePage?.heroContent">
+        <DynamicContent :content="homePage.heroContent" />
       </template>
     </HeroSection>
 
@@ -34,8 +29,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import TreePine from 'lucide-vue-next/dist/esm/icons/tree-pine.js';
-import ArrowRight from 'lucide-vue-next/dist/esm/icons/arrow-right.js';
 import HeroSection from '../components/common/HeroSection.vue';
 import DynamicContent from '../components/common/DynamicContent.vue';
 import SectionNav from '../components/common/SectionNav.vue';

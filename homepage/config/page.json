@@ -78,6 +78,12 @@
             "hint": "Wenn gesetzt, wird ein großer Hero-Bereich mit Titel + Untertitel angezeigt"
         },
         {
+            "name": "heroContent",
+            "label": "Hero-Inhalt / Aktionen (HTML)",
+            "type": "Html",
+            "hint": "Wird im Hero unter dem Untertitel angezeigt. Unterstützt Buttons und Makros wie [[post-submit]]."
+        },
+        {
             "name": "template",
             "label": "Als Vorlage verwenden",
             "type": "Boolean",
@@ -114,6 +120,7 @@
         "image image image image",
         "project project title title",
         "slug slug heroSubtitle heroSubtitle",
+        "heroContent heroContent heroContent heroContent",
         "published template wideLayout showSectionNav",
         "content content content content"
     ],

@@ -144,7 +144,10 @@ const startNew = () => {
     flex-direction: column;
     gap: var(--space-lg);
     max-width: 800px;
+    width: 100%;
     margin: 0 auto;
+    text-align: left;
+    color: var(--color-text);
 }
 
 .submit-form:hover,
@@ -182,12 +185,14 @@ const startNew = () => {
 
 .submit-success {
     max-width: 600px;
+    width: 100%;
     margin: 0 auto;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-md);
+    color: var(--color-text);
 }
 
 .success-icon {

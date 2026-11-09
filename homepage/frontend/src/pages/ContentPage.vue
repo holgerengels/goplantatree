@@ -1,17 +1,22 @@
 <template>
   <div class="content-page" v-if="page">
     <HeroSection
-      v-if="page.heroSubtitle"
+      v-if="hasHero"
       :title="page.title"
       :subtitle="page.heroSubtitle"
-      height="40vh"
-    />
+      :background-image="heroImage"
+      height="45vh"
+    >
+      <template #actions v-if="page.heroContent">
+        <DynamicContent :content="page.heroContent" />
+      </template>
+    </HeroSection>
 
     <SectionNav v-if="page.showSectionNav !== false" :content-watch="page.content" target-selector=".content-html" />
 
-    <div class="content-section" :style="page.heroSubtitle ? {} : { paddingTop: 'calc(var(--header-height) + var(--space-2xl))' }">
+    <div class="content-section" :style="hasHero ? {} : { paddingTop: 'calc(var(--header-height) + var(--space-2xl))' }">
       <div class="container content-wrapper" :class="{ 'wide': hasWideMacro }">
-        <h1 v-if="!page.heroSubtitle">{{ page.title }}</h1>
+        <h1 v-if="!hasHero">{{ page.title }}</h1>
         <DynamicContent :content="page.content" />
       </div>
     </div>
@@ -62,6 +67,9 @@ provide('entityContext', entityContext);
 const isEntityMode = computed(() => !!(props.entity && props.id));
 const slug = computed(() => props.pageSlugOverride || route.params.slug || route.meta.pageSlug);
 
+// Hero is displayed if heroSubtitle or heroContent is present
+const hasHero = computed(() => !!(page.value?.heroSubtitle || page.value?.heroContent));
+
 // Use the wideLayout flag from the page data for wider container
 const hasWideMacro = computed(() => !!page.value?.wideLayout);
 
@@ -74,6 +82,12 @@ const entitySeo = computed(() => {
     const seo = ctx.config.public?.seo || {};
     const get = (key) => (seo[key] ? getPath(ctx.item, seo[key]) : null);
     return { title: get('title'), description: get('description'), image: get('image') };
+});
+
+const heroImage = computed(() => {
+    if (!page.value) return undefined;
+    const imgSlug = entitySeo.value?.image || page.value.image;
+    return mediaFile(imgSlug) || undefined;
 });
 
 /** JSON-LD from config.public.jsonld = { "@type": …, mapping: { ldKey: itemPath } } */
@@ -155,6 +169,7 @@ const loadEntityPage = async () => {
         ...template,
         title: fillTemplate(template.title, item, { escape: false }),
         heroSubtitle: fillTemplate(template.heroSubtitle, item, { escape: false }),
+        heroContent: fillTemplate(template.heroContent, item, { rawFields }),
         content: fillTemplate(template.content, item, { rawFields })
     };
 };
@@ -174,7 +189,7 @@ const loadPage = async () => {
             throw new Error('Seite nicht gefunden');
         }
 
-        configStore.pageHeroMode = !!page.value.heroSubtitle;
+        configStore.pageHeroMode = hasHero.value;
     } catch (err) {
         if (props.entity === 'blog' || props.entity === 'post' || props.entity === 'posts') {
             error.value = 'Beitrag nicht gefunden';

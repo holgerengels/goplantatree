@@ -56,6 +56,7 @@ const heroStyle = computed(() => ({
     z-index: 1;
     text-align: center;
     padding: calc(var(--header-height) + var(--space-3xl)) var(--space-lg) var(--space-3xl);
+    width: 100%;
 }
 
 .hero-badge {
@@ -85,7 +86,24 @@ const heroStyle = computed(() => ({
     display: flex;
     gap: var(--space-md);
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
+    width: 100%;
+}
+
+.hero-actions :deep(.dynamic-content) {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-actions :deep(.content-html) {
+    width: 100%;
+}
+
+.hero-actions :deep(.content-html > p:last-child) {
+    margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
