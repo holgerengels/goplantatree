@@ -40,6 +40,7 @@ const MacroFields = defineAsyncComponent(() => import('../macros/MacroFields.vue
 // Map registry names to actual Vue components
 const macroComponents = {
     'posts': MacroPosts,
+    'blog': MacroPosts,
     'post-submit': MacroPostSubmit,
     'projects': MacroProjects,
     'trees': MacroTrees,
@@ -89,8 +90,6 @@ onUnmounted(() => {
 });
 
 const resolveMacro = (name) => {
-    // Only resolve names that exist in the registry
-    if (!macroRegistry[name]) return null;
     return macroComponents[name] || null;
 };
 

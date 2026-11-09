@@ -1,6 +1,6 @@
 {
     "entity": "post",
-    "slug": "post",
+    "slug": "blog",
     "menuOrder": 50,
     "api": "/api/v1/posts",
     "label": {

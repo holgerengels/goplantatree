@@ -9,15 +9,15 @@
         },
         {
             "label": "Baumwissen",
-            "to": "/seite/baumwissen"
+            "to": "/baumwissen"
         },
         {
             "label": "Blog",
-            "to": "/seite/blog"
+            "to": "/blog"
         },
         {
             "label": "Pflanzblog",
-            "to": "/seite/pflanzblog"
+            "to": "/pflanzblog"
         },
         {
             "label": "Über uns",
@@ -32,15 +32,15 @@
             },
             {
                 "label": "Baumwissen",
-                "to": "/seite/baumwissen"
+                "to": "/baumwissen"
             },
             {
                 "label": "Blog",
-                "to": "/seite/blog"
+                "to": "/blog"
             },
             {
                 "label": "Pflanzblog",
-                "to": "/seite/pflanzblog"
+                "to": "/pflanzblog"
             },
             {
                 "label": "Über uns",

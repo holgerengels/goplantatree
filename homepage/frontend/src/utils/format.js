@@ -25,3 +25,12 @@ export function formatDateTime(d) {
         hour: '2-digit', minute: '2-digit'
     });
 }
+
+/**
+ * Format an amount in cents as Euro currency: 5500 -> "55,00 €"
+ */
+export function formatCurrency(amountInCents) {
+    if (amountInCents === null || amountInCents === undefined || amountInCents === '' || isNaN(amountInCents)) return '';
+    const euros = Number(amountInCents) / 100;
+    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(euros);
+}

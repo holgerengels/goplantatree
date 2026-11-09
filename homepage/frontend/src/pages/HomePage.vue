@@ -8,10 +8,10 @@
       height="85vh"
     >
       <template #actions>
-        <router-link to="/seite/baeume" class="btn btn-accent btn-lg">
+        <router-link to="/baumwissen" class="btn btn-accent btn-lg">
           <component :is="TreePine" class="btn-icon" /> Baumwissen entdecken
         </router-link>
-        <router-link to="/seite/blog" class="btn btn-secondary btn-lg btn-white-glass">
+        <router-link to="/blog" class="btn btn-secondary btn-lg btn-white-glass">
           Neuigkeiten lesen <component :is="ArrowRight" class="btn-icon-right" />
         </router-link>
       </template>

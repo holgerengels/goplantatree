@@ -4,8 +4,13 @@
     <div v-if="submitted" class="submit-success card">
       <div class="success-icon">📬</div>
       <h3>Fast geschafft!</h3>
+      <p class="highlight-notice">
+        Dein Beitrag wurde erfolgreich gespeichert, ist aber <strong>noch nicht öffentlich sichtbar</strong>.
+      </p>
       <p>{{ successMessage }}</p>
-      <p class="muted">Schau bitte auch im Spam-Ordner nach.</p>
+      <p class="muted">
+        Schau bitte in dein Postfach (und ggf. im Spam-Ordner) und klicke auf den Bestätigungslink – erst damit wird dein Beitrag sofort online gestellt!
+      </p>
       <button type="button" class="btn btn-outline" @click="startNew">Weiteren Beitrag einreichen</button>
     </div>
 
@@ -192,6 +197,16 @@ const startNew = () => {
 .submit-success h3,
 .submit-success p {
     margin: 0;
+}
+
+.highlight-notice {
+    background: var(--color-primary-50, rgba(46, 86, 65, 0.08));
+    border: 1px solid var(--color-primary-light, #cde3d5);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    color: var(--color-primary-dark, #1c3628);
+    font-size: var(--text-base);
+    line-height: 1.5;
 }
 
 .muted {

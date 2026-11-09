@@ -168,9 +168,19 @@ const loadPage = async () => {
         page.value = isEntityMode.value
             ? await loadEntityPage()
             : await api.get(`/pages/${slug.value}`);
+
+        // Template pages are only for dynamic entity rendering, not viewable directly
+        if (!isEntityMode.value && page.value?.template) {
+            throw new Error('Seite nicht gefunden');
+        }
+
         configStore.pageHeroMode = !!page.value.heroSubtitle;
     } catch (err) {
-        error.value = err.message || 'Seite nicht gefunden';
+        if (props.entity === 'blog' || props.entity === 'post' || props.entity === 'posts') {
+            error.value = 'Beitrag nicht gefunden';
+        } else {
+            error.value = err.message || 'Seite nicht gefunden';
+        }
         page.value = null;
         entityContext.value = null;
         configStore.pageHeroMode = false;

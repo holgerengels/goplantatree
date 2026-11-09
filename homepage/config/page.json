@@ -9,6 +9,10 @@
     },
     "icon": "File",
     "admin": {
+        "filters": [
+            "template",
+            "published"
+        ],
         "columns": [
             {
                 "key": "title",
@@ -17,6 +21,11 @@
             {
                 "key": "slug",
                 "label": "URL-Slug"
+            },
+            {
+                "key": "template",
+                "label": "Vorlage",
+                "type": "boolean"
             },
             {
                 "key": "project",
@@ -69,6 +78,13 @@
             "hint": "Wenn gesetzt, wird ein großer Hero-Bereich mit Titel + Untertitel angezeigt"
         },
         {
+            "name": "template",
+            "label": "Als Vorlage verwenden",
+            "type": "Boolean",
+            "default": false,
+            "hint": "Vorlagen dienen als Template für Detail- oder Projektansichten und sind nicht direkt als Inhaltsseite aufrufbar"
+        },
+        {
             "name": "published",
             "label": "Veröffentlicht",
             "type": "Boolean",
@@ -98,7 +114,7 @@
         "image image image image",
         "project project title title",
         "slug slug heroSubtitle heroSubtitle",
-        "published wideLayout showSectionNav .",
+        "published template wideLayout showSectionNav",
         "content content content content"
     ],
     "resource": "pages"

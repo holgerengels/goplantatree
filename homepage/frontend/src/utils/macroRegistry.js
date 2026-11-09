@@ -12,6 +12,14 @@ export const macroRegistry = {
         ],
         example: '[[posts limit=3 type="news"]]'
     },
+    blog: {
+        label: 'Blog-Beiträge (Alias für [[posts]])',
+        props: [
+            { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
+            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" }
+        ],
+        example: '[[blog limit=3 type="news"]]'
+    },
     'post-submit': {
         label: 'Beitrag einreichen (Gäste, ohne Login)',
         props: [

@@ -55,6 +55,32 @@ function resolveGuestMailAccount(projectSlug) {
 }
 
 /**
+ * Determine the base URL for guest confirmation / edit links.
+ * Prefers the caller's origin/referer if on localhost (dev mode) or uses SITE_URL.
+ */
+function resolveSiteUrl(req) {
+    const origin = req?.get ? req.get('origin') : null;
+    if (origin) {
+        try {
+            const url = new URL(origin);
+            if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+                return origin.replace(/\/$/, '');
+            }
+        } catch (_) {}
+    }
+    const referer = req?.get ? req.get('referer') : null;
+    if (referer) {
+        try {
+            const url = new URL(referer);
+            if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+                return `${url.protocol}//${url.host}`.replace(/\/$/, '');
+            }
+        } catch (_) {}
+    }
+    return (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
+}
+
+/**
  * Strip unsafe HTML tags/attributes from guest rich-text input.
  */
 function sanitizeGuestHtml(html) {
@@ -272,7 +298,7 @@ router.post('/submit/:resource', upload.single('file'), async (req, res, next) =
             metadata: { source: 'guest-submit', ip: req.ip }
         });
 
-        const siteUrl = (process.env.SITE_URL || 'https://goplantatree.org').replace(/\/$/, '');
+        const siteUrl = resolveSiteUrl(req);
         const confirmUrl = `${siteUrl}/bearbeiten/${guestEdit.token}`;
 
         let template = null;

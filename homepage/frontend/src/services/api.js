@@ -90,6 +90,13 @@ export const api = {
             body: formData
         });
         return handleResponse(res, 'Fehler beim Upload');
+    },
+
+    putFormData(endpoint, formData) {
+        return this.upload(endpoint, formData, 'PUT');
+    },
+
+    postFormData(endpoint, formData) {
+        return this.upload(endpoint, formData, 'POST');
     }
 };
-

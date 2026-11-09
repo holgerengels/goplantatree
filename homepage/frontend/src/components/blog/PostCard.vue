@@ -1,10 +1,6 @@
 <template>
-  <router-link :to="`/post/${post.slug}`" class="post-card card">
-    <div class="post-image" :style="imageStyle">
-      <span class="post-type badge" :class="post.type === 'pflanzung' ? 'badge-accent' : 'badge-primary'">
-        {{ post.type === 'pflanzung' ? '🌱 Pflanzung' : '📰 News' }}
-      </span>
-    </div>
+  <router-link :to="postUrl" class="post-card card">
+    <div class="post-image" :style="imageStyle"></div>
     <div class="post-body">
       <div class="post-meta">
         <time :datetime="post.publishedAt">{{ formatDate(post.publishedAt) }}</time>
@@ -28,6 +24,11 @@ const props = defineProps({
     post: { type: Object, required: true }
 });
 
+const postUrl = computed(() => {
+    const slug = props.post?.slug || props.post?._id;
+    return props.post?.type === 'pflanzung' ? `/pflanzblog/${slug}` : `/blog/${slug}`;
+});
+
 const imageStyle = computed(() => {
     const url = mediaUrl(props.post.image, 'small');
     if (url) {
@@ -40,7 +41,6 @@ const imageStyle = computed(() => {
     };
 });
 </script>
-
 
 <style scoped>
 .post-card {
@@ -60,20 +60,6 @@ const imageStyle = computed(() => {
     align-items: flex-start;
     padding: var(--space-sm);
     position: relative;
-}
-
-.post-video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 0;
-}
-
-.post-type {
-    z-index: 1;
 }
 
 .post-body {

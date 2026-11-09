@@ -61,6 +61,32 @@ const routes = [
         meta: { hero: true }
     },
 
+    // Direct section list pages
+    {
+        path: '/blog',
+        name: 'section-blog',
+        component: () => import('../pages/ContentPage.vue'),
+        props: { pageSlugOverride: 'blog' }
+    },
+    {
+        path: '/pflanzblog',
+        name: 'section-pflanzblog',
+        component: () => import('../pages/ContentPage.vue'),
+        props: { pageSlugOverride: 'pflanzblog' }
+    },
+    {
+        path: '/baeume',
+        name: 'section-baeume',
+        component: () => import('../pages/ContentPage.vue'),
+        props: { pageSlugOverride: 'baeume' }
+    },
+    {
+        path: '/baumwissen',
+        name: 'section-baumwissen',
+        component: () => import('../pages/ContentPage.vue'),
+        props: { pageSlugOverride: 'baumwissen' }
+    },
+
     // Static content pages
     {
         path: '/seite/:slug',
@@ -108,7 +134,23 @@ const routes = [
         meta: { requiresAuth: true }
     },
 
+    // Legacy redirects for detail views
+    {
+        path: '/post/:id',
+        redirect: to => `/blog/${to.params.id}`
+    },
+
+    // Pflanzblog detail (resolves post of type pflanzung)
+    {
+        path: '/pflanzblog/:id',
+        name: 'pflanzblog-detail',
+        component: () => import('../pages/ContentPage.vue'),
+        props: route => ({ entity: 'blog', id: route.params.id })
+    },
+
     // Generic entity detail (public) — rendered from template Page "detail-<entity>"
+    // E.g. /blog/:slug (matches :entity='blog', :id=slug -> uses Page "detail-blog")
+    // or   /baeume/:slug (matches :entity='baeume', :id=slug -> uses Page "detail-baeume")
     {
         path: '/:entity/:id',
         name: 'entity-detail',

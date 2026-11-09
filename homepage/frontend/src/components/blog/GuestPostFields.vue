@@ -37,8 +37,12 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="gpf-content">Bericht</label>
+      <label class="form-label required" for="gpf-content">Bericht</label>
       <RichTextEditor v-model="modelValue.content" :allowSource="false" />
+    </div>
+
+    <div v-if="showEmail" class="submit-notice">
+      ℹ️ <strong>Hinweis zur Veröffentlichung:</strong> Dein Beitrag wird nach dem Absenden noch nicht öffentlich angezeigt. Du erhältst eine E-Mail mit einem Bestätigungslink – erst mit einem Klick auf diesen Link wird dein Beitrag sofort veröffentlicht!
     </div>
   </div>
 </template>
@@ -64,13 +68,16 @@ const imageRemoved = ref(false);
 
 const previewUrl = computed(() => {
     if (localPreview.value) return localPreview.value;
-    if (props.currentImage && !imageRemoved.value) return mediaUrl(props.currentImage, 'small');
+    if (imageRemoved.value) return null;
+    if (props.currentImage) return mediaUrl(props.currentImage, 'medium');
     return null;
 });
 
 const revokePreview = () => {
-    if (localPreview.value) URL.revokeObjectURL(localPreview.value);
-    localPreview.value = null;
+    if (localPreview.value && localPreview.value.startsWith('blob:')) {
+        URL.revokeObjectURL(localPreview.value);
+        localPreview.value = null;
+    }
 };
 
 const onFileChange = (e) => {
@@ -102,7 +109,13 @@ const reset = () => {
     if (fileInput.value) fileInput.value.value = '';
 };
 
-defineExpose({ reset });
+const validate = () => {
+    if (!props.modelValue.author?.trim()) return false;
+    if (props.showEmail && !props.modelValue.email?.trim()) return false;
+    return props.modelValue.title?.trim();
+};
+
+defineExpose({ reset, validate });
 
 onBeforeUnmount(revokePreview);
 </script>
@@ -156,6 +169,16 @@ onBeforeUnmount(revokePreview);
     flex-direction: column;
     gap: var(--space-sm);
     align-items: flex-start;
+}
+
+.submit-notice {
+    background: var(--color-primary-50, rgba(46, 86, 65, 0.08));
+    border: 1px solid var(--color-primary-light, #cde3d5);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--color-primary-dark, #1c3628);
+    line-height: 1.5;
 }
 
 @media (max-width: 768px) {

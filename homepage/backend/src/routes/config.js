@@ -5,10 +5,12 @@ import { CONFIG_DIR } from '../utils/configLoader.js';
 
 const router = Router();
 
-// In-memory cache for parsed JSON configurations
+// In-memory cache for parsed JSON configurations (only active in production)
 const configCache = new Map();
 let entitiesCache = null;
 let configListCache = null;
+
+const isProd = process.env.NODE_ENV === 'production';
 
 export const clearConfigCache = () => {
     configCache.clear();
@@ -19,13 +21,13 @@ export const clearConfigCache = () => {
 // GET /api/v1/config — List all available config names
 router.get('/', (req, res) => {
     try {
-        if (configListCache) {
+        if (isProd && configListCache) {
             return res.json(configListCache);
         }
         const files = readdirSync(CONFIG_DIR)
             .filter(f => f.endsWith('.json'))
             .map(f => f.replace('.json', ''));
-        configListCache = files;
+        if (isProd) configListCache = files;
         res.json(files);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -36,7 +38,7 @@ router.get('/', (req, res) => {
 // Used to dynamically build navigation menus
 router.get('/entities', (req, res) => {
     try {
-        if (entitiesCache) {
+        if (isProd && entitiesCache) {
             return res.json(entitiesCache);
         }
         const files = readdirSync(CONFIG_DIR).filter(f => f.endsWith('.json'));
@@ -65,7 +67,7 @@ router.get('/entities', (req, res) => {
 
         // Sort entities by menuOrder
         entities.sort((a, b) => a.menuOrder - b.menuOrder);
-        entitiesCache = entities;
+        if (isProd) entitiesCache = entities;
 
         res.json(entities);
     } catch (err) {
@@ -77,13 +79,13 @@ router.get('/entities', (req, res) => {
 router.get('/:name', (req, res) => {
     try {
         const name = req.params.name;
-        if (configCache.has(name)) {
+        if (isProd && configCache.has(name)) {
             return res.json(configCache.get(name));
         }
         const filePath = join(CONFIG_DIR, `${name}.json`);
         const content = readFileSync(filePath, 'utf-8');
         const parsed = JSON.parse(content);
-        configCache.set(name, parsed);
+        if (isProd) configCache.set(name, parsed);
         res.json(parsed);
     } catch (err) {
         if (err.code === 'ENOENT') {

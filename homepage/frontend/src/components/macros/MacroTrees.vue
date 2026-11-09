@@ -102,8 +102,6 @@ const clearFilters = () => {
 
 const setCategory = (cat) => {
     activeCategory.value = cat;
-    // Keep other query params but update category? Or clear others?
-    // Let's just update local state and let the query param stay as is or be cleared
 };
 
 const filterOptions = [

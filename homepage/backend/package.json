@@ -8,6 +8,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "seed": "node src/utils/seed.js",
+    "migrate:pages": "node scripts/migrate-detail-pages.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
