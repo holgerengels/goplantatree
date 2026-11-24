@@ -5,7 +5,7 @@
       :title="page.title"
       :subtitle="page.heroSubtitle"
       :background-image="heroImage"
-      height="45vh"
+      height="40vh"
     >
       <template #actions v-if="page.heroContent">
         <DynamicContent :content="page.heroContent" />
@@ -217,21 +217,6 @@ watch(() => [slug.value, props.entity, props.scope, props.id], loadPage);
     max-width: 800px;
 }
 
-.content-section {
-    padding-top: var(--space-4xl);
-    padding-bottom: var(--space-4xl);
-}
-
-/* Entfernt den Abstand zum Hero, wenn der Content direkt mit einer farbigen Sektion beginnt */
-.content-section:not([style*="padding-top"]):has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
-    padding-top: 0;
-}
-/* Entfernt den Abstand zum Footer, wenn der Content mit einer farbigen Sektion endet */
-.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
-    padding-bottom: 0;
-}
-
-
 .content-wrapper.wide {
     max-width: 1200px;
 }
@@ -272,7 +257,6 @@ watch(() => [slug.value, props.entity, props.scope, props.id], loadPage);
     padding-top: var(--space-4xl);
     padding-bottom: var(--space-4xl);
 }
-
 
 .loading {
     min-height: 50vh;

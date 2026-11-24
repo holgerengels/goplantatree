@@ -8,7 +8,9 @@ export const macroRegistry = {
         label: 'Blog-Beiträge',
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
-            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" }
+            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" },
+            { name: 'project', type: 'String', default: '', desc: 'Projekt-Slug (leer = URL-Parameter ?project= oder alle)' },
+            { name: 'syncQuery', type: 'Boolean', default: true, desc: 'URL-Parameter ?project= beachten, falls kein festes Projekt gesetzt ist' }
         ],
         example: '[[posts limit=3 type="news"]]'
     },
@@ -16,9 +18,22 @@ export const macroRegistry = {
         label: 'Blog-Beiträge (Alias für [[posts]])',
         props: [
             { name: 'limit', type: 'Number', default: 3, desc: 'Max. Anzahl' },
-            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" }
+            { name: 'type', type: 'String', default: '', desc: "z.B. 'news' oder 'pflanzung'" },
+            { name: 'project', type: 'String', default: '', desc: 'Projekt-Slug (leer = URL-Parameter ?project= oder alle)' },
+            { name: 'syncQuery', type: 'Boolean', default: true, desc: 'URL-Parameter ?project= beachten, falls kein festes Projekt gesetzt ist' }
         ],
         example: '[[blog limit=3 type="news"]]'
+    },
+    'project-selector': {
+        label: 'Projekt-Auswahl (Filter)',
+        props: [
+            { name: 'variant', type: 'String', default: 'chips', desc: "Darstellung: 'chips' (Buttons) oder 'select' (Dropdown)" },
+            { name: 'allLabel', type: 'String', default: 'Alle Projekte', desc: 'Beschriftung für alle Projekte' },
+            { name: 'label', type: 'String', default: '', desc: 'Optionale Beschriftung vor der Auswahl' },
+            { name: 'activeOnly', type: 'Boolean', default: false, desc: 'Nur aktive Projekte anzeigen' },
+            { name: 'param', type: 'String', default: 'project', desc: 'URL-Query-Parameter (Standard: project)' }
+        ],
+        example: '[[project-selector allLabel="Alle Pflanzungen"]]'
     },
     'post-submit': {
         label: 'Beitrag einreichen (Gäste, ohne Login)',

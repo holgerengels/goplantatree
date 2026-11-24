@@ -24,6 +24,7 @@ import { useRouter } from 'vue-router';
 import { macroRegistry } from '../../utils/macroRegistry.js';
 
 const MacroPosts = defineAsyncComponent(() => import('../macros/MacroPosts.vue'));
+const MacroProjectSelector = defineAsyncComponent(() => import('../macros/MacroProjectSelector.vue'));
 const MacroPostSubmit = defineAsyncComponent(() => import('../macros/MacroPostSubmit.vue'));
 const MacroProjects = defineAsyncComponent(() => import('../macros/MacroProjects.vue'));
 const MacroTrees = defineAsyncComponent(() => import('../macros/MacroTrees.vue'));
@@ -41,6 +42,7 @@ const MacroFields = defineAsyncComponent(() => import('../macros/MacroFields.vue
 const macroComponents = {
     'posts': MacroPosts,
     'blog': MacroPosts,
+    'project-selector': MacroProjectSelector,
     'post-submit': MacroPostSubmit,
     'projects': MacroProjects,
     'trees': MacroTrees,
@@ -152,7 +154,6 @@ watch(() => props.content, async (newContent) => {
 }
 
 .macro-block {
-    margin: var(--space-lg) 0;
     width: 100%;
 }
 

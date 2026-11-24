@@ -7,7 +7,7 @@ TAG="latest"
 cd "$(dirname "$0")/.."
 
 echo "Building docker image..."
-docker build -f deploy/app.docker -t "$IMAGE_NAME:$TAG" .
+docker build --pull -f deploy/app.docker -t "$IMAGE_NAME:$TAG" .
 
 echo "Pushing to registry..."
 docker push "$IMAGE_NAME:$TAG"

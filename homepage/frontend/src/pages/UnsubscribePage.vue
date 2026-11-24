@@ -1,6 +1,6 @@
 <template>
   <div class="unsubscribe-page">
-    <HeroSection title="Newsletter" subtitle="Abmeldung" height="30vh" />
+    <HeroSection title="Newsletter" subtitle="Abmeldung" height="40vh" />
 
     <section class="section">
       <div class="container">

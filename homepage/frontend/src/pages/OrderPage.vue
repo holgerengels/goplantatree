@@ -1,6 +1,6 @@
 <template>
   <div class="order-page">
-    <HeroSection :title="project?.name || ''" subtitle="Jeder Baum zählt ..." height="35vh"/>
+    <HeroSection :title="project?.name || ''" subtitle="Jeder Baum zählt ..." height="40vh"/>
 
     <section class="section">
       <div class="container">

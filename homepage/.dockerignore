@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/tests
+**/coverage
+**/.git
+**/.gitignore
+**/.env
+**/.env.*
+!.env.example
+backend/uploads
+frontend/dist
+*.log

@@ -5,7 +5,7 @@
       :title="heroTitle"
       :subtitle="heroSubtitle"
       :background-image="heroImage"
-      height="85vh"
+      height="60vh"
     >
       <template #actions v-if="homePage?.heroContent">
         <DynamicContent :content="homePage.heroContent" />
@@ -74,10 +74,6 @@ onMounted(async () => {
 .home-page {
     min-height: calc(100vh - var(--header-height));
 }
-.content-section {
-    padding-top: var(--space-4xl);
-    padding-bottom: var(--space-4xl);
-}
 
 .content-wrapper {
     max-width: 800px;
@@ -116,15 +112,6 @@ onMounted(async () => {
     padding-right: max(var(--space-xl), calc(50vw - (var(--max-width) / 2) + var(--space-xl)));
     padding-top: var(--space-4xl);
     padding-bottom: var(--space-4xl);
-}
-
-/* Entfernt den Abstand zum Hero, wenn der Content direkt mit einer farbigen Sektion beginnt */
-.content-section:has(.content-html > :first-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
-    padding-top: 0;
-}
-/* Entfernt den Abstand zum Footer, wenn der Content mit einer farbigen Sektion endet */
-.content-section:has(.content-html > :last-child:is(.section-surface, .section-alt, .section-primary, .section-primary-50, .section-secondary)) {
-    padding-bottom: 0;
 }
 
 .btn-white-glass {

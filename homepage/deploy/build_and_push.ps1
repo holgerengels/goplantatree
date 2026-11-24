@@ -8,7 +8,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location (Join-Path $ScriptDir "..")
 
 Write-Host "Building docker image..." -ForegroundColor Cyan
-docker build -f deploy/app.docker -t "${IMAGE_NAME}:${TAG}" .
+docker build --pull -f deploy/app.docker -t "${IMAGE_NAME}:${TAG}" .
 
 Write-Host "Pushing to registry..." -ForegroundColor Cyan
 docker push "${IMAGE_NAME}:${TAG}"

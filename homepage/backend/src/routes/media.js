@@ -98,13 +98,13 @@ router.get('/by-slug/:slug/file', async (req, res) => {
         if (variant && media.variants?.get(variant)) {
             const v = media.variants.get(variant);
             res.set('Content-Type', v.mimeType);
-            res.set('Cache-Control', 'public, max-age=31536000');
+            res.set('Cache-Control', 'public, max-age=86400, must-revalidate');
             return res.send(v.data);
         }
 
         if (!media.data) return res.status(404).send('Not found');
         res.set('Content-Type', media.mimeType);
-        res.set('Cache-Control', 'public, max-age=31536000');
+        res.set('Cache-Control', 'public, max-age=86400, must-revalidate');
         res.send(media.data);
     } catch (err) {
         res.status(500).send('Server error');
@@ -136,13 +136,13 @@ router.get('/:id/file', async (req, res) => {
         if (variant && media.variants?.get(variant)) {
             const v = media.variants.get(variant);
             res.set('Content-Type', v.mimeType);
-            res.set('Cache-Control', 'public, max-age=31536000');
+            res.set('Cache-Control', 'public, max-age=86400, must-revalidate');
             return res.send(v.data);
         }
 
         if (!media.data) return res.status(404).send('Not found');
         res.set('Content-Type', media.mimeType);
-        res.set('Cache-Control', 'public, max-age=31536000');
+        res.set('Cache-Control', 'public, max-age=86400, must-revalidate');
         res.send(media.data);
     } catch (err) {
         res.status(500).send('Server error');
@@ -160,6 +160,52 @@ router.get('/:id/info', async (req, res) => {
     }
 });
 
+function extractDimensionsAndFormat(buffer) {
+    try {
+        const dimensions = sizeOf(buffer);
+        let width = dimensions.width;
+        let height = dimensions.height;
+        if (dimensions.orientation && [5, 6, 7, 8].includes(dimensions.orientation)) {
+            [width, height] = [height, width];
+        }
+
+        let format = 'unknown';
+        if (width && height) {
+            const ratio = width / height;
+            const commonRatios = [
+                { name: '21:9', value: 21 / 9 },
+                { name: '16:9', value: 16 / 9 },
+                { name: '16:10', value: 16 / 10 },
+                { name: '3:2', value: 3 / 2 },
+                { name: '4:3', value: 4 / 3 },
+                { name: '5:4', value: 5 / 4 },
+                { name: '1:1', value: 1 },
+                { name: '4:5', value: 4 / 5 },
+                { name: '3:4', value: 3 / 4 },
+                { name: '2:3', value: 2 / 3 },
+                { name: '10:16', value: 10 / 16 },
+                { name: '9:16', value: 9 / 16 }
+            ];
+
+            for (const cr of commonRatios) {
+                if (Math.abs(ratio - cr.value) < 0.05) {
+                    format = cr.name;
+                    break;
+                }
+            }
+            if (format === 'unknown') {
+                if (width > height) format = 'landscape';
+                else if (width < height) format = 'portrait';
+                else format = 'square';
+            }
+        }
+        return { width, height, format };
+    } catch (e) {
+        console.error('Failed to get image dimensions:', e);
+        return { width: undefined, height: undefined, format: 'unknown' };
+    }
+}
+
 // POST /api/v1/media — Admin: Upload new media or external URL
 router.post('/', auth, requirePermission('media', 'create'), upload.single('file'), async (req, res) => {
     try {
@@ -167,42 +213,10 @@ router.post('/', auth, requirePermission('media', 'create'), upload.single('file
 
         let width, height, format = 'unknown';
         if (req.file && req.file.mimetype.startsWith('image/')) {
-            try {
-                const dimensions = sizeOf(req.file.buffer);
-                width = dimensions.width;
-                height = dimensions.height;
-                
-                const ratio = width / height;
-                const commonRatios = [
-                    { name: '21:9', value: 21/9 },
-                    { name: '16:9', value: 16/9 },
-                    { name: '16:10', value: 16/10 },
-                    { name: '3:2', value: 3/2 },
-                    { name: '4:3', value: 4/3 },
-                    { name: '5:4', value: 5/4 },
-                    { name: '1:1', value: 1 },
-                    { name: '4:5', value: 4/5 },
-                    { name: '3:4', value: 3/4 },
-                    { name: '2:3', value: 2/3 },
-                    { name: '10:16', value: 10/16 },
-                    { name: '9:16', value: 9/16 }
-                ];
-                
-                format = 'unknown';
-                for (const cr of commonRatios) {
-                    if (Math.abs(ratio - cr.value) < 0.05) {
-                        format = cr.name;
-                        break;
-                    }
-                }
-                if (format === 'unknown') {
-                    if (width > height) format = 'landscape';
-                    else if (width < height) format = 'portrait';
-                    else format = 'square';
-                }
-            } catch (e) {
-                console.error('Failed to get image dimensions:', e);
-            }
+            const extracted = extractDimensionsAndFormat(req.file.buffer);
+            width = extracted.width;
+            height = extracted.height;
+            format = extracted.format;
         }
 
         const filename = req.file ? (Date.now() + '-' + Math.round(Math.random() * 1E9) + extname(req.file.originalname)) : 'external';
@@ -303,13 +317,10 @@ router.put('/:id', auth, requirePermission('media', 'update'), upload.single('fi
 
             // Re-extract dimensions
             if (req.file.mimetype.startsWith('image/')) {
-                try {
-                    const dimensions = sizeOf(req.file.buffer);
-                    media.width = dimensions.width;
-                    media.height = dimensions.height;
-                } catch (e) {
-                    console.error('Failed to get image dimensions:', e);
-                }
+                const extracted = extractDimensionsAndFormat(req.file.buffer);
+                if (extracted.width) media.width = extracted.width;
+                if (extracted.height) media.height = extracted.height;
+                if (extracted.format !== 'unknown') media.format = extracted.format;
 
                 // Regenerate variants
                 try {

@@ -22,7 +22,7 @@ const props = defineProps({
     subtitle: { type: String },
     badge: { type: String },
     backgroundImage: { type: String },
-    height: { type: String, default: '70vh' }
+    height: { type: String, default: '40vh' }
 });
 
 const heroStyle = computed(() => ({
@@ -37,7 +37,7 @@ const heroStyle = computed(() => ({
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 70vh;
+    min-height: 40vh;
     background-size: cover;
     background-position: center;
     background-color: var(--color-primary);
@@ -104,6 +104,10 @@ const heroStyle = computed(() => ({
 
 .hero-actions :deep(.content-html > p:last-child) {
     margin-bottom: 0;
+}
+
+.hero-actions :deep(.macro-block) {
+    margin: 0;
 }
 
 @media (max-width: 768px) {

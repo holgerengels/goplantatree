@@ -24,13 +24,18 @@ export async function generateVariants(buffer) {
     // Skip non-image or very small images
     if (!metadata.width) return {};
 
+    // EXIF orientation [5, 6, 7, 8] means the image is transposed (width and height swapped)
+    const isRotated = [5, 6, 7, 8].includes(metadata.orientation);
+    const effectiveWidth = isRotated ? metadata.height : metadata.width;
+
     const variants = {};
 
     for (const [name, maxWidth] of Object.entries(VARIANT_SIZES)) {
         // Don't upscale: skip if original is smaller than this variant
-        if (metadata.width <= maxWidth) continue;
+        if (effectiveWidth <= maxWidth) continue;
 
         const result = await sharp(buffer, { failOnError: false })
+            .rotate()
             .resize(maxWidth, null, { withoutEnlargement: true })
             .webp({ quality: 80 })
             .toBuffer({ resolveWithObject: true });

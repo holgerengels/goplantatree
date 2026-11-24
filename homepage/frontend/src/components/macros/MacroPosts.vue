@@ -20,6 +20,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { usePostsStore } from '../../stores/posts.js';
 import PostCard from '../blog/PostCard.vue';
 
@@ -32,6 +33,14 @@ const props = defineProps({
         type: String,
         default: '' // 'news' or 'pflanzung' or empty for all
     },
+    project: {
+        type: String,
+        default: '' // Static project slug (overrides URL query)
+    },
+    syncQuery: {
+        type: Boolean,
+        default: true // Whether to sync with ?project= query if no static project is set
+    },
     actionLabel: {
         type: String,
         default: ''
@@ -42,20 +51,40 @@ const props = defineProps({
     }
 });
 
+const route = useRoute();
 const postsStore = usePostsStore();
 const loading = ref(true);
 
-watch(() => [props.limit, props.type], async ([limit, type]) => {
-    // If the store already has posts and we don't need a specific filter, we might just use them.
-    // However, to be safe and respect limits/types, we fetch them via the store's fetch method
-    await postsStore.fetchPosts({ limit, type: type || undefined });
-    loading.value = false;
-}, { immediate: true });
+const effectiveProject = computed(() => {
+    if (props.project) return props.project;
+    if (props.syncQuery && route?.query?.project) {
+        const q = route.query.project;
+        return Array.isArray(q) ? q[0] : String(q);
+    }
+    return '';
+});
+
+watch(
+    () => [props.limit, props.type, effectiveProject.value],
+    async ([limit, type, project]) => {
+        loading.value = true;
+        await postsStore.fetchPosts({
+            limit,
+            type: type || undefined,
+            project: project || undefined
+        });
+        loading.value = false;
+    },
+    { immediate: true }
+);
 
 const loadedPosts = computed(() => {
-    let list = postsStore.posts;
+    let list = postsStore.posts || [];
     if (props.type) {
-        list = list.filter(p => p.type === props.type);
+        list = list.filter((p) => p.type === props.type);
+    }
+    if (effectiveProject.value) {
+        list = list.filter((p) => p.project === effectiveProject.value);
     }
     return list.slice(0, props.limit);
 });

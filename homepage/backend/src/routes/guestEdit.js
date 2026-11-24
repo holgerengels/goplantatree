@@ -126,6 +126,9 @@ async function saveUploadedImage(file, { title = '', author = '', project = null
         const dimensions = sizeOf(file.buffer);
         width = dimensions.width;
         height = dimensions.height;
+        if (dimensions.orientation && [5, 6, 7, 8].includes(dimensions.orientation)) {
+            [width, height] = [height, width];
+        }
         if (width && height) {
             if (width > height) format = 'landscape';
             else if (width < height) format = 'portrait';

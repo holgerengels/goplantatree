@@ -1,10 +1,10 @@
 <template>
   <nav class="section-nav-wrapper" v-if="sections.length >= 2" aria-label="Abschnittsnavigation">
-    <div class="section-nav-container">
+    <div class="section-nav-container chips">
       <button
         v-for="sec in sections"
         :key="sec.id"
-        :class="['section-nav-item', { active: activeId === sec.id }]"
+        :class="['chip', 'section-nav-item', { active: activeId === sec.id }]"
         @click="scrollTo(sec.id)"
       >
         {{ sec.label }}
@@ -143,11 +143,10 @@ onUnmounted(() => {
     position: sticky;
     top: var(--header-height);
     z-index: 90;
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(245, 247, 242, 0.94);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--color-border-light);
-    box-shadow: var(--shadow-sm);
     transition: all var(--transition-fast);
 }
 
@@ -155,56 +154,16 @@ onUnmounted(() => {
     max-width: var(--max-width);
     margin: 0 auto;
     padding: 0 var(--space-lg);
+    min-height: 56px;
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    height: 48px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-}
-
-.section-nav-container::-webkit-scrollbar {
-    display: none;
-}
-
-.section-nav-item {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 14px;
-    border-radius: var(--radius-full);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    white-space: nowrap;
-    border: 1px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    flex-shrink: 0;
-}
-
-.section-nav-item:hover {
-    color: var(--color-primary-dark);
-    background: var(--color-bg-alt);
-}
-
-.section-nav-item.active {
-    color: var(--color-primary-dark);
-    background: var(--color-primary-50);
-    border-color: rgba(46, 86, 65, 0.2);
-    font-weight: 600;
+    flex-wrap: nowrap;
 }
 
 @media (max-width: 768px) {
     .section-nav-container {
         padding: 0 var(--space-md);
-        height: 42px;
-    }
-
-    .section-nav-item {
-        padding: 4px 10px;
-        font-size: var(--text-xs);
+        min-height: 46px;
     }
 }
 </style>
