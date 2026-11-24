@@ -153,4 +153,66 @@ describe('ContentPage.vue Hero Integration', () => {
         expect(wrapper.find('.content-wrapper h1').exists()).toBe(true);
         expect(wrapper.find('.content-wrapper h1').text()).toBe('Impressum');
     });
+
+    it('loads specific templateSlug if present, falling back to detail-<entity>', async () => {
+        // Mock configStore
+        api.get.mockImplementation(async (url) => {
+            if (url === '/config/entities') {
+                return [{ configName: 'post', slug: 'blog' }];
+            }
+            if (url === '/config/post') {
+                return {
+                    entity: 'post',
+                    slug: 'blog',
+                    api: '/api/v1/posts',
+                    fields: [{ name: 'content', type: 'RichText' }],
+                    public: {}
+                };
+            }
+            if (url === '/posts/mein-baum') {
+                return {
+                    title: 'Mein Baum',
+                    type: 'pflanzung',
+                    content: '<p>Gepflanzt</p>'
+                };
+            }
+            if (url === '/pages/detail-pflanzblog') {
+                throw new Error('Not found');
+            }
+            if (url === '/pages/detail-blog') {
+                return {
+                    title: '{{title}}',
+                    slug: 'detail-blog',
+                    content: 'Detail: {{content}}',
+                    published: true
+                };
+            }
+            throw new Error(`Unexpected url: ${url}`);
+        });
+
+        const wrapper = mount(ContentPage, {
+            props: {
+                entity: 'blog',
+                id: 'mein-baum',
+                templateSlug: 'detail-pflanzblog'
+            },
+            global: {
+                plugins: [pinia],
+                stubs: {
+                    HeroSection: true,
+                    DynamicContent: {
+                        template: '<div class="dynamic-content-stub">{{ content }}</div>',
+                        props: ['content']
+                    },
+                    SectionNav: true
+                }
+            }
+        });
+
+        await flushPromises();
+
+        expect(api.get).toHaveBeenCalledWith('/pages/detail-pflanzblog');
+        expect(api.get).toHaveBeenCalledWith('/pages/detail-blog');
+        expect(wrapper.text()).toContain('Detail: <p>Gepflanzt</p>');
+    });
 });

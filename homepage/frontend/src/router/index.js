@@ -145,7 +145,7 @@ const routes = [
         path: '/pflanzblog/:id',
         name: 'pflanzblog-detail',
         component: () => import('../pages/ContentPage.vue'),
-        props: route => ({ entity: 'blog', id: route.params.id })
+        props: route => ({ entity: 'blog', id: route.params.id, templateSlug: 'detail-pflanzblog' })
     },
 
     // Generic entity detail (public) — rendered from template Page "detail-<entity>"

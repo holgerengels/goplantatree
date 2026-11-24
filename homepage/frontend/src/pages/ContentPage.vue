@@ -51,6 +51,7 @@ const configStore = useConfigStore();
 
 const props = defineProps({
     pageSlugOverride: { type: String, default: '' },
+    templateSlug: { type: String, default: '' },
     entity: { type: String, default: '' },   // entity slug, e.g. "baeume"
     scope: { type: String, default: '' },    // scope value, e.g. project slug for offerings
     id: { type: String, default: '' }        // item slug / id
@@ -157,11 +158,17 @@ const loadEntityPage = async () => {
     if (!!scopeField !== !!props.scope) throw new Error('Seite nicht gefunden');
     const query = scopeField ? `?${scopeField}=${encodeURIComponent(props.scope)}` : '';
 
-    const [template, item] = await Promise.all([
-        api.get(`/pages/${DETAIL_PAGE_PREFIX}${props.entity}`),
+    const preferredTemplateSlug = props.templateSlug || `${DETAIL_PAGE_PREFIX}${props.entity}`;
+    const [preferredTemplate, item] = await Promise.all([
+        api.get(`/pages/${preferredTemplateSlug}`).catch(() => null),
         api.get(`${config.api.replace('/api/v1', '')}/${encodeURIComponent(props.id)}${query}`)
     ]);
-    if (template.published === false) throw new Error('Seite nicht gefunden');
+
+    let template = preferredTemplate;
+    if (!template && preferredTemplateSlug !== `${DETAIL_PAGE_PREFIX}${props.entity}`) {
+        template = await api.get(`/pages/${DETAIL_PAGE_PREFIX}${props.entity}`).catch(() => null);
+    }
+    if (!template || template.published === false) throw new Error('Seite nicht gefunden');
 
     const rawFields = (config.fields || []).filter(f => f.type === 'RichText').map(f => f.name);
     entityContext.value = { item, config };
@@ -191,8 +198,10 @@ const loadPage = async () => {
 
         configStore.pageHeroMode = hasHero.value;
     } catch (err) {
-        if (props.entity === 'blog' || props.entity === 'post' || props.entity === 'posts') {
-            error.value = 'Beitrag nicht gefunden';
+        if (props.entity) {
+            const entityInfo = configStore.findBySlug(props.entity);
+            const label = entityInfo?.label?.singular || 'Eintrag';
+            error.value = `${label} nicht gefunden`;
         } else {
             error.value = err.message || 'Seite nicht gefunden';
         }
